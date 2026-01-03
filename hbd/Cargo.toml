@@ -1,0 +1,65 @@
+[package]
+name = "hbd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Git-first issue tracker powered by HelixDB"
+readme = "specs/README.md"
+keywords = ["issue-tracker", "git", "graph-database", "ai", "cli"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "hbd"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true }
+
+# CLI
+clap = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+
+# Embeddings
+fastembed = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Git operations (pure Rust)
+gix = { workspace = true }
+
+# File watching
+notify = { workspace = true }
+
+# Date/time
+chrono = { workspace = true }
+
+# UUID for hash-based IDs
+uuid = { workspace = true }
+
+# Hashing
+blake3 = { workspace = true }
+
+# Markdown parsing
+pulldown-cmark = { workspace = true }
+pulldown-cmark-to-cmark = { workspace = true }
+
+# YAML frontmatter
+gray_matter = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.12"
+assert_cmd = "2.0"
+predicates = "3.1"
