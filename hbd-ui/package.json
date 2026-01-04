@@ -13,11 +13,14 @@
     "lint:fix": "oxlint --fix . && eslint --fix --ext .svelte src/",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "validate": "bun run lint && bun run format:check && bun run check"
+    "validate": "bun run lint && bun run format:check && bun run check",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.8",
-    "@sveltejs/adapter-node": "^5.2.9",
+    "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.15.1",
     "@xyflow/svelte": "^1.5.0",
     "svelte": "^5.16.0"

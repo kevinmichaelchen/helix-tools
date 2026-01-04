@@ -10,6 +10,10 @@ readme = "README.md"
 keywords = ["issue-tracker", "git", "graph-database", "ai", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 
+[lib]
+name = "hbd"
+path = "src/lib.rs"
+
 [[bin]]
 name = "hbd"
 path = "src/main.rs"
