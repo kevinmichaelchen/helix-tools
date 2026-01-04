@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use uuid::Uuid;
 
 const ID_PREFIX: &str = "bd";
