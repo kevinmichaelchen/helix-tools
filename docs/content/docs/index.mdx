@@ -3,41 +3,47 @@ title: Helix Tools
 description: AI-native developer tools powered by HelixDB
 ---
 
-A monorepo of AI-native developer tools powered by [HelixDB](https://github.com/HelixDB/helix-db) - the graph-vector database built for RAG and AI applications.
+import { Cards, Card } from 'fumadocs-ui/components/card';
 
-## Tools
+# Helix Tools
 
-| Tool | Description | Status |
-|------|-------------|--------|
-| **hbd** | Git-first issue tracker for AI-supervised workflows | In Development |
+**AI-native developer tools built for the agentic era.**
+
+Modern AI-assisted development needs persistent, structured memory. These tools provide that memory layer using [HelixDB](https://github.com/HelixDB/helix-db) — the graph-vector database built for RAG and AI applications.
+
+## Why Helix Tools?
+
+AI coding assistants are powerful, but they lack memory. They can't remember what you worked on yesterday, can't find related issues semantically, and can't track dependencies across your codebase.
+
+Helix Tools solves this by giving your AI agents:
+
+- **Semantic Search** — Find issues by meaning, not just keywords
+- **Graph Intelligence** — Understand dependencies, blockers, and critical paths
+- **Persistent Memory** — Context that survives across sessions
+- **Offline-First** — Full functionality without network access
+
+## The Toolkit
+
+| Tool | Purpose | Status |
+|------|---------|--------|
+| [**hbd**](/docs/tools/hbd) | Git-first issue tracker with semantic search and dependency graphs | In Development |
 | **helix-docs** | Local cache for fetched docs during agentic research | Planned |
 | **helix-map** | Codebase structure cache for fast exploration | Planned |
 | **helix-mail** | Agent-to-agent messaging and coordination | Planned |
 
-## Design Principles
+## Powered by HelixDB
 
-### Git-First
+All tools are built on [HelixDB](https://github.com/HelixDB/helix-db), which uniquely combines:
 
-All tools store their data in git-friendly formats (Markdown, YAML, JSONL). HelixDB acts as a fast query cache, not the source of truth.
+- **Graph traversal** — Navigate relationships between entities
+- **Vector search** — Find semantically similar content  
+- **BM25 text search** — Traditional keyword matching
+- **Hybrid reranking** — Combine search methods intelligently
 
-### Offline-First
-
-Full functionality without network access. Local embeddings via `fastembed` (no Ollama server required). Cloud APIs are optional fallbacks.
-
-### AI-Native
-
-Every tool is designed for AI agent consumption:
-
-- `--json` output on all commands
-- Semantic search for context retrieval
-- Structured data for LLM prompts
-- Agent session tracking
-
-### UNIX Philosophy
-
-Each tool does one thing well. They compose via standard interfaces (stdin/stdout, files, git).
+This combination enables features like "find issues similar to this one" or "what's the critical path blocking this epic" that traditional databases simply can't provide.
 
 <Cards>
-  <Card title="hbd Issue Tracker" href="/docs/hbd" />
-  <Card title="GitHub Repository" href="https://github.com/kevinmichaelchen/helix-tools" />
+  <Card title="Getting Started" href="/docs/getting-started" />
+  <Card title="Design Principles" href="/docs/principles" />
+  <Card title="hbd Issue Tracker" href="/docs/tools/hbd" />
 </Cards>

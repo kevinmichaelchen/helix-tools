@@ -1,0 +1,85 @@
+---
+title: Getting Started
+description: Install and start using Helix Tools
+---
+
+# Getting Started
+
+Get up and running with Helix Tools in minutes.
+
+## Prerequisites
+
+- **Rust 1.75+** — For building the tools
+- **Git 2.0+** — For version control
+- **HelixDB CLI** — The underlying database
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/kevinmichaelchen/helix-tools.git
+cd helix-tools
+
+# Build all tools
+cargo build --release
+
+# Install hbd to your PATH
+cargo install --path hbd
+```
+
+## Quick Start with hbd
+
+The issue tracker is the first tool available. Here's how to get started:
+
+### Initialize in Your Project
+
+```bash
+cd your-project
+hbd init
+```
+
+This creates:
+- `.tickets/` — Where issue files are stored (git-tracked)
+- `.helix/config.toml` — Configuration file
+- `helix.toml` — HelixDB schema
+
+### Create Your First Issue
+
+```bash
+hbd create "Add user authentication" \
+  --description "Implement JWT-based auth flow" \
+  --type feature \
+  --priority 1
+```
+
+### Search Issues
+
+```bash
+# Keyword search
+hbd search "authentication"
+
+# Semantic search (finds related concepts)
+hbd search "login problems" --semantic
+
+# Hybrid search (best of both)
+hbd search "user can't sign in" --hybrid
+```
+
+### Manage Dependencies
+
+```bash
+# Add a dependency
+hbd dep add bd-abc123 blocks bd-xyz789
+
+# See what's ready to work on (no blockers)
+hbd ready
+
+# See what's blocked and why
+hbd blocked
+```
+
+## What's Next?
+
+- Learn about [Design Principles](/docs/principles) behind Helix Tools
+- Explore the [Architecture](/docs/architecture) 
+- Deep dive into [hbd](/docs/tools/hbd) features

@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 description = "Git-first issue tracker powered by HelixDB"
-readme = "specs/README.md"
+readme = "README.md"
 keywords = ["issue-tracker", "git", "graph-database", "ai", "cli"]
 categories = ["command-line-utilities", "development-tools"]
 

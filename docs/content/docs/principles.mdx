@@ -1,0 +1,66 @@
+---
+title: Design Principles
+description: The philosophy behind Helix Tools
+---
+
+# Design Principles
+
+Every tool in this collection follows four core principles.
+
+## Git-First
+
+All tools store their data in git-friendly formats — Markdown, YAML, JSONL. The files are human-readable, diff-friendly, and work with your existing git workflow.
+
+**HelixDB acts as a fast query cache, not the source of truth.** 
+
+If you delete the database, you lose nothing. Run `hbd sync` and it rebuilds from your `.tickets/` files. Your issues live in git, travel with your code, and merge like any other file.
+
+```
+.tickets/
+├── bd-a1b2c3.md   ← Human-readable Markdown
+├── bd-d4e5f6.md   ← YAML frontmatter + content
+└── bd-g7h8i9.md   ← Version controlled in git
+```
+
+## Offline-First
+
+Full functionality without network access. No cloud service required. No API keys needed.
+
+- **Local embeddings** via `fastembed` — The BGE-small model runs natively in Rust
+- **Local database** via HelixDB/LMDB — Everything on your machine
+- **Cloud APIs are optional fallbacks** — Use them if you want, but never required
+
+This means you can work on a plane, in a coffee shop with spotty WiFi, or in an air-gapped environment. Your tools work everywhere your code does.
+
+## AI-Native
+
+Every tool is designed for AI agent consumption first, human consumption second.
+
+- **`--json` output** on all commands for structured parsing
+- **Semantic search** for intelligent context retrieval
+- **Agent tracking** via `--agent` and `--session` flags
+- **Token-aware context** with `hbd context --limit <tokens>`
+
+When an AI assistant asks "what issues are related to authentication?", it can get a semantically-relevant answer — not just keyword matches.
+
+```bash
+# Perfect for AI agents
+hbd context --query "authentication" --limit 4000 --json
+```
+
+## UNIX Philosophy
+
+Each tool does one thing well. They compose via standard interfaces.
+
+| Tool | Single Purpose |
+|------|---------------|
+| `hbd` | Track issues with graph-aware dependencies |
+| `helix-docs` | Cache and search fetched documentation |
+| `helix-map` | Index codebase structure |
+| `helix-mail` | Route messages between agents |
+
+Tools communicate through:
+- **stdin/stdout** — Pipe data between commands
+- **Files** — Standard formats (Markdown, JSON, YAML)
+- **Git** — Sync and collaborate via version control
+- **HelixDB** — Shared graph-vector storage when needed

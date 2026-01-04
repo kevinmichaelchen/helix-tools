@@ -1,0 +1,91 @@
+---
+title: Architecture
+description: How Helix Tools are structured
+---
+
+# Architecture
+
+Helix Tools share a common architecture that balances simplicity with power.
+
+## Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLI Tools Layer                              │
+│                                                                      │
+│   hbd          helix-docs      helix-map       helix-mail           │
+│   (issues)     (research)      (codebase)      (messaging)          │
+│                                                                      │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+┌──────────────────────────────┴──────────────────────────────────────┐
+│                        Shared Libraries                              │
+│                                                                      │
+│   helix-embed          helix-sync           helix-common            │
+│   (fastembed)          (git ops)            (types, utils)          │
+│                                                                      │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+┌──────────────────────────────┴──────────────────────────────────────┐
+│                           HelixDB                                    │
+│                                                                      │
+│   Graph Engine    Vector Search    BM25 Index    LMDB Storage       │
+│   (traversals)    (HNSW)           (text)        (persistence)      │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Data Flow
+
+Every tool follows the same pattern:
+
+### Write Path
+
+1. User/agent creates or modifies data via CLI
+2. Changes are written to git-tracked files (Markdown/YAML)
+3. Data is indexed in HelixDB for fast querying
+4. Embeddings are generated asynchronously
+
+### Read Path
+
+1. Query comes in (keyword, semantic, or hybrid)
+2. HelixDB returns results using appropriate index
+3. Results are formatted for human or agent consumption
+
+### Sync Path
+
+When you `git pull` new changes:
+
+1. File watcher detects changes in tracked directories
+2. Changed files are parsed and validated
+3. HelixDB is updated to match file state
+4. Embeddings are regenerated if text content changed
+
+## Technology Stack
+
+| Component | Technology | Why |
+|-----------|------------|-----|
+| Language | Rust | Performance, safety, HelixDB compatibility |
+| Database | HelixDB | Graph + vector + BM25 in one |
+| Embeddings | fastembed | Native Rust, offline, no server |
+| CLI | clap | Standard Rust CLI framework |
+| Git ops | git2 | Native Rust git bindings |
+| File watch | notify | Cross-platform file watching |
+
+## Project Structure
+
+```
+helix-tools/
+├── hbd/                    # Issue tracker
+│   ├── specs/              # Kiro-style specifications
+│   └── src/                # Rust source
+│
+├── shared/                 # Shared Rust crates (planned)
+│   ├── helix-embed/        # Embedding utilities
+│   └── helix-sync/         # Git sync utilities
+│
+├── docs/                   # This documentation site
+│
+├── Cargo.toml              # Workspace root
+└── README.md
+```

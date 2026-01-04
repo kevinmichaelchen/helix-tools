@@ -1,0 +1,86 @@
+---
+title: Planned Tools
+description: Upcoming tools in the Helix ecosystem
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Planned Tools
+
+Beyond `hbd`, we're building a suite of tools for agentic development workflows.
+
+<Callout type="info">
+  These tools are in the planning stage. APIs and features may change.
+</Callout>
+
+## helix-docs
+
+**Local cache for fetched documentation during agentic research.**
+
+When AI agents research how to use a library, they fetch documentation from the web. This is slow, uses tokens on repeated fetches, and doesn't work offline.
+
+helix-docs will:
+
+- Cache fetched documentation locally
+- Index content for semantic search
+- Provide fast retrieval for repeated queries
+- Work completely offline after initial fetch
+
+```bash
+# Fetch and cache documentation
+helix-docs fetch https://docs.rs/tokio
+
+# Search cached docs
+helix-docs search "async runtime configuration"
+
+# Get context for an LLM
+helix-docs context --query "error handling" --limit 2000
+```
+
+## helix-map
+
+**Codebase structure cache for fast exploration.**
+
+AI agents spend significant time re-discovering codebase structure. helix-map will maintain an always-current index of:
+
+- File and directory structure
+- Symbol definitions and references  
+- Import/export relationships
+- Module boundaries
+
+```bash
+# Index the codebase
+helix-map index
+
+# Find where something is defined
+helix-map find "UserService"
+
+# Get structure context for an LLM
+helix-map context --path src/auth/
+```
+
+## helix-mail
+
+**Agent-to-agent messaging and coordination.**
+
+As multi-agent workflows become common, agents need to communicate. helix-mail will provide:
+
+- Asynchronous message passing
+- Topic-based routing
+- Message persistence
+- Integration with hbd issues
+
+```bash
+# Send a message
+helix-mail send --to agent-b --topic "refactoring" "Starting work on auth module"
+
+# Check messages
+helix-mail inbox
+
+# Subscribe to topics
+helix-mail subscribe "builds" "deployments"
+```
+
+## Contributing
+
+Interested in helping build these tools? Check out the [GitHub repository](https://github.com/kevinmichaelchen/helix-tools) and look for issues labeled with the tool you're interested in.

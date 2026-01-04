@@ -1,3 +1,75 @@
 @import 'tailwindcss';
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
+
+:root {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  
+  --primary: 199 89% 48%;
+  --primary-foreground: 0 0% 100%;
+  
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  
+  --muted: 217.2 32.6% 12%;
+  --muted-foreground: 215 20.2% 65.1%;
+  
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 199 89% 48%;
+
+  --fd-background: hsl(var(--background));
+  --fd-foreground: hsl(var(--foreground));
+  --fd-primary: hsl(var(--primary));
+  --fd-primary-foreground: hsl(var(--primary-foreground));
+  --fd-muted: hsl(var(--muted));
+  --fd-muted-foreground: hsl(var(--muted-foreground));
+  --fd-accent: hsl(var(--accent));
+  --fd-accent-foreground: hsl(var(--accent-foreground));
+  --fd-border: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  background-position: center top;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-400 via-cyan-400 to-indigo-400;
+}
+
+.glow-card {
+  @apply relative overflow-hidden rounded-xl border border-white/10 bg-white/5 p-6 transition-all duration-300 hover:border-sky-500/50 hover:bg-white/10 hover:shadow-[0_0_30px_-10px_rgba(14,165,233,0.3)];
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 5px;
+  border: 2px solid hsl(var(--background));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}

@@ -1,0 +1,171 @@
+---
+title: hbd - Issue Tracker
+description: Git-first issue tracking with semantic search and dependency graphs
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# hbd
+
+**A distributed, git-first issue tracker built for AI-supervised workflows.**
+
+The name pays homage to both **H**elix and **B**ea**d**s — the excellent issue tracker by Steve Yegge that inspired this project.
+
+<Callout type="info">
+  hbd is currently in active development. Core features are being implemented.
+</Callout>
+
+## Why hbd?
+
+Traditional issue trackers store your data in someone else's cloud. When you need to work offline, or when AI agents need fast access to project context, that's a problem.
+
+hbd keeps your issues:
+
+- **In your repo** — Issues are Markdown files in `.tickets/`
+- **In your control** — No cloud service required
+- **Searchable by meaning** — Not just keywords
+
+## Key Features
+
+### Semantic Search
+
+Find issues by what they mean, not just what words they contain.
+
+```bash
+# Traditional search: only matches "auth"
+hbd search "auth"
+
+# Semantic search: finds "login", "sign-in", "authentication" too
+hbd search "user can't log in" --semantic
+
+# Hybrid: combines both approaches
+hbd search "memory leak" --hybrid
+```
+
+When you create a new issue, hbd automatically warns you about potential duplicates — even if they use completely different words.
+
+### Dependency Graphs
+
+Issues can block each other. hbd understands these relationships and can answer questions like:
+
+```bash
+# What can I work on right now? (no open blockers)
+hbd ready
+
+# What's blocked and why?
+hbd blocked
+
+# What's the longest chain blocking this epic?
+hbd critical-path bd-epic-123
+```
+
+The critical path analysis uses graph algorithms to identify where to focus for maximum impact.
+
+### AI Agent Support
+
+Every command is designed to work with AI coding assistants:
+
+```bash
+# JSON output for structured parsing
+hbd list --json
+
+# Track which agent created/modified issues
+hbd create "Fix the bug" --agent claude --session abc123
+
+# Get context sized for LLM token limits
+hbd context --query "authentication" --limit 4000
+```
+
+### Git-Native Sync
+
+Issues are Markdown files with YAML frontmatter:
+
+```markdown
+---
+id: bd-a1b2c3
+title: Fix memory leak in parser
+status: open
+priority: 1
+type: bug
+labels: [performance, parser]
+depends_on:
+  - id: bd-x7y8z9
+    type: blocks
+---
+
+The parser leaks memory when processing large files...
+```
+
+These files merge cleanly in git. Hash-based IDs prevent conflicts across branches. Your issues travel with your code.
+
+## Commands
+
+### Issue Management
+
+| Command | Description |
+|---------|-------------|
+| `hbd create` | Create a new issue |
+| `hbd show <id>` | Display issue details |
+| `hbd list` | List issues with filters |
+| `hbd update <id>` | Modify issue fields |
+| `hbd close <id>` | Close an issue |
+
+### Search
+
+| Command | Description |
+|---------|-------------|
+| `hbd search "query"` | BM25 keyword search |
+| `hbd search "query" --semantic` | Vector similarity search |
+| `hbd search "query" --hybrid` | Combined search with reranking |
+| `hbd similar <id>` | Find issues similar to this one |
+
+### Dependencies
+
+| Command | Description |
+|---------|-------------|
+| `hbd dep add <from> blocks <to>` | Add a dependency |
+| `hbd ready` | Show unblocked issues |
+| `hbd blocked` | Show blocked issues with reasons |
+| `hbd critical-path <id>` | Find longest blocking chain |
+
+### AI Features
+
+| Command | Description |
+|---------|-------------|
+| `hbd context` | Get project context for LLMs |
+| `hbd compact` | Summarize old closed issues |
+
+## Compared to Beads
+
+[Beads](https://github.com/steveyegge/beads) is excellent. If you're happy with it, keep using it! hbd exists because we wanted capabilities that require a graph-vector database:
+
+| Feature | Beads | hbd |
+|---------|-------|-----|
+| Storage | SQLite | HelixDB |
+| Keyword search | Yes | Yes |
+| Semantic search | No | Yes |
+| Hybrid search + reranking | No | Yes |
+| Dependency tracking | Yes | Yes |
+| Graph algorithms (critical path) | Limited | Full |
+| Offline embeddings | No | Yes (fastembed) |
+
+### What We Kept from Beads
+
+- Git-backed storage in `.tickets/`
+- Hash-based IDs for conflict-free merging  
+- Dependency tracking with blocking semantics
+- AI compaction for context window management
+- Agent tracking with `--agent` and `--session` flags
+- `ready` and `blocked` commands
+
+### What We Simplified
+
+- Fewer issue types (6 vs 12+)
+- No molecular chemistry (templates, wisps, bonds)
+- Single daemon architecture
+
+<Cards>
+  <Card title="Getting Started" href="/docs/getting-started" />
+  <Card title="Design Principles" href="/docs/principles" />
+</Cards>
