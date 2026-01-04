@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import { Tooltip } from 'bits-ui';
 
 	let { children } = $props();
 </script>
@@ -8,4 +9,6 @@
 	<title>hbd-ui | Task Graph Visualizer</title>
 </svelte:head>
 
-{@render children()}
+<Tooltip.Provider delayDuration={200}>
+	{@render children()}
+</Tooltip.Provider>
