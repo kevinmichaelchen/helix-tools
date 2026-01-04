@@ -1,0 +1,299 @@
+---
+title: CLI Reference
+description: Comprehensive guide to hbd command-line interface
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# CLI Reference
+
+This document provides a detailed reference for all `hbd` commands and flags.
+
+## Global Flags
+
+These flags can be used with any command.
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output result as structured JSON instead of human-readable text. |
+| `-h`, `--help` | Show help information for the command. |
+| `-V`, `--version` | Show version information. |
+
+---
+
+## Project Setup
+
+### `hbd init`
+Initialize a new `hbd` project in the current directory. This creates the `.tickets/` directory for issue storage and a `.helix/config.toml` file.
+
+**Example:**
+```bash
+hbd init
+```
+
+### `hbd info`
+Show the current project status, including the number of total and open issues.
+
+**Example:**
+```bash
+hbd info
+```
+
+---
+
+## Issue Management
+
+### `hbd create <title>`
+Create a new issue.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-d`, `--description` | Detailed description of the issue. | None |
+| `-t`, `--type` | Issue type (`bug`, `feature`, `task`, `epic`, `chore`). | `task` |
+| `-p`, `--priority` | Priority level (0-4, where 0 is Critical). | `2` (Medium) |
+| `-l`, `--labels` | Comma-separated list of labels. | None |
+| `-a`, `--assignee` | Username of the person assigned to the issue. | None |
+| `--agent` | ID of the AI agent creating the issue. | None |
+| `--session` | Session ID for grouping agent actions. | None |
+| `--parent` | ID of the parent issue (for epics/tasks). | None |
+
+**Example:**
+```bash
+hbd create "Fix memory leak" --type bug --priority 1 --labels performance,parser
+```
+
+### `hbd show <id>`
+Display full details for a specific issue. Supports partial ID matching (e.g., `bd-a1b`).
+
+**Example:**
+```bash
+hbd show bd-a1b2c3
+```
+
+### `hbd list`
+List issues in the project. By default, it excludes closed issues.
+
+| Flag | Description |
+|------|-------------|
+| `-s`, `--status` | Filter by status (`open`, `in_progress`, `blocked`, `closed`). |
+| `-t`, `--type` | Filter by issue type. |
+| `-p`, `--priority` | Filter by priority level. |
+| `-l`, `--label` | Filter by a specific label. |
+| `-a`, `--assignee` | Filter by assignee. |
+
+**Example:**
+```bash
+hbd list --status in_progress --label ui
+```
+
+### `hbd update <id>`
+Modify the properties of an existing issue.
+
+| Flag | Description |
+|------|-------------|
+| `--status` | Change issue status. |
+| `--priority` | Change priority level. |
+| `--title` | Update the issue title. |
+| `--assignee` | Update the assignee. |
+
+**Example:**
+```bash
+hbd update bd-a1b2 --status in_progress --priority 1
+```
+
+### `hbd close <id>`
+Close an issue.
+
+| Flag | Description |
+|------|-------------|
+| `-r`, `--reason` | Brief explanation for closing. |
+| `--force` | Force close even if the issue has open child issues. |
+
+**Example:**
+```bash
+hbd close bd-a1b2 --reason "Feature implemented in PR #42"
+```
+
+### `hbd reopen <id>`
+Reopen a closed issue, setting its status back to `open`.
+
+**Example:**
+```bash
+hbd reopen bd-a1b2
+```
+
+---
+
+## Labels
+
+### `hbd label add <id> <labels>`
+Add one or more labels (comma-separated) to an issue. This operation is idempotent.
+
+**Example:**
+```bash
+hbd label add bd-a1b2 bug,urgent
+```
+
+### `hbd label remove <id> <label>`
+Remove a specific label from an issue.
+
+<Callout type="info">
+If the label does not exist on the issue, the command will issue a warning but exit successfully.
+</Callout>
+
+**Example:**
+```bash
+hbd label remove bd-a1b2 urgent
+```
+
+### `hbd label list <id>`
+List all labels currently applied to a specific issue.
+
+**Example:**
+```bash
+hbd label list bd-a1b2
+```
+
+### `hbd label list-all`
+List all labels used across the entire project, sorted by frequency.
+
+**Example:**
+```bash
+hbd label list-all
+```
+
+---
+
+## Comments
+
+### `hbd comment <id> <message>`
+Add a comment to an issue.
+
+| Flag | Description |
+|------|-------------|
+| `--agent` | Mark the comment as being created by an AI agent. |
+
+**Example:**
+```bash
+hbd comment bd-a1b2 "Investigated the logs; seems related to the database connection pool."
+```
+
+### `hbd comments <id>`
+List all comments on a specific issue.
+
+**Example:**
+```bash
+hbd comments bd-a1b2
+```
+
+---
+
+## Dependencies
+
+### `hbd dep add <from> <type> <to>`
+Create a dependency between two issues.
+Supported types: `blocks`, `related`, `waits_for`.
+
+**Example:**
+```bash
+hbd dep add bd-123 blocks bd-456
+```
+
+### `hbd dep remove <from> <type> <to>`
+Remove a dependency between two issues.
+
+**Example:**
+```bash
+hbd dep remove bd-123 blocks bd-456
+```
+
+### `hbd dep list <id>`
+List all issues that the specified issue depends on, and all issues that depend on it.
+
+**Example:**
+```bash
+hbd dep list bd-123
+```
+
+### `hbd dep cycles`
+Search for and list any circular dependencies in the project.
+
+**Example:**
+```bash
+hbd dep cycles
+```
+
+### `hbd ready`
+List all `open` issues that have no unclosed blockers. These are the issues ready for immediate work.
+
+**Example:**
+```bash
+hbd ready
+```
+
+### `hbd blocked`
+List all non-closed issues that are currently blocked by one or more open issues.
+
+**Example:**
+```bash
+hbd blocked
+```
+
+### `hbd explain <id>`
+Visualize the blocker tree for a specific issue, showing all transitive dependencies that must be resolved.
+
+**Example:**
+```bash
+hbd explain bd-123
+```
+
+---
+
+## Analytics
+
+### `hbd stats`
+Show project-wide statistics including issue counts by status, type, and priority, as well as weekly creation/closure trends.
+
+**Example:**
+```bash
+hbd stats
+```
+
+### `hbd stale`
+Find issues that haven't been updated recently.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--days` | Number of days of inactivity to consider "stale". | `14` |
+| `-s`, `--status` | Filter stale issues by status. | None |
+| `-l`, `--limit` | Limit the number of results. | None |
+
+**Example:**
+```bash
+hbd stale --days 30
+```
+
+---
+
+## Planned Features
+
+<Callout type="warn">
+The following commands are defined in the CLI but are not yet implemented.
+</Callout>
+
+### Search & Discovery
+- `hbd search <query>`: Keyword search (BM25). <Callout type="warn">Coming Soon</Callout>
+- `hbd search --semantic`: Vector similarity search. <Callout type="warn">Coming Soon</Callout>
+- `hbd search --hybrid`: Combined keyword and semantic search. <Callout type="warn">Coming Soon</Callout>
+- `hbd similar <id>`: Find issues semantically similar to a specific one. <Callout type="warn">Coming Soon</Callout>
+
+### Advanced Analytics & Graphs
+- `hbd critical-path <id>`: Find the longest chain of blocking dependencies. <Callout type="warn">Coming Soon</Callout>
+- `hbd graph <id>`: Generate a DOT or Mermaid graph of dependencies. <Callout type="warn">Coming Soon</Callout>
+- `hbd health`: Calculate project health metrics (velocity, churn, etc.). <Callout type="warn">Coming Soon</Callout>
+
+### AI & Automation
+- `hbd context`: Generate a project summary optimized for LLM context windows. <Callout type="warn">Coming Soon</Callout>
+- `hbd compact`: Summarize old closed issues to reclaim storage/context. <Callout type="warn">Coming Soon</Callout>
+- `hbd sync`: Synchronize local issues with a remote HelixDB instance. <Callout type="warn">Coming Soon</Callout>
+- `hbd daemon`: Start a background process for file watching and auto-sync. <Callout type="warn">Coming Soon</Callout>
