@@ -151,6 +151,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 
 - [x] **T1.4.4** Implement `hbd list`
   - Support filters: --status, --type, --priority, --label, --assignee, ~~--project~~
+  - Default: exclude closed issues unless --status explicitly provided (AC-003.1)
   - Sort by priority then created_at
   - Table output with columns: ID, Title, Status, Priority, Assignee
   - Support --json output

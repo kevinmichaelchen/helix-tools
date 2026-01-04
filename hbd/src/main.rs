@@ -590,6 +590,9 @@ fn cmd_list(
     if let Some(s) = status {
         let s: Status = s.parse().map_err(hbd::HbdError::Other)?;
         issues.retain(|i| i.status == s);
+    } else {
+        // Default: exclude closed issues (AC-003.1)
+        issues.retain(|i| i.status != Status::Closed);
     }
     if let Some(t) = issue_type {
         let t: IssueType = t.parse().map_err(hbd::HbdError::Other)?;
