@@ -166,7 +166,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
   - Set status to closed
   - Set closed_at timestamp
   - Add closing comment with reason
-  - ~~Warn if open children exist (require --force)~~ (--force flag exists but warning not implemented)
+  - Warn if open children exist, require --force to proceed (AC-005.3)
 
 - [x] **T1.4.7** Implement `hbd reopen`
   - Set status to open

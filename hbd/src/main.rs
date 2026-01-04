@@ -395,11 +395,7 @@ fn run(cli: Cli) -> hbd::Result<()> {
             assignee.as_deref(),
             cli.json,
         ),
-        Commands::Close {
-            id,
-            reason,
-            force: _,
-        } => cmd_close(&id, reason.as_deref(), cli.json),
+        Commands::Close { id, reason, force } => cmd_close(&id, reason.as_deref(), force, cli.json),
         Commands::Reopen { id } => cmd_reopen(&id, cli.json),
         Commands::Comment { id, message, agent } => {
             cmd_comment(&id, &message, agent.as_deref(), cli.json)
@@ -697,10 +693,44 @@ fn cmd_update(
     Ok(())
 }
 
-fn cmd_close(id: &str, reason: Option<&str>, json: bool) -> hbd::Result<()> {
+fn cmd_close(id: &str, reason: Option<&str>, force: bool, json: bool) -> hbd::Result<()> {
     let store = TicketStore::from_current_dir()?;
     let id = store.resolve_id(id)?;
     let mut issue = store.read_issue(&id)?;
+
+    // Check for open children (AC-005.3)
+    let all_issues = store.read_all_issues()?;
+    let open_children: Vec<_> = all_issues
+        .iter()
+        .filter(|i| i.parent_id.as_deref() == Some(&id) && i.status != Status::Closed)
+        .collect();
+
+    if !open_children.is_empty() && !force {
+        if json {
+            let children: Vec<_> = open_children
+                .iter()
+                .map(|c| serde_json::json!({"id": &c.id, "title": &c.title, "status": c.status.as_str()}))
+                .collect();
+            let result = serde_json::json!({
+                "error": "has_open_children",
+                "message": format!("Issue {id} has {} open child issue(s). Use --force to close anyway.", open_children.len()),
+                "open_children": children
+            });
+            println!("{}", serde_json::to_string_pretty(&result)?);
+        } else {
+            eprintln!(
+                "error: issue {id} has {} open child issue(s):",
+                open_children.len()
+            );
+            for child in &open_children {
+                eprintln!("  - {} ({}): {}", child.id, child.status, child.title);
+            }
+            eprintln!("\nUse --force to close anyway.");
+        }
+        return Err(hbd::HbdError::Other(
+            "cannot close issue with open children without --force".to_string(),
+        ));
+    }
 
     let user = whoami::username();
     issue.close(reason.map(String::from), &user, CreatorType::Human);
