@@ -3,10 +3,19 @@
 
   interface Props {
     issue: Issue;
+    issues: Issue[];
     onClose: () => void;
+    onSelectIssue: (issue: Issue) => void;
   }
 
-  let { issue, onClose }: Props = $props();
+  let { issue, issues, onClose, onSelectIssue }: Props = $props();
+
+  function handleDependencyClick(depId: string) {
+    const targetIssue = issues.find((i) => i.id === depId);
+    if (targetIssue) {
+      onSelectIssue(targetIssue);
+    }
+  }
 
   const statusColors: Record<string, string> = {
     open: 'bg-gray-500',
@@ -90,9 +99,26 @@
         <h4 class="mb-1 text-xs font-semibold uppercase text-gray-500">Dependencies</h4>
         <ul class="space-y-1">
           {#each dependsOn as dep (dep.id)}
+            {@const targetIssue = issues.find((i) => i.id === dep.id)}
             <li class="flex items-center gap-2 text-sm">
-              <code class="rounded bg-gray-800 px-1 text-xs">{dep.id}</code>
+              <button
+                type="button"
+                class="rounded bg-gray-800 px-1.5 py-0.5 text-xs font-mono hover:bg-gray-700 transition-colors"
+                class:text-blue-400={targetIssue}
+                class:text-gray-500={!targetIssue}
+                class:cursor-pointer={targetIssue}
+                class:cursor-not-allowed={!targetIssue}
+                onclick={() => handleDependencyClick(dep.id)}
+                disabled={!targetIssue}
+                title={targetIssue ? targetIssue.title : 'Issue not found'}
+              >
+                {dep.id}
+              </button>
               <span class="text-xs text-gray-500">{dep.dep_type}</span>
+              {#if targetIssue}
+                <span class="text-xs text-gray-600 truncate max-w-[150px]">{targetIssue.title}</span
+                >
+              {/if}
             </li>
           {/each}
         </ul>

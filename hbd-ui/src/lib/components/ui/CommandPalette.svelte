@@ -9,6 +9,7 @@
     onLayoutChange: (mode: LayoutMode) => void;
     onRefresh: () => void;
     onStatusChange?: (issueId: string, status: Status) => void;
+    open?: boolean;
   }
 
   let {
@@ -19,9 +20,8 @@
     onLayoutChange,
     onRefresh,
     onStatusChange,
+    open = $bindable(false),
   }: Props = $props();
-
-  let open = $state(false);
   let search = $state('');
   let selectedIndex = $state(0);
   let inputRef = $state<HTMLInputElement | null>(null);

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  import { invalidateAll } from '$app/navigation';
+  import { invalidateAll, goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import IssuePanel from '$lib/components/ui/IssuePanel.svelte';
   import DetailPanel from '$lib/components/ui/DetailPanel.svelte';
   import IssueCard from '$lib/components/ui/IssueCard.svelte';
@@ -14,10 +15,67 @@
 
   let { data }: { data: PageData } = $props();
 
+  const urlIssueId = $derived($page.url.searchParams.get('issue'));
+  const urlView = $derived($page.url.searchParams.get('view') ?? 'table');
+  const urlSearch = $derived($page.url.searchParams.get('q') ?? '');
+
   let selectedIssue = $state<Issue | null>(null);
   let isDetailOpen = $state(false);
   let view = $state('table');
   let searchQuery = $state('');
+
+  function updateUrl(params: Record<string, string | null>) {
+    const url = new URL($page.url);
+    for (const [key, value] of Object.entries(params)) {
+      if (value === null || value === '') {
+        url.searchParams.delete(key);
+      } else {
+        url.searchParams.set(key, value);
+      }
+    }
+    goto(url, { replaceState: true, noScroll: true, keepFocus: true });
+  }
+
+  $effect(() => {
+    if (urlView && urlView !== view) {
+      view = urlView;
+    }
+  });
+
+  $effect(() => {
+    if (urlSearch !== searchQuery) {
+      searchQuery = urlSearch;
+    }
+  });
+
+  $effect(() => {
+    if (urlIssueId && data.issues.length > 0) {
+      const issue = data.issues.find((i) => i.id === urlIssueId);
+      if (issue && (!selectedIssue || selectedIssue.id !== urlIssueId)) {
+        selectedIssue = issue;
+        isDetailOpen = true;
+      }
+    }
+  });
+
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      if (searchQuery !== urlSearch) {
+        updateUrl({ q: searchQuery || null });
+      }
+    }, 300);
+    return () => {
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    };
+  });
+
+  $effect(() => {
+    if (view !== urlView) {
+      updateUrl({ view: view === 'table' ? null : view });
+    }
+  });
 
   let layoutMode = $state<LayoutMode>('hierarchical');
   let focusedIssueId = $state<string | null>(null);
@@ -94,10 +152,12 @@
     selectedIssue = issue;
     focusedIssueId = issue.id;
     isDetailOpen = true;
+    updateUrl({ issue: issue.id });
   }
 
   function handleCloseDetail() {
     isDetailOpen = false;
+    updateUrl({ issue: null });
   }
 
   $effect(() => {
@@ -166,6 +226,7 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (commandPaletteOpen) return;
 
     switch (e.key) {
       case 'j':
@@ -202,7 +263,7 @@
 
   let commandPaletteOpen = $state(false);
   function triggerCommandPalette() {
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+    commandPaletteOpen = true;
   }
 </script>
 
@@ -318,7 +379,12 @@
   <Sheet bind:open={isDetailOpen}>
     <SheetContent class="w-[400px] sm:w-[540px] p-0 border-l border-border bg-card">
       {#if selectedIssue}
-        <DetailPanel issue={selectedIssue} onClose={handleCloseDetail} />
+        <DetailPanel
+          issue={selectedIssue}
+          {issues}
+          onClose={handleCloseDetail}
+          onSelectIssue={handleSelectIssue}
+        />
       {/if}
     </SheetContent>
   </Sheet>
@@ -331,6 +397,7 @@
   onSelectIssue={handleSelectIssue}
   onLayoutChange={handleLayoutChange}
   onRefresh={handleRefresh}
+  bind:open={commandPaletteOpen}
 />
 
 <NodeContextMenu
