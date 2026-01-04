@@ -1,11 +1,12 @@
 ---
 id: bd-fc5f4b
 title: Add Command Palette with ⌘K shortcut
-status: open
+status: closed
 priority: 1
 type: feature
 created_at: 2026-01-04T02:35:14.107134+00:00
-updated_at: 2026-01-04T02:35:55.805237+00:00
+updated_at: 2026-01-04T02:43:11.594281+00:00
+closed_at: 2026-01-04T02:43:11.594281+00:00
 created_by: kevinchen
 created_by_type: human
 parent: bd-0cb44a
@@ -18,3 +19,10 @@ depends_on:
 ---
 
 Implement Command component from Bits UI. Features: issue search, navigation, hbd CLI actions (create, close, status change), layout toggle, camera reset
+
+## Comments
+
+### 2026-01-04T02:43:11.382236+00:00 — kevinchen (human)
+
+Implemented Command Palette with Bits UI Command component. Features: issue search, status filtering, layout toggle, refresh action. Opens with ⌘K/Ctrl+K.
+
