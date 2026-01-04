@@ -194,7 +194,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 - [x] **T1.6.1** Implement `hbd label add <id> <label>`
   - ~~Create Label node if not exists~~ (labels stored inline in issue)
   - ~~Create TAGGED edge~~ (deferred - file-only)
-  - ~~Support comma-separated labels~~ (single label at a time)
+  - Support comma-separated labels: `label1,label2,label3` (AC-005B.4)
   - Idempotent: silently succeeds if label already exists (AC-005B.3)
   - Update Markdown frontmatter
   - Support --json output

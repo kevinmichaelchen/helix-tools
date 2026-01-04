@@ -1157,43 +1157,62 @@ fn find_all_cycles(issues_map: &HashMap<String, Issue>) -> Vec<Vec<String>> {
     cycles
 }
 
-fn cmd_label_add(id: &str, label: &str, json: bool) -> hbd::Result<()> {
+fn cmd_label_add(id: &str, labels_input: &str, json: bool) -> hbd::Result<()> {
     let store = TicketStore::from_current_dir()?;
     let id = store.resolve_id(id)?;
     let mut issue = store.read_issue(&id)?;
 
-    let label = label.trim().to_lowercase();
-    if issue.labels.contains(&label) {
-        // Idempotent: silently succeed if label already exists (AC-005B.3)
-        if json {
-            let result = serde_json::json!({
-                "id": id,
-                "label": label,
-                "action": "unchanged",
-                "labels": issue.labels
-            });
-            println!("{}", serde_json::to_string_pretty(&result)?);
-        } else {
-            println!("Label '{label}' already on {id}");
-        }
-        return Ok(());
+    let labels_to_add: Vec<String> = labels_input
+        .split(',')
+        .map(|l| l.trim().to_lowercase())
+        .filter(|l| !l.is_empty())
+        .collect();
+
+    if labels_to_add.is_empty() {
+        return Err(hbd::HbdError::Other("no valid labels provided".to_string()));
     }
 
-    issue.labels.push(label.clone());
-    issue.labels.sort();
-    issue.touch();
-    store.write_issue(&issue)?;
+    let mut added = Vec::new();
+    let mut skipped = Vec::new();
+
+    for label in labels_to_add {
+        if issue.labels.contains(&label) {
+            skipped.push(label);
+        } else {
+            issue.labels.push(label.clone());
+            added.push(label);
+        }
+    }
+
+    if !added.is_empty() {
+        issue.labels.sort();
+        issue.touch();
+        store.write_issue(&issue)?;
+    }
 
     if json {
         let result = serde_json::json!({
             "id": id,
-            "label": label,
-            "action": "added",
+            "added": added,
+            "unchanged": skipped,
             "labels": issue.labels
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
+    } else if added.is_empty() {
+        println!("All labels already on {id}");
+    } else if skipped.is_empty() {
+        println!(
+            "Added {} label(s) to {id}: {}",
+            added.len(),
+            added.join(", ")
+        );
     } else {
-        println!("Added label '{label}' to {id}");
+        println!(
+            "Added {} label(s) to {id}: {} (skipped existing: {})",
+            added.len(),
+            added.join(", "),
+            skipped.join(", ")
+        );
     }
     Ok(())
 }
