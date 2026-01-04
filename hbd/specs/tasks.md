@@ -545,8 +545,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 
 - [x] **T6.2.1** Implement `hbd stats`
   - Counts by status, type, priority
-  - ~~This week's created/closed~~ (not yet)
-  - ~~Net change~~ (not yet)
+  - Weekly trends: created, closed, net change (AC-026.2)
 
 - [x] **T6.2.2** Implement `hbd stats --json`
   - Machine-readable output

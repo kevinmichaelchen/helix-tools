@@ -1527,6 +1527,10 @@ fn cmd_stats(json: bool) -> hbd::Result<()> {
     let mut by_type: HashMap<String, usize> = HashMap::new();
     let mut by_priority: HashMap<u8, usize> = HashMap::new();
 
+    let week_ago = chrono::Utc::now() - chrono::Duration::days(7);
+    let mut created_this_week = 0usize;
+    let mut closed_this_week = 0usize;
+
     for issue in &issues {
         *by_status
             .entry(issue.status.as_str().to_string())
@@ -1535,14 +1539,31 @@ fn cmd_stats(json: bool) -> hbd::Result<()> {
             .entry(issue.issue_type.as_str().to_string())
             .or_insert(0) += 1;
         *by_priority.entry(issue.priority.as_u8()).or_insert(0) += 1;
+
+        if issue.created_at >= week_ago {
+            created_this_week += 1;
+        }
+        if let Some(closed_at) = issue.closed_at
+            && closed_at >= week_ago
+        {
+            closed_this_week += 1;
+        }
     }
+
+    #[allow(clippy::cast_possible_wrap)]
+    let net_change = created_this_week as i64 - closed_this_week as i64;
 
     if json {
         let result = serde_json::json!({
             "total": issues.len(),
             "by_status": by_status,
             "by_type": by_type,
-            "by_priority": by_priority
+            "by_priority": by_priority,
+            "weekly_trends": {
+                "created": created_this_week,
+                "closed": closed_this_week,
+                "net_change": net_change
+            }
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
     } else {
@@ -1566,6 +1587,12 @@ fn cmd_stats(json: bool) -> hbd::Result<()> {
             let label = Priority::from_u8(*p).map_or("?", Priority::label);
             println!("  P{p} ({label:<8}) {count}");
         }
+
+        println!("\nThis Week:");
+        println!("  Created:    {created_this_week}");
+        println!("  Closed:     {closed_this_week}");
+        let sign = if net_change >= 0 { "+" } else { "" };
+        println!("  Net change: {sign}{net_change}");
     }
     Ok(())
 }
