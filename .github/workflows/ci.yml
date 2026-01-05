@@ -56,8 +56,6 @@ jobs:
   lint-ui:
     name: Lint (UI)
     runs-on: ubuntu-latest
-    env:
-      NODE_OPTIONS: "--max-old-space-size=4096"
     defaults:
       run:
         working-directory: hbd-ui
