@@ -1,5 +1,5 @@
 use crate::model::{Span, Symbol, SymbolKind, Visibility};
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::path::Path;
 use tracing::warn;
 use tree_sitter::{Node, Parser};
@@ -138,11 +138,11 @@ fn is_method(node: Node) -> bool {
 fn visibility_from_node(node: Node, source: &str) -> (Visibility, Option<String>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
-        if child.kind() == "visibility_modifier" {
-            if let Ok(text) = child.utf8_text(source.as_bytes()) {
-                let visibility = visibility_from_text(text);
-                return (visibility, Some(normalize_whitespace(text)));
-            }
+        if child.kind() == "visibility_modifier"
+            && let Ok(text) = child.utf8_text(source.as_bytes())
+        {
+            let visibility = visibility_from_text(text);
+            return (visibility, Some(normalize_whitespace(text)));
         }
     }
     (Visibility::Private, None)
@@ -235,10 +235,10 @@ fn collect_modifiers(node: Node, source: &str, modifiers: &mut Vec<String>) {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         let kind = child.kind();
-        if matches!(kind, "async" | "const" | "unsafe" | "extern_modifier") {
-            if let Ok(text) = child.utf8_text(source.as_bytes()) {
-                modifiers.push(normalize_whitespace(text));
-            }
+        if matches!(kind, "async" | "const" | "unsafe" | "extern_modifier")
+            && let Ok(text) = child.utf8_text(source.as_bytes())
+        {
+            modifiers.push(normalize_whitespace(text));
         }
     }
 }

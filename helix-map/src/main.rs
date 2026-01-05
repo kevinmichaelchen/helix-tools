@@ -1,14 +1,16 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use helix_map::{
-    IndexStore, Indexer, JsonStore, RenderOptions, RustExtractor, SkeletonRenderer,
-};
+use helix_map::{IndexStore, Indexer, JsonStore, RenderOptions, RustExtractor, SkeletonRenderer};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[command(name = "helix-map", version, about = "HelixDB-backed codebase skeleton indexer")]
+#[command(
+    name = "helix-map",
+    version,
+    about = "HelixDB-backed codebase skeleton indexer"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -95,13 +97,8 @@ fn run_skeleton(
         indexer.index(&root)?
     };
 
-    let renderer = SkeletonRenderer::default();
-    let output_text = renderer.render(
-        &index,
-        RenderOptions {
-            include_private,
-        },
-    );
+    let renderer = SkeletonRenderer;
+    let output_text = renderer.render(&index, RenderOptions { include_private });
 
     write_output(output.as_deref(), &output_text)?;
     Ok(())
@@ -112,7 +109,8 @@ fn resolve_root(path: &Path) -> Result<PathBuf> {
 }
 
 fn default_store_path(root: &Path) -> PathBuf {
-    root.join(".helix-map").join("index.json")
+    let store_root = std::env::current_dir().unwrap_or_else(|_| root.to_path_buf());
+    store_root.join(".helix-map").join("index.json")
 }
 
 fn write_output(path: Option<&Path>, content: &str) -> Result<()> {

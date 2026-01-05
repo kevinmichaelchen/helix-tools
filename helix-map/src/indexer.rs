@@ -63,10 +63,10 @@ where
             .with_context(|| format!("failed to read {}", absolute.display()))?;
         let hash = file_hash(&bytes);
 
-        if let Some(prev) = previous.get(&source.path) {
-            if prev.hash == hash {
-                return Ok(prev.clone());
-            }
+        if let Some(prev) = previous.get(&source.path)
+            && prev.hash == hash
+        {
+            return Ok(prev.clone());
         }
 
         let source_text = String::from_utf8_lossy(&bytes);

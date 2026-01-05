@@ -6,6 +6,7 @@ Cargo.lock
 # HelixDB data (local cache, not source of truth)
 .helix/helix.db/
 .helix/models/
+.helix-map/
 
 # IDE
 .idea/

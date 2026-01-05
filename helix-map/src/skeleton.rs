@@ -2,17 +2,9 @@ use crate::model::{Index, Symbol, SymbolKind, Visibility};
 use std::cmp::Ordering;
 use std::fmt::Write;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct RenderOptions {
     pub include_private: bool,
-}
-
-impl Default for RenderOptions {
-    fn default() -> Self {
-        Self {
-            include_private: false,
-        }
-    }
 }
 
 #[derive(Debug, Default)]
@@ -57,9 +49,7 @@ fn should_include(symbol: &Symbol, options: RenderOptions) -> bool {
 fn symbol_sort(a: &Symbol, b: &Symbol) -> Ordering {
     let a_rank = kind_rank(a.kind);
     let b_rank = kind_rank(b.kind);
-    a_rank
-        .cmp(&b_rank)
-        .then_with(|| a.name.cmp(&b.name))
+    a_rank.cmp(&b_rank).then_with(|| a.name.cmp(&b.name))
 }
 
 fn kind_rank(kind: SymbolKind) -> u8 {

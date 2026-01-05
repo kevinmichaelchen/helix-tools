@@ -73,7 +73,10 @@ impl Scanner {
                 .strip_prefix(&self.config.root)
                 .unwrap_or(path)
                 .to_path_buf();
-            files.push(SourceFile { path: relative, language });
+            files.push(SourceFile {
+                path: relative,
+                language,
+            });
         }
 
         files.sort_by(|a, b| a.path.cmp(&b.path));
@@ -91,5 +94,8 @@ fn language_for_path(configs: &[LanguageConfig], path: &Path) -> Option<Language
 
 fn is_ignored_dir(path: &Path) -> bool {
     let name = path.file_name().and_then(|value| value.to_str());
-    matches!(name, Some(".git" | "target" | "node_modules" | ".helix-map"))
+    matches!(
+        name,
+        Some(".git" | "target" | "node_modules" | ".helix-map")
+    )
 }
