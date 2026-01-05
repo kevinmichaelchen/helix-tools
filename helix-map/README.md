@@ -64,3 +64,8 @@ cargo run -p helix-map -- skeleton . --output -
 - Add HelixDB storage backend (replace JSON store)
 - Add call graph edges (best-effort) for quick navigation
 - Add feature/cfg awareness in Rust symbol visibility
+- Identify entrypoints (bin `main`, lib exports, tests, scripts)
+- Rank symbols by usage frequency (call counts, import counts)
+- Compute graph centrality to surface \"important\" nodes
+- Estimate complexity (LOC, nesting depth, cyclomatic hints)
+- Detect orchestrators vs. leaf functions (fan-out vs. fan-in)

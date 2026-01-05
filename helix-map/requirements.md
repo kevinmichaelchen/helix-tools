@@ -5,6 +5,18 @@ This document defines user stories and acceptance criteria for `helix-map` using
 
 [ears]: https://www.iaria.org/conferences2013/filesICCGI13/ICCGI_2013_Tutorial_Terzakis.pdf
 
+## Scope Boundaries
+
+`helix-map` is a codebase mapping tool. It focuses on structural context and
+directionality (what exists, how it connects, and what is important) without
+judging code quality or enforcing policy.
+
+Out of scope for this project:
+
+- Linting, code style rules, or prescriptive quality warnings
+- Security scanning or compliance enforcement
+- Automated remediation or refactoring suggestions
+
 ## EARS Notation Reference
 
 | Pattern      | Template                                          |
@@ -93,6 +105,108 @@ operate with high awareness
 | -------- | ------------------------------------------------------------------------------- |
 | AC-006.1 | WHEN exporting context THE SYSTEM SHALL include module paths and public symbols |
 | AC-006.2 | WHEN a token budget is provided THE SYSTEM SHALL truncate deterministically     |
+
+---
+
+### US-006B: Public API Map
+
+**As an** AI agent **I want** a public API map **So that** I can see the intended
+surface area quickly
+
+| ID        | Acceptance Criterion                                                              |
+| --------- | --------------------------------------------------------------------------------- |
+| AC-006B.1 | WHEN exports or re-exports are present THE SYSTEM SHALL record them in the index |
+| AC-006B.2 | WHEN exporting context THE SYSTEM SHALL summarize public API by module            |
+
+---
+
+### US-006C: Stable Symbol Identity
+
+**As an** AI agent **I want** stable symbol identifiers **So that** changes can
+be tracked across indexing runs
+
+| ID        | Acceptance Criterion                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| AC-006C.1 | THE SYSTEM SHALL assign a deterministic ID per symbol (based on qual name + kind) |
+| AC-006C.2 | WHEN a symbol moves files THE SYSTEM SHALL preserve its ID if identity is stable |
+
+---
+
+### US-006D: Configurable Scope
+
+**As a** developer **I want** configurable indexing scope **So that** monorepos
+can be indexed selectively
+
+| ID        | Acceptance Criterion                                                                |
+| --------- | ----------------------------------------------------------------------------------- |
+| AC-006D.1 | THE SYSTEM SHALL support include/exclude path patterns                              |
+| AC-006D.2 | THE SYSTEM SHALL support language filters per index run                             |
+| AC-006D.3 | WHERE a project scope is defined THE SYSTEM SHALL index only that subtree           |
+
+---
+
+### US-006E: Change Deltas
+
+**As an** AI agent **I want** index diffs between runs **So that** I can refresh
+context efficiently
+
+| ID        | Acceptance Criterion                                                                    |
+| --------- | --------------------------------------------------------------------------------------- |
+| AC-006E.1 | WHEN an index exists THE SYSTEM SHALL produce a list of added/removed/changed symbols   |
+| AC-006E.2 | WHEN exporting context THE SYSTEM SHALL allow a delta-only view                          |
+
+---
+
+## 2. Directionality & Importance
+
+### US-007: Entrypoint Detection
+
+**As an** AI agent **I want** the system to identify entrypoints **So that** I
+can orient quickly in a new codebase
+
+| ID       | Acceptance Criterion                                                                 |
+| -------- | ------------------------------------------------------------------------------------ |
+| AC-007.1 | WHEN indexing completes THE SYSTEM SHALL identify executable entrypoints (e.g., main) |
+| AC-007.2 | WHEN indexing completes THE SYSTEM SHALL identify public API entrypoints (exports)  |
+| AC-007.3 | WHEN exporting context THE SYSTEM SHALL include a list of entrypoints with kinds    |
+
+---
+
+### US-008: Usage and Call Directionality
+
+**As an** AI agent **I want** usage and call directionality metrics **So that** I
+can see what is used most and where flow begins
+
+| ID       | Acceptance Criterion                                                                     |
+| -------- | ---------------------------------------------------------------------------------------- |
+| AC-008.1 | WHEN call edges can be resolved THE SYSTEM SHALL record call-in and call-out counts      |
+| AC-008.2 | WHEN import/export relationships exist THE SYSTEM SHALL record import and export counts  |
+| AC-008.3 | WHEN exporting context THE SYSTEM SHALL surface top-used symbols by usage score          |
+
+---
+
+### US-009: Importance Ranking
+
+**As an** AI agent **I want** a notion of symbol importance **So that** I can
+prioritize key components
+
+| ID       | Acceptance Criterion                                                                 |
+| -------- | ------------------------------------------------------------------------------------ |
+| AC-009.1 | WHEN a symbol graph is available THE SYSTEM SHALL compute a centrality score         |
+| AC-009.2 | WHEN exporting context THE SYSTEM SHALL provide importance rankings for symbols      |
+
+---
+
+### US-010: Complexity and Orchestrators
+
+**As an** AI agent **I want** complexity and orchestration hints **So that** I
+can focus on risky or coordinating code
+
+| ID       | Acceptance Criterion                                                                  |
+| -------- | ------------------------------------------------------------------------------------- |
+| AC-010.1 | WHEN parsing functions THE SYSTEM SHALL estimate complexity (LOC, nesting, branching) |
+| AC-010.2 | WHEN usage metrics are available THE SYSTEM SHALL classify orchestrators vs. leaves   |
+| AC-010.3 | WHEN exporting context THE SYSTEM SHALL include complexity and role hints per symbol  |
 
 ---
 
