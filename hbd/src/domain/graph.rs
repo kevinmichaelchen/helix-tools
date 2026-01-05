@@ -12,7 +12,7 @@ pub struct BlockerNode {
     pub title: String,
     pub status: String,
     pub depth: usize,
-    pub blockers: Vec<BlockerNode>,
+    pub blockers: Vec<Self>,
 }
 
 /// Returns `true` if adding `from_id blocks to_id` would create a cycle.

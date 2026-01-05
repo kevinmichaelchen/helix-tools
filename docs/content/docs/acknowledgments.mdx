@@ -3,21 +3,68 @@ title: Acknowledgments
 description: We stand on the shoulders of giants
 ---
 
-# Acknowledgments
+import { ContributorsLoader } from '@/app/components/ContributorsLoader';
 
-Helix Tools is built upon the ideas and inspiration from the following projects and repositories. We're grateful for the work and contributions of these communities.
+Helix Tools is built upon the ideas and inspiration from the following projects and repositories.
+We're grateful for the work of these communities and contributors.
 
-## Inspiration & References
+export const contributorsData = [
+  {
+    name: 'Steve Yegge',
+    project: 'beads',
+    description: 'A memory upgrade for your coding agent',
+    url: 'https://github.com/steveyegge/beads',
+    color: '#ff6b35',
+    tweetId: '1977645937225822664',
+  },
+  {
+    name: 'Joel Hooks',
+    project: 'swarm-tools',
+    description: 'Multi-agent swarm coordination for OpenCode with learning capabilities, agent issue tracking, and management',
+    url: 'https://github.com/joelhooks/swarm-tools',
+    color: '#f7931e',
+    tweetId: '2003507062295396637',
+  },
+  {
+    name: 'Joel Reymont',
+    project: 'dots',
+    description: 'Connect the dots - minimal task tracker in Zig',
+    url: 'https://github.com/joelreymont/dots',
+    color: '#fdb833',
+    tweetId: '2004047283709706680',
+  },
+  {
+    name: 'Andre Figueira',
+    project: '.context',
+    description: 'A Git-native, AI-optimized documentation system that turns your repo into a living knowledge base',
+    url: 'https://github.com/andrefigueira/.context',
+    color: '#c1272d',
+    tweetId: '2005830895161290764',
+  },
+  {
+    name: 'Dicklesworth Stone',
+    project: 'cass_memory_system',
+    description: 'Procedural memory for AI coding agents. Transforms scattered agent sessions into persistent, cross-agent memory',
+    url: 'https://github.com/Dicklesworthstone/cass_memory_system',
+    color: '#662d91',
+    tweetId: '2007208385922642311',
+  },
+  {
+    name: 'Intellectronica',
+    project: 'ruler',
+    description: 'Apply the same rules to all coding agents',
+    url: 'https://github.com/intellectronica/ruler',
+    color: '#0066cc',
+    tweetId: '1928555647240475001',
+  },
+  {
+    name: 'Neiii',
+    project: 'bridle',
+    description: 'TUI / CLI config manager for agentic harnesses (Amp, Claude Code, Opencode, Goose)',
+    url: 'https://github.com/neiii/bridle',
+    color: '#00a86b',
+    tweetId: '2007213826190778443',
+  },
+];
 
-- **[remorses/agentmap](https://github.com/remorses/agentmap)** — Mapping and visualization of agent behaviors
-- **[steveyegge/beads](https://github.com/steveyegge/beads)** — Modular architectural design patterns
-- **[wedow/ticket](https://github.com/wedow/ticket)** — Issue tracking and workflow concepts
-- **[andrefigueira/.context](https://github.com/andrefigueira/.context)** — Context management for AI assistants
-- **[joelreymont/dots](https://github.com/joelreymont/dots)** — Graph-based relationship mapping
-- **[hmans/beans](https://github.com/hmans/beans)** — Data structure and entity patterns
-- **[intellectronica/ruler](https://github.com/intellectronica/ruler)** — Rule-based system design
-- **[neiii/bridle](https://github.com/neiii/bridle)** — Control and constraint mechanisms
-- **[joelhooks/swarm-tools](https://github.com/joelhooks/swarm-tools)** — Multi-agent coordination and tools
-- **[Dicklesworthstone/cass_memory_system](https://github.com/Dicklesworthstone/cass_memory_system)** — Persistent memory architectures for AI systems
-
-These projects have shaped our thinking around agent-native development, persistent memory systems, and AI-assisted tooling.
+<ContributorsLoader contributors={contributorsData} />

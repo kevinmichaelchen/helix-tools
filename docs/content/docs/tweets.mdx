@@ -1,0 +1,72 @@
+---
+title: Embedding Tweets
+description: How to embed tweets in your documentation
+---
+
+# Embedding Tweets
+
+This documentation site uses `react-static-tweets` to embed tweets efficiently. Tweets are fetched at build time and rendered as static components, providing better performance than Twitter's iframe embeds.
+
+## Basic Usage
+
+To embed a tweet in your MDX content, use the `TweetEmbed` component with a tweet ID:
+
+```mdx
+import { TweetEmbed } from '@/app/tweet';
+
+<TweetEmbed id="1234567890" />
+```
+
+## Finding Tweet IDs
+
+The tweet ID is the numeric portion of a tweet's URL:
+
+```
+https://twitter.com/username/status/1234567890
+                              ^^^^^^^^^^^
+```
+
+## With Pre-fetched Data (Recommended for SSG)
+
+For optimal build-time performance, fetch the tweet AST during your build process:
+
+```tsx
+import { TweetEmbed } from '@/app/tweet';
+import { getTweetAst } from '@/lib/tweet-utils';
+import type { TweetAst } from 'react-static-tweets/client';
+
+const tweetAst: TweetAst | null = await getTweetAst('1234567890');
+
+{tweetAst && <TweetEmbed id="1234567890" ast={tweetAst} />}
+```
+
+## Batch Fetching
+
+If you're including multiple tweets, batch fetch them:
+
+```tsx
+import { getTweetAstsMap } from '@/lib/tweet-utils';
+
+const tweetIds = ['1234567890', '1234567891', '1234567892'];
+const asts = await getTweetAstsMap(tweetIds);
+
+{tweetIds.map((id) => (
+  <TweetEmbed key={id} id={id} ast={asts[id]} />
+))}
+```
+
+## Performance Benefits
+
+- **No network requests at runtime** — Tweet data is baked into your static HTML
+- **10-100x faster** than Twitter's iframe embeds
+- **Build-time fetching** — Only hits Twitter's API during your site build
+- **SEO friendly** — Tweet content is present in the static HTML
+
+## Fallback Behavior
+
+If tweet data isn't available (network error, deleted tweet, etc.), the component renders a simple link to the tweet instead of failing.
+
+## Learn More
+
+- [react-static-tweets GitHub](https://github.com/transitive-bullshit/react-static-tweets)
+- [Tweet utilities API](../../lib/tweet-utils.ts)
