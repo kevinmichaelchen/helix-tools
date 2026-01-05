@@ -30,7 +30,8 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      # Exclude Tauri crates (hbd-ui) - they have GTK deps and are tested in build-tauri
+      - run: cargo clippy -p hbd -p helix-map --all-targets --all-features -- -D warnings
 
   build:
     name: Build (Rust)
@@ -39,7 +40,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --all-features
+      # Exclude Tauri crates (hbd-ui) - they have GTK deps and are tested in build-tauri
+      - run: cargo build -p hbd -p helix-map --all-features
 
   test:
     name: Test (Rust)
@@ -48,11 +50,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --all-features
+      # Exclude Tauri crates (hbd-ui) - they have GTK deps and are tested in build-tauri
+      - run: cargo test -p hbd -p helix-map --all-features
 
   lint-ui:
     name: Lint (UI)
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     defaults:
       run:
         working-directory: hbd-ui
