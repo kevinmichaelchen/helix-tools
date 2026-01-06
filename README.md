@@ -9,7 +9,7 @@ AI-native developer tools powered by [HelixDB][helixdb]. Git-first, offline-firs
 | Tool | Description | Status |
 |------|-------------|--------|
 | **[hbd][hbd]** | Git-first issue tracker | Active |
-| **[adr-search][adr-search]** | Semantic search over ADRs | Scaffolded |
+| **[helix-decisions][helix-decisions]** | Decision graph with semantic search | Scaffolded |
 | **[helix-docs][helix-docs]** | Documentation cache for AI research | Scaffolded |
 | **[helix-map][helix-map]** | Codebase structure indexer | PoC |
 | **[helix-repo][helix-repo]** | Repository clone manager | Scaffolded |
@@ -55,7 +55,7 @@ hbd create "My first issue" --type task
 [config]: https://kevinmichaelchen.github.io/helix-tools/docs/configuration
 
 <!-- Tools -->
-[adr-search]: ./adr-search/
+[helix-decisions]: ./helix-decisions/
 [hbd]: ./hbd/
 [helix-docs]: ./helix-docs/
 [helix-map]: ./helix-map/

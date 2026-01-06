@@ -1,48 +1,37 @@
 [package]
-name = "adr-search"
+name = "helix-decisions"
 version = "0.1.0"
 edition = "2024"
-description = "Semantic search over Architecture Decision Records, backed by embedded HelixDB"
+description = "Decision graph infrastructure: semantic search, relationship tracking, and immutable records"
 license = "MIT"
 repository = "https://github.com/kevinmichaelchen/helix-tools"
-keywords = ["adr", "architecture", "search", "semantic", "ai"]
+keywords = ["decisions", "adr", "graph", "semantic-search", "ai"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-# CLI
 clap = { version = "4", features = ["derive"] }
-
-# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-
-# Markdown frontmatter
 gray_matter = "0.2"
-
-# Embeddings (local)
 fastembed = "4"
-
-# Hashing (delta detection)
 sha2 = "0.10"
-
-# Date handling
 chrono = { version = "0.4", features = ["serde"] }
-
-# Error handling
 anyhow = "1"
 thiserror = "2"
+dirs = "5"
+bumpalo = { version = "3", features = ["collections"] }
+helix-id = { path = "../shared/helix-id" }
 
-# HelixDB (embedded) - TODO: Add when available
-# helixdb = { path = "../helix-db" }
+helix-db = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
 
 [[bin]]
-name = "adr-search"
+name = "helix-decisions"
 path = "src/main.rs"
 
 [lib]
-name = "adr_search"
+name = "helix_decisions"
 path = "src/lib.rs"

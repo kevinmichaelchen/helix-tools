@@ -1,46 +1,34 @@
 //! Delta detection for incremental indexing.
 
-use crate::types::ADR;
+use crate::types::Decision;
 use std::collections::{HashMap, HashSet};
 
-/// Result of delta computation.
 pub struct DeltaResult {
-    /// ADRs that need to be added or updated.
-    pub to_add: Vec<ADR>,
-    /// File paths of ADRs that need to be removed.
+    pub to_add: Vec<Decision>,
     pub to_remove: Vec<String>,
 }
 
-/// Compute delta between filesystem and indexed ADRs.
-///
-/// Compares current ADRs against stored hashes to determine
-/// which ADRs need to be re-indexed and which need to be removed.
 pub fn compute_delta(
-    current_adrs: Vec<ADR>,
+    current_decisions: Vec<Decision>,
     stored_hashes: HashMap<String, String>,
 ) -> DeltaResult {
     let mut to_add = Vec::new();
     let mut to_remove = Vec::new();
 
-    // Track which stored paths we've seen
     let mut seen_paths: HashSet<String> = HashSet::new();
 
-    for adr in current_adrs {
-        let path = adr.file_path.to_string_lossy().to_string();
+    for decision in current_decisions {
+        let path = decision.file_path.to_string_lossy().to_string();
         seen_paths.insert(path.clone());
 
         match stored_hashes.get(&path) {
-            Some(stored_hash) if stored_hash == &adr.content_hash => {
-                // No change, skip
-            }
+            Some(stored_hash) if stored_hash == &decision.content_hash => {}
             _ => {
-                // New or changed, need to re-index
-                to_add.push(adr);
+                to_add.push(decision);
             }
         }
     }
 
-    // Find deleted ADRs
     for path in stored_hashes.keys() {
         if !seen_paths.contains(path) {
             to_remove.push(path.clone());
@@ -53,21 +41,27 @@ pub fn compute_delta(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{ADRMetadata, Status};
+    use crate::types::{DecisionMetadata, Status};
     use chrono::NaiveDate;
     use std::path::PathBuf;
 
-    fn make_adr(id: u32, path: &str, hash: &str) -> ADR {
-        ADR {
-            metadata: ADRMetadata {
+    fn make_decision(id: u32, path: &str, hash: &str) -> Decision {
+        Decision {
+            metadata: DecisionMetadata {
                 id,
-                title: format!("ADR {id}"),
+                uuid: None,
+                title: format!("Decision {id}"),
                 status: Status::Accepted,
                 date: NaiveDate::from_ymd_opt(2026, 1, 5).unwrap(),
                 deciders: vec![],
                 tags: vec![],
+                content_hash: None,
+                git_commit: None,
                 supersedes: None,
                 superseded_by: None,
+                amends: None,
+                depends_on: None,
+                related_to: None,
             },
             body: String::new(),
             file_path: PathBuf::from(path),
@@ -78,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_no_changes() {
-        let current = vec![make_adr(1, "001.md", "hash1")];
+        let current = vec![make_decision(1, "001.md", "hash1")];
         let stored: HashMap<_, _> = [("001.md".to_string(), "hash1".to_string())]
             .into_iter()
             .collect();
@@ -89,8 +83,8 @@ mod tests {
     }
 
     #[test]
-    fn test_new_adr() {
-        let current = vec![make_adr(1, "001.md", "hash1")];
+    fn test_new_decision() {
+        let current = vec![make_decision(1, "001.md", "hash1")];
         let stored: HashMap<String, String> = HashMap::new();
 
         let delta = compute_delta(current, stored);
@@ -99,8 +93,8 @@ mod tests {
     }
 
     #[test]
-    fn test_changed_adr() {
-        let current = vec![make_adr(1, "001.md", "hash2")];
+    fn test_changed_decision() {
+        let current = vec![make_decision(1, "001.md", "hash2")];
         let stored: HashMap<_, _> = [("001.md".to_string(), "hash1".to_string())]
             .into_iter()
             .collect();
@@ -111,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deleted_adr() {
+    fn test_deleted_decision() {
         let current = vec![];
         let stored: HashMap<_, _> = [("001.md".to_string(), "hash1".to_string())]
             .into_iter()

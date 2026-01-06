@@ -26,7 +26,7 @@ impl SymbolExtractor for RustExtractor {
     fn extract(&self, path: &Path, source: &str) -> Result<Vec<Symbol>> {
         let mut parser = Parser::new();
         parser
-            .set_language(tree_sitter_rust::language())
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
             .map_err(|_| anyhow!("failed to load Rust grammar"))?;
 
         let tree = parser

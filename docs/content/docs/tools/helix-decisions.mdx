@@ -1,47 +1,55 @@
 ---
-title: adr-search
-description: Semantic search over Architecture Decision Records
+title: helix-decisions
+description: Decision graph infrastructure with semantic search
 ---
 
-# adr-search
+# helix-decisions
 
-Semantic search over Architecture Decision Records, backed by embedded HelixDB.
+Decision graph infrastructure with semantic search, backed by embedded HelixDB.
 
 **Status:** Scaffolded
 
-## Why adr-search?
+## Why helix-decisions?
 
-Agents need quick access to architectural decisions for context:
+Decisions are the backbone of software architecture. Unlike code (which shows *what*), decisions capture *why*:
 
 - "What have we decided about caching?"
 - "Why did we choose X over Y?"
 - "Are we already committed to this direction?"
 
-But `.decisions/` directories are unindexed markdown. adr-search makes them **searchable in < 100ms** via semantic indexing.
+But `.decisions/` directories are unindexed markdown. helix-decisions makes them **searchable in < 100ms** via semantic indexing and tracks relationships between decisions.
 
 ## Installation
 
 ```bash
-cargo install --path adr-search
+cargo install --path helix-decisions
 ```
 
 ## Usage
 
 ```bash
-# Search ADRs (default: .decisions/)
-adr-search <QUERY> [OPTIONS]
+# Search decisions (default: .decisions/)
+helix-decisions search <QUERY> [OPTIONS]
+
+# Follow supersedes chain
+helix-decisions chain <ID>
+
+# Find related decisions
+helix-decisions related <ID>
 
 # Examples
-adr-search "caching"
-adr-search "database migration" --status accepted
-adr-search "API design" --limit 5 --json
+helix-decisions search "caching"
+helix-decisions search "database migration" --status accepted
+helix-decisions search "API design" --limit 5 --json
+helix-decisions chain 5
+helix-decisions related 3
 ```
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-d, --directory` | ADR directory | `.decisions/` |
+| `-d, --directory` | Decision directory | `.decisions/` |
 | `-l, --limit` | Max results | 10 |
 | `--status` | Filter by status | all |
 | `--tags` | Filter by tags (comma-separated) | all |
@@ -52,12 +60,12 @@ adr-search "API design" --limit 5 --json
 ### Pretty (human-readable)
 
 ```
-[1] ADR-003: Database Migration Strategy
+[1] 003: Database Migration Strategy
     Status: accepted
     Score: 0.89
     Tags: database, migration, infrastructure
 
-[2] ADR-001: Schema Versioning Approach
+[2] 001: Schema Versioning Approach
     Status: proposed
     Score: 0.71
     Tags: database, schema, testing
@@ -71,6 +79,7 @@ adr-search "API design" --limit 5 --json
   "results": [
     {
       "id": 3,
+      "uuid": "hx-a1b2c3",
       "title": "Database Migration Strategy",
       "status": "accepted",
       "score": 0.89,
@@ -86,25 +95,26 @@ adr-search "API design" --limit 5 --json
 ### First Invocation
 
 1. Scan `.decisions/` for markdown files
-2. Parse YAML frontmatter (id, title, status, tags, date, deciders)
+2. Parse YAML frontmatter (id, uuid, title, status, tags, date, deciders, relationships)
 3. Generate embeddings with fastembed (local, CPU)
-4. Store in embedded HelixDB (`~/.helix/data/adr/`)
+4. Store in embedded HelixDB (`~/.helix/data/decisions/`)
 5. Search and return ranked results
 
 ### Subsequent Invocations
 
 1. Quick delta check (compare file hashes)
-2. Re-index only changed/new ADRs
-3. Remove deleted ADRs from index
+2. Re-index only changed/new decisions
+3. Remove deleted decisions from index
 4. Search existing index (~100ms)
 
-## ADR Format
+## Decision Format
 
-ADRs should be markdown files with YAML frontmatter:
+Decisions are markdown files with YAML frontmatter:
 
 ```yaml
 ---
 id: 3
+uuid: hx-a1b2c3  # Optional: hash-based UUID for distributed safety
 title: Database Migration Strategy
 status: accepted
 date: 2026-01-04
@@ -114,6 +124,11 @@ deciders:
 tags:
   - database
   - migration
+content_hash: abc123...  # Optional: for immutability proof
+git_commit: def456...    # Optional: commit when accepted
+supersedes: 1            # Optional: decision this replaces
+depends_on: [2, 4]       # Optional: prerequisite decisions
+related_to: 5            # Optional: related decisions
 ---
 
 # Context and Problem Statement
@@ -123,27 +138,44 @@ tags:
 ...
 ```
 
+### ID Scheme
+
+- **`id`**: Local sequential integer (1, 2, 3...) for human readability
+- **`uuid`**: Optional hash-based UUID (via helix-id) for distributed safety across branches
+
 ### Status Values
 
 | Status | Description |
 |--------|-------------|
 | `proposed` | Under discussion |
 | `accepted` | Decision made and in effect |
-| `superseded` | Replaced by another ADR |
+| `superseded` | Replaced by another decision |
 | `deprecated` | No longer relevant |
+
+### Relationship Types
+
+| Relationship | Description |
+|--------------|-------------|
+| `supersedes` | This decision replaces another |
+| `amends` | This decision modifies another |
+| `depends_on` | This decision requires another first |
+| `related_to` | Loosely related decisions |
 
 ## Agent Integration
 
-Agents can invoke adr-search to build context:
+Agents can invoke helix-decisions to build context:
 
 ```bash
 # Get relevant decisions as JSON
-adr-search "API versioning" --json | \
+helix-decisions search "API versioning" --json | \
   jq '.results[] | "\(.id): \(.title)"'
 
 # Output:
 # 3: API Versioning Strategy
 # 1: HTTP API Design
+
+# Follow decision lineage
+helix-decisions chain 5 --json
 ```
 
 ## Performance
@@ -162,22 +194,23 @@ User/Agent
     │
     ↓
 ┌─────────────────────────────────┐
-│   adr-search CLI                │
+│   helix-decisions CLI           │
 └──────────┬──────────────────────┘
            │
     ┌──────▼──────────────────────┐
     │ Embedded HelixDB             │
     │ • Vector index               │
+    │ • Graph relationships        │
     │ • Persistent (~/.helix/)     │
     └──────────────────────────────┘
 ```
 
 ## Not In This Tool
 
-adr-search is focused on **search only**:
+helix-decisions is focused on **search and graph traversal**:
 
-- ADR creation (agents use templates + $EDITOR)
-- ADR editing (humans use $EDITOR)
+- Decision creation (agents use templates + $EDITOR)
+- Decision editing (humans use $EDITOR)
 - Format validation (CI concern)
 - Git operations (users commit)
 - Approval workflows (separate tool)
