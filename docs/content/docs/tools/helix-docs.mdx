@@ -1,0 +1,137 @@
+---
+title: helix-docs
+description: Global documentation cache for AI-assisted development
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# helix-docs
+
+Global documentation cache for AI-assisted development. Fetch, cache, and semantically search documentation from GitHub repos.
+
+<Callout type="warn">
+  **Status: Scaffolded** — Architecture and specs defined. Implementation pending.
+</Callout>
+
+## Why helix-docs?
+
+When AI agents research how to use a library, they fetch documentation from the web. This is:
+
+- **Slow** — Network requests on every query
+- **Expensive** — Repeated fetches waste tokens
+- **Fragile** — Doesn't work offline
+
+helix-docs solves this with a **global cache**. Documentation like `facebook/react` is identical regardless of which project uses it, so we fetch once and share everywhere.
+
+## Quick Start
+
+```bash
+# Add a documentation source
+helix-docs add https://github.com/facebook/react --docs docs
+
+# Fetch and index
+helix-docs ingest --embed
+
+# Search with hybrid BM25 + semantic
+helix-docs search --library facebook/react "hooks state management"
+
+# Get specific document
+helix-docs get --library facebook/react docs/hooks.md
+```
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Global Cache** | Docs cached once in `~/.helix/data/docs/`, shared across projects |
+| **GitHub Integration** | Fetch from any public or private repo |
+| **Hybrid Search** | BM25 + vector search with RRF fusion |
+| **Semantic Search** | Find docs by meaning, not just keywords |
+| **Dependency Detection** | Auto-detect project deps from manifests |
+| **MCP Server** | Expose as tools for AI coding assistants |
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    helix-docs add                        │
+│              (register documentation source)             │
+└────────────────────────────┬────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│                   helix-docs ingest                      │
+│     1. Fetch docs from GitHub (or cache hit)            │
+│     2. Chunk into searchable segments                   │
+│     3. Generate embeddings (--embed flag)               │
+│     4. Index in HelixDB                                 │
+└────────────────────────────┬────────────────────────────┘
+                             │
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│                   helix-docs search                      │
+│     1. BM25 keyword search                              │
+│     2. Vector similarity search                         │
+│     3. RRF fusion for hybrid results                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Configuration
+
+### Global Settings
+
+```toml
+# ~/.helix/config/helix-docs.toml
+[ingest]
+concurrency = 5
+extensions = ["md", "mdx", "txt", "rst"]
+
+[search]
+default_mode = "hybrid"
+default_limit = 10
+
+[freshness]
+stale_days = 7
+use_etag = true
+```
+
+### Project Overrides
+
+```toml
+# .helix/helix-docs.toml
+[search]
+preferred_libraries = ["facebook/react", "vercel/next.js"]
+default_limit = 5
+```
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `helix-docs add <url>` | Add a documentation source |
+| `helix-docs source list` | List configured sources |
+| `helix-docs source remove <id>` | Remove a source |
+| `helix-docs ingest` | Fetch and index all sources |
+| `helix-docs ingest --embed` | Include vector embeddings |
+| `helix-docs search <query>` | Search documentation |
+| `helix-docs library <name>` | Find libraries by name |
+| `helix-docs get <path>` | Retrieve document content |
+| `helix-docs status` | Show cache statistics |
+| `helix-docs detect` | Detect project dependencies |
+| `helix-docs mcp` | Start MCP server |
+
+## Storage
+
+Documentation is cached globally at `~/.helix/data/docs/`:
+
+```
+~/.helix/data/docs/
+├── helix-docs.db/    # HelixDB instance
+└── schema.hx         # HelixQL schema
+```
+
+## Learn More
+
+- [GitHub: helix-docs](https://github.com/kevinmichaelchen/helix-tools/tree/main/helix-docs)
+- [specs/requirements.md](https://github.com/kevinmichaelchen/helix-tools/blob/main/helix-docs/specs/requirements.md)
+- [specs/design.md](https://github.com/kevinmichaelchen/helix-tools/blob/main/helix-docs/specs/design.md)

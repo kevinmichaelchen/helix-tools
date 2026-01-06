@@ -7,36 +7,19 @@ import { Callout } from 'fumadocs-ui/components/callout';
 
 # Planned Tools
 
-Beyond `hbd`, we're building a suite of tools for agentic development workflows.
-For active tools, see [hbd](/docs/tools/hbd) and [helix-map](/docs/tools/helix-map).
+Tools that are planned but not yet scaffolded.
+
+For scaffolded tools (architecture defined, implementation pending), see:
+- [helix-docs](/docs/tools/helix-docs) — Documentation cache
+- [helix-repo](/docs/tools/helix-repo) — Repository clone manager
+
+For active tools, see:
+- [hbd](/docs/tools/hbd) — Issue tracker
+- [helix-map](/docs/tools/helix-map) — Codebase indexer
 
 <Callout type="info">
   These tools are in the planning stage. APIs and features may change.
 </Callout>
-
-## helix-docs
-
-**Local cache for fetched documentation during agentic research.**
-
-When AI agents research how to use a library, they fetch documentation from the web. This is slow, uses tokens on repeated fetches, and doesn't work offline.
-
-helix-docs will:
-
-- Cache fetched documentation locally
-- Index content for semantic search
-- Provide fast retrieval for repeated queries
-- Work completely offline after initial fetch
-
-```bash
-# Fetch and cache documentation
-helix-docs fetch https://docs.rs/tokio
-
-# Search cached docs
-helix-docs search "async runtime configuration"
-
-# Get context for an LLM
-helix-docs context --query "error handling" --limit 2000
-```
 
 ## helix-mail
 

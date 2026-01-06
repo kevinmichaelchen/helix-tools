@@ -1,4 +1,4 @@
 {
   "title": "Tools",
-  "pages": ["hbd", "helix-map", "cli-reference", "planned"]
+  "pages": ["hbd", "helix-docs", "helix-map", "helix-repo", "cli-reference", "planned"]
 }

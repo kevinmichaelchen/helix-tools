@@ -1,0 +1,170 @@
+---
+title: helix-repo
+description: Git repository clone manager
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# helix-repo
+
+Manage git repository clones with a standard directory structure. Clone once, use everywhere.
+
+<Callout type="warn">
+  **Status: Scaffolded** — Architecture and specs defined. Implementation pending.
+</Callout>
+
+## Why helix-repo?
+
+Other helix-tools need local repository clones:
+
+- **helix-docs** — Clone repos to extract documentation
+- **helix-map** — Clone repos to index codebase structure
+- **AI agents** — Clone repos to search OSS implementations
+
+Instead of each tool managing its own clones, helix-repo provides:
+
+- **One clone per repo** — Shared across all tools
+- **Consistent layout** — `{root}/{domain}/{owner}/{repo}`
+- **Library API** — Use programmatically from other Rust tools
+
+## Quick Start
+
+```bash
+# Clone a repository (multiple URL formats supported)
+helix-repo clone https://github.com/facebook/react
+helix-repo clone github.com/facebook/react
+helix-repo clone git@github.com:facebook/react.git
+
+# List cloned repositories
+helix-repo list
+
+# Get repository info
+helix-repo info facebook/react
+
+# Remove a repository
+helix-repo remove facebook/react
+
+# Show the root directory
+helix-repo root
+```
+
+## Directory Structure
+
+Repositories are cloned to `~/dev` by default:
+
+```
+~/dev/
+├── github.com/
+│   ├── facebook/
+│   │   └── react/
+│   └── vercel/
+│       └── next.js/
+├── gitlab.com/
+│   └── inkscape/
+│       └── inkscape/
+└── git.sr.ht/
+    └── ~sircmpwn/
+        └── aerc/
+```
+
+<Callout type="info">
+  Unlike other helix data stored in `~/.helix/`, repos live in `~/dev/` by default. This keeps your code in a visible, standard location.
+</Callout>
+
+## URL Formats
+
+helix-repo handles multiple URL formats:
+
+| Format | Example |
+|--------|---------|
+| HTTPS | `https://github.com/facebook/react` |
+| HTTPS with .git | `https://github.com/facebook/react.git` |
+| SSH | `git@github.com:facebook/react.git` |
+| Schemeless | `github.com/facebook/react` |
+
+All formats normalize to the same directory path.
+
+## Configuration
+
+### Root Directory
+
+Configure where repos are cloned (priority order):
+
+1. `--root` CLI flag
+2. `HELIX_REPO_ROOT` environment variable
+3. `~/.helix/config/helix-repo.toml`
+4. Default: `~/dev`
+
+```toml
+# ~/.helix/config/helix-repo.toml
+[storage]
+root = "~/dev"
+```
+
+```bash
+# Environment variable
+export HELIX_REPO_ROOT=~/work/repos
+
+# CLI flag
+helix-repo clone --root ~/work/repos https://github.com/facebook/react
+```
+
+## CLI Reference
+
+| Command | Description |
+|---------|-------------|
+| `helix-repo clone <url>` | Clone a repository |
+| `helix-repo list` | List cloned repositories |
+| `helix-repo info <name>` | Show repository details |
+| `helix-repo remove <name>` | Remove a cloned repository |
+| `helix-repo root` | Print the root directory path |
+
+### Clone Options
+
+```bash
+helix-repo clone <url> [OPTIONS]
+
+Options:
+  --root <path>      Override root directory
+  --shallow          Shallow clone (depth 1)
+  --branch <name>    Clone specific branch
+  --dry-run          Preview without cloning
+  --json             Output as JSON
+```
+
+## Library Usage
+
+helix-repo is both a CLI and a library crate:
+
+```rust
+use helix_repo::RepositoryManager;
+
+let manager = RepositoryManager::new()?;
+
+// Clone a repo
+let path = manager.clone("https://github.com/facebook/react")?;
+// -> ~/dev/github.com/facebook/react
+
+// Check if already cloned
+if let Some(path) = manager.find("facebook/react")? {
+    println!("Already at: {}", path.display());
+}
+
+// List all repos
+for repo in manager.list()? {
+    println!("{}: {}", repo.name, repo.path.display());
+}
+```
+
+## Inspiration
+
+- [ghq](https://github.com/x-motemen/ghq) — Multi-VCS repository management (Go)
+- [git-grab](https://github.com/wezm/git-grab) — Simple git cloning to organized paths (Rust)
+
+helix-repo takes git-grab's simplicity and adds library APIs for tool integration.
+
+## Learn More
+
+- [GitHub: helix-repo](https://github.com/kevinmichaelchen/helix-tools/tree/main/helix-repo)
+- [specs/requirements.md](https://github.com/kevinmichaelchen/helix-tools/blob/main/helix-repo/specs/requirements.md)
+- [specs/design.md](https://github.com/kevinmichaelchen/helix-tools/blob/main/helix-repo/specs/design.md)
