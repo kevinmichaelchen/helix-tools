@@ -1,0 +1,147 @@
+---
+title: Configuration
+description: How helix-tools organizes configuration, data, and state
+---
+
+# Configuration
+
+Helix tools use a unified `~/.helix/` directory for configuration, with project-local overrides in `.helix/`.
+
+## Directory Structure
+
+```
+~/.helix/
+├── config/                   # Configuration (user-editable TOML)
+│   ├── config.toml           # Shared settings
+│   ├── hbd.toml              # hbd settings
+│   ├── helix-docs.toml       # helix-docs settings
+│   ├── helix-map.toml        # helix-map settings
+│   └── helix-repo.toml       # helix-repo settings
+│
+├── data/                     # Caches & databases (auto-generated)
+│   ├── docs/                 # helix-docs cache (HelixDB)
+│   └── index/                # helix-map index (HelixDB)
+│
+├── state/                    # Runtime metadata (ephemeral)
+│   ├── agents/               # Agent registry
+│   ├── locks/                # Process locks
+│   └── cache/                # Computed caches
+│
+└── log/                      # Operation logs
+```
+
+<Callout type="info">
+Repository clones managed by `helix-repo` live in `~/dev/` by default, not in `~/.helix/data/`. This keeps your code in a visible, standard location.
+</Callout>
+
+## Config Hierarchy
+
+Settings are loaded with this priority (highest first):
+
+1. **Environment variables** (`HELIX_*`, `GITHUB_TOKEN`)
+2. **Project tool config** (`.helix/<tool>.toml`)
+3. **Project shared config** (`.helix/config.toml`)
+4. **Global tool config** (`~/.helix/config/<tool>.toml`)
+5. **Global shared config** (`~/.helix/config/config.toml`)
+6. **Defaults** (from code)
+
+## Global Config
+
+### Shared Settings
+
+`~/.helix/config/config.toml` contains settings used by multiple tools:
+
+```toml
+[github]
+token = "ghp_xxx"  # Or use GITHUB_TOKEN env var
+
+[embedding]
+model = "BAAI/bge-small-en-v1.5"
+batch_size = 32
+
+[storage]
+base = "~/.helix/data"  # Override if needed
+```
+
+### Tool-Specific Settings
+
+Each tool has its own config file:
+
+```toml
+# ~/.helix/config/hbd.toml
+[issue]
+default_type = "task"
+default_priority = "medium"
+
+# ~/.helix/config/helix-docs.toml
+[ingest]
+concurrency = 5
+freshness_days = 7
+
+[search]
+default_limit = 10
+
+# ~/.helix/config/helix-repo.toml
+[storage]
+root = "~/dev"  # Where to clone repos
+```
+
+## Project Config
+
+Project-local settings override global ones. Store them in `.helix/`:
+
+```
+your-project/.helix/
+├── config.toml           # Project-wide shared config
+├── hbd.toml              # hbd project overrides
+├── helix-docs.toml       # helix-docs project overrides
+└── helix-repo.toml       # helix-repo project overrides
+```
+
+Example project config:
+
+```toml
+# .helix/helix-docs.toml
+[search]
+preferred_libraries = ["facebook/react", "vercel/next.js"]
+default_limit = 5
+```
+
+## Environment Variables
+
+Override any setting via environment variables:
+
+```bash
+# Override helix home directory
+export HELIX_HOME=~/my-helix
+
+# Override helix-repo root
+export HELIX_REPO_ROOT=~/work/repos
+
+# Shared settings
+export GITHUB_TOKEN=ghp_xxx
+export HELIX_EMBEDDING_MODEL=jina-embeddings-v3
+```
+
+## Data Locations
+
+| Directory | Contents | Safe to Delete? |
+|-----------|----------|-----------------|
+| `~/.helix/config/` | User settings | No (back this up) |
+| `~/.helix/data/` | Caches, databases | Yes (regenerable, but expensive) |
+| `~/.helix/state/` | Locks, runtime state | Yes (ephemeral) |
+| `~/.helix/log/` | Operation logs | Yes |
+| `~/dev/` | Repository clones | Depends on your workflow |
+
+## Why This Structure?
+
+Unlike tools that scatter config across `~/.config/` and data across `~/.cache/`, helix uses a single directory. This follows the pattern of:
+
+- **Rust**: `~/.cargo/`, `~/.rustup/`
+- **Node**: `~/.npm/`, `~/.nvm/`
+- **Ruby**: `~/.gem/`, `~/.rbenv/`
+
+Benefits:
+- Single location to manage, backup, or reset
+- Clear separation between config (user edits) and data (auto-generated)
+- Easy to understand what's safe to delete

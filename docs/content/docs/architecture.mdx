@@ -13,16 +13,16 @@ Helix Tools share a common architecture that balances simplicity with power.
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         CLI Tools Layer                              │
 │                                                                      │
-│   hbd          helix-docs      helix-map       helix-mail           │
-│   (issues)     (research)      (codebase)      (messaging)          │
+│   hbd          helix-docs      helix-map       helix-repo           │
+│   (issues)     (research)      (codebase)      (clones)             │
 │                                                                      │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │
 ┌──────────────────────────────┴──────────────────────────────────────┐
 │                        Shared Libraries                              │
 │                                                                      │
-│   helix-embed          helix-sync           helix-common            │
-│   (fastembed)          (git ops)            (types, utils)          │
+│   helix-id             helix-config          helix-embed (planned)  │
+│   (hash IDs)           (settings)            (fastembed)            │
 │                                                                      │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │
@@ -69,23 +69,29 @@ When you `git pull` new changes:
 | Database | HelixDB | Graph + vector + BM25 in one |
 | Embeddings | fastembed | Native Rust, offline, no server |
 | CLI | clap | Standard Rust CLI framework |
-| Git ops | git2 | Native Rust git bindings |
-| File watch | notify | Cross-platform file watching |
+| Git ops | gix | Pure Rust git implementation |
+| Hashing | Blake3 | Fast cryptographic hashing for IDs |
 
 ## Project Structure
 
 ```
 helix-tools/
-├── hbd/                    # Issue tracker
-│   ├── specs/              # Kiro-style specifications
-│   └── src/                # Rust source
+├── hbd/                    # Issue tracker CLI
+├── helix-docs/             # Documentation cache CLI
+├── helix-map/              # Codebase indexer CLI
+├── helix-repo/             # Repository clone manager
 │
-├── shared/                 # Shared Rust crates (planned)
-│   ├── helix-embed/        # Embedding utilities
-│   └── helix-sync/         # Git sync utilities
+├── shared/
+│   ├── helix-id/           # Hash-based ID generation
+│   └── helix-config/       # Configuration loading
 │
 ├── docs/                   # This documentation site
 │
 ├── Cargo.toml              # Workspace root
 └── README.md
 ```
+
+Each tool includes Kiro-style specifications in a `specs/` directory:
+- `requirements.md` - User stories (EARS notation)
+- `design.md` - Technical architecture
+- `tasks.md` - Implementation roadmap
