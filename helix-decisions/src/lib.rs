@@ -23,8 +23,10 @@
 pub mod config;
 pub mod delta;
 pub mod embeddings;
+pub mod git_utils;
 pub mod hooks;
 pub mod loader;
+pub mod manifest;
 pub mod searcher;
 pub mod storage;
 pub mod types;

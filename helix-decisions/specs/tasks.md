@@ -99,33 +99,35 @@
 > - `docs/phase3/PHASE_3_CORRECTIONS.md` - API alignment fixes
 > - `docs/phase3/CORRECTIONS_QUICK_REFERENCE.txt` - Quick lookup
 
-### Task 3.1: Foundation Modules (Session 1)
+### Task 3.1: Foundation Modules (Session 1) ✅
 
-#### Task 3.1.1: manifest.rs (~250 lines)
-- [ ] Define `ManifestEntry` struct
-  - file_path, mtime, size, content_hash, node_id, vector_id, embedding_model, indexer_version
-- [ ] Define `IndexManifest` struct (HashMap of entries)
-- [ ] Define `MANIFEST_KEY` constant: `"manifest:helix-decisions:v1"`
-- [ ] Implement `load()` from HelixDB metadata
-- [ ] Implement `save()` to HelixDB metadata
-- [ ] Implement CRUD: `get()`, `contains()`, `upsert()`, `remove()`
-- [ ] Unit tests (6 tests):
-  - Serialization/deserialization
-  - CRUD operations
+#### Task 3.1.1: manifest.rs ✅
+- [x] Define `ManifestEntry` struct
+  - file_path, mtime, size, content_hash, decision_id, uuid, vector_id, embedding_model, indexer_version
+- [x] Define `IndexManifest` struct (HashMap of entries)
+- [x] Define `MANIFEST_KEY` constant: `"manifest:helix-decisions:v1"`
+- [x] Implement `from_bytes()` / `to_bytes()` for JSON serialization
+- [x] Implement CRUD: `get()`, `contains()`, `upsert()`, `remove()`
+- [x] Implement helpers: `find_by_content_hash()`, `find_by_decision_id()`
+- [x] Unit tests (11 tests):
+  - Entry creation, stats_changed, content_changed, needs_reembed
+  - CRUD operations, serialization round-trip
   - Vector ID field handling
-  - Metadata persistence
-  - Key namespace verification
+  - Find by content hash / decision ID
 
-#### Task 3.1.2: git_utils.rs (~100 lines)
-- [ ] Implement `git_ls_files(repo_root, glob)` function
-- [ ] Run `git ls-files '.decisions/**/*.md'`
-- [ ] Implement directory walk fallback if git unavailable
-- [ ] Return sorted `Vec<PathBuf>`
-- [ ] Unit tests (4 tests):
-  - Git-based listing
-  - Directory walk fallback
-  - .gitignore respect
-  - Error handling
+> **Note:** HelixDB metadata integration deferred to Task 3.2 (backend).
+> Manifest uses JSON bytes for storage-agnostic serialization.
+
+#### Task 3.1.2: git_utils.rs ✅
+- [x] Implement `list_decision_files(repo_root, decisions_dir)` function
+- [x] Run `git ls-files '.decisions/**/*.md'` internally
+- [x] Implement directory walk fallback if git unavailable
+- [x] Return sorted `Vec<PathBuf>`
+- [x] Unit tests (4 tests):
+  - Directory walk finds .md files
+  - Results are sorted
+  - Error handling for missing directory
+  - Fallback behavior
 
 ### Task 3.2: Backend Implementation (Session 2)
 
@@ -318,7 +320,7 @@
 | **M4: Search** | 1.6-1.7 | ✅ Complete | - |
 | **M5: Hooks** | 1.8-1.9 | ✅ Complete | - |
 | **M6: Daemon Integration** | 3.4 | ✅ Complete | - |
-| **M7: Phase 3 Foundation** | 3.1 | 🚧 Planned | Session 1 (2-3 hrs) |
+| **M7: Phase 3 Foundation** | 3.1 | ✅ Complete | - |
 | **M8: Phase 3 Backend** | 3.2 | 🚧 Planned | Session 2 (2-3 hrs) |
 | **M9: Phase 3 Integration** | 3.3 | 🚧 Planned | Session 3 (1-2 hrs) |
 | **M10: v1.0.0 Release** | All Phase 3 | 🚧 Planned | Total: 6-8 hrs |
