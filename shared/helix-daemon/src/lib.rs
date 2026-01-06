@@ -8,9 +8,11 @@
 //! See `specs/design.md` for the full protocol specification.
 
 mod client;
+mod queue;
 mod server;
 
 pub use client::Client;
+pub use queue::{QueueKey, SyncJob, SyncQueue};
 pub use server::Server;
 
 use serde::{Deserialize, Serialize};

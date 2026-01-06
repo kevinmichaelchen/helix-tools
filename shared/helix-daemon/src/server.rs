@@ -1,25 +1,23 @@
+use crate::queue::SyncQueue;
 use crate::{
-    Command, DaemonError, ErrorCode, PROTOCOL_VERSION, PingResponse, Request, Response,
-    ResponsePayload, ShutdownResponse, StatusPayload, StatusResponse,
+    Command, DaemonError, EnqueueSyncPayload, EnqueueSyncResponse, ErrorCode, PROTOCOL_VERSION,
+    PingResponse, Request, Response, ResponsePayload, ShutdownResponse, StatusPayload,
+    StatusResponse, WaitSyncPayload, WaitSyncResponse,
 };
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixListener;
-use tokio::sync::{RwLock, broadcast};
+use tokio::sync::broadcast;
 
-const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB limit
+const MAX_MESSAGE_SIZE: usize = 1024 * 1024;
 
 pub struct Server {
     socket_path: String,
     start_time: std::time::Instant,
     shutdown_tx: broadcast::Sender<()>,
-    state: Arc<RwLock<ServerState>>,
-}
-
-#[derive(Default)]
-struct ServerState {
-    request_count: u64,
+    queue: Arc<SyncQueue>,
 }
 
 impl Server {
@@ -29,7 +27,7 @@ impl Server {
             socket_path: socket_path.into(),
             start_time: std::time::Instant::now(),
             shutdown_tx,
-            state: Arc::new(RwLock::new(ServerState::default())),
+            queue: Arc::new(SyncQueue::new()),
         }
     }
 
@@ -58,11 +56,11 @@ impl Server {
                 accept_result = listener.accept() => {
                     match accept_result {
                         Ok((stream, _)) => {
-                            let state = Arc::clone(&self.state);
+                            let queue = Arc::clone(&self.queue);
                             let start_time = self.start_time;
                             let shutdown_tx = self.shutdown_tx.clone();
                             tokio::spawn(async move {
-                                if let Err(e) = handle_connection(stream, state, start_time, shutdown_tx).await {
+                                if let Err(e) = handle_connection(stream, queue, start_time, shutdown_tx).await {
                                     tracing::error!("Connection error: {}", e);
                                 }
                             });
@@ -90,7 +88,7 @@ impl Server {
 
 async fn handle_connection(
     stream: tokio::net::UnixStream,
-    state: Arc<RwLock<ServerState>>,
+    queue: Arc<SyncQueue>,
     start_time: std::time::Instant,
     shutdown_tx: broadcast::Sender<()>,
 ) -> Result<(), DaemonError> {
@@ -116,13 +114,8 @@ async fn handle_connection(
 
         let response = match serde_json::from_str::<Request>(line.trim()) {
             Ok(req) => {
-                {
-                    let mut s = state.write().await;
-                    s.request_count += 1;
-                }
-
                 if req.version == PROTOCOL_VERSION {
-                    handle_command(&req, start_time, &shutdown_tx)
+                    handle_command(&req, &queue, start_time, &shutdown_tx).await
                 } else {
                     Response::error(
                         &req.id,
@@ -146,8 +139,9 @@ async fn handle_connection(
     Ok(())
 }
 
-fn handle_command(
+async fn handle_command(
     req: &Request,
+    queue: &SyncQueue,
     start_time: std::time::Instant,
     shutdown_tx: &broadcast::Sender<()>,
 ) -> Response {
@@ -159,27 +153,64 @@ fn handle_command(
             }),
         ),
 
-        Command::EnqueueSync(_payload) => Response::error(
-            &req.id,
-            ErrorCode::InternalError,
-            "enqueue_sync not yet implemented (Phase 3)",
-        ),
+        Command::EnqueueSync(EnqueueSyncPayload { directory, force }) => {
+            let (sync_id, _is_new) = queue
+                .enqueue(&req.repo_root, &req.tool, directory, *force)
+                .await;
 
-        Command::WaitSync(_payload) => Response::error(
-            &req.id,
-            ErrorCode::InternalError,
-            "wait_sync not yet implemented (Phase 3)",
-        ),
+            queue.get(&sync_id).await.map_or_else(
+                || {
+                    Response::error(
+                        &req.id,
+                        ErrorCode::InternalError,
+                        "Failed to create sync job",
+                    )
+                },
+                |job| {
+                    Response::ok(
+                        &req.id,
+                        ResponsePayload::EnqueueSync(EnqueueSyncResponse {
+                            sync_id,
+                            queued_at_ms: job.queued_at_ms(),
+                        }),
+                    )
+                },
+            )
+        }
+
+        Command::WaitSync(WaitSyncPayload {
+            sync_id,
+            timeout_ms,
+        }) => {
+            let timeout = Duration::from_millis(*timeout_ms);
+
+            match queue.wait(sync_id, timeout).await {
+                Some(final_state) => {
+                    let job_stats = queue.get(sync_id).await.and_then(|j| j.stats);
+                    Response::ok(
+                        &req.id,
+                        ResponsePayload::WaitSync(WaitSyncResponse {
+                            sync_id: sync_id.clone(),
+                            state: final_state,
+                            stats: job_stats,
+                        }),
+                    )
+                }
+                None => Response::error(
+                    &req.id,
+                    ErrorCode::Timeout,
+                    format!("Timeout waiting for sync {sync_id}"),
+                ),
+            }
+        }
 
         Command::Status(StatusPayload { .. }) => {
             #[allow(clippy::cast_possible_truncation)]
             let uptime_ms = start_time.elapsed().as_millis() as u64;
+            let queues = queue.list_queues().await;
             Response::ok(
                 &req.id,
-                ResponsePayload::Status(StatusResponse {
-                    queues: vec![],
-                    uptime_ms,
-                }),
+                ResponsePayload::Status(StatusResponse { queues, uptime_ms }),
             )
         }
 
