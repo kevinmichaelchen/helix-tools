@@ -1,5 +1,9 @@
 # Design
 
+**Document:** design.md  
+**Status:** Active (2026-01-06)  
+**Author:** Kevin Chen
+
 This document describes the design decisions and implementation details for `helix-config`.
 
 ## Overview
@@ -468,3 +472,92 @@ Migration steps:
 1. Replace custom config loading with `helix_config::load_config("tool-name")`
 2. Use `helix_config::helix_data_dir().join("tool-data")` for data storage
 3. Use `helix_config::detect_github_token()` for GitHub access
+
+---
+
+## HelixDB Storage Paths
+
+Tools using HelixDB for persistence should follow these conventions:
+
+### Project-Local HelixDB (Default)
+
+For tools that store data within the project:
+
+```
+{project}/.helix/data/{tool}/
+├── helix-db/                    # HelixDB data directory
+│   ├── data.mdb                 # LMDB data file
+│   └── lock.mdb                 # LMDB lock file
+└── manifest.json                # Sync manifest (optional)
+```
+
+**Example:** helix-decisions stores decision graph + vectors in `.helix/data/decisions/helix-db/`
+
+### Global HelixDB
+
+For tools with cross-project data:
+
+```
+~/.helix/data/{tool}/
+├── helix-db/                    # HelixDB data directory
+│   ├── data.mdb
+│   └── lock.mdb
+└── manifest.json
+```
+
+**Example:** helix-docs stores documentation cache in `~/.helix/data/docs/helix-db/`
+
+### Path Helper Functions
+
+```rust
+use helix_config::{helix_data_dir, project_data_dir};
+
+// Global HelixDB path
+let global_db = helix_data_dir()
+    .join("docs")
+    .join("helix-db");
+// → ~/.helix/data/docs/helix-db/
+
+// Project-local HelixDB path (requires git root discovery)
+let project_db = project_data_dir("decisions")?
+    .join("helix-db");
+// → {project}/.helix/data/decisions/helix-db/
+```
+
+### HelixDB Config Options
+
+Tools can configure HelixDB behavior via shared config:
+
+```toml
+# ~/.helix/config/config.toml
+
+[helix_db]
+# LMDB map size (default: 1GB for project-local, 10GB for global)
+map_size_mb = 1024
+
+# Enable memory-mapped I/O (default: true)
+mmap = true
+
+# Max readers (default: 126)
+max_readers = 126
+```
+
+### HelixDB API Patterns Reference
+
+When integrating HelixDB, follow the corrected patterns in:
+- `helix-decisions/docs/phase3/PHASE_3_CORRECTIONS.md`
+- `helix-decisions/docs/phase3/CORRECTIONS_QUICK_REFERENCE.txt`
+
+Key requirements:
+- **Edges:** Write to 3 databases (edges_db, out_edges_db, in_edges_db)
+- **Nodes:** Use arena allocation + ImmutablePropertiesMap
+- **Vectors:** Stored separately, linked via vector_id property
+- **Keys:** Use `hash_label()` for adjacency DB keys
+
+---
+
+## See Also
+
+- [requirements.md](./requirements.md) — Requirements specification
+- [helix-decisions/specs/design.md](../../helix-decisions/specs/design.md) — HelixDB integration example
+- [shared/AGENTS.md](../AGENTS.md) — Shared crates overview
