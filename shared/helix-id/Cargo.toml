@@ -1,0 +1,25 @@
+[package]
+name = "helix-id"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Hash-based ID generation for helix-tools"
+readme = "README.md"
+keywords = ["id", "hash", "blake3", "uuid"]
+categories = ["data-structures"]
+
+[dependencies]
+blake3.workspace = true
+hex.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
+[lints]
+workspace = true
