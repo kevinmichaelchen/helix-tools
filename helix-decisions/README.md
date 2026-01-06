@@ -1,8 +1,8 @@
 # helix-decisions
 
-Decision graph infrastructure with semantic search, backed by embedded HelixDB.
+Decision graph infrastructure with semantic search and persistent indexing.
 
-**Status:** Scaffolded  
+**Status:** MVP Complete  
 **Created:** 2026-01-05
 
 ## Why helix-decisions?
@@ -14,29 +14,11 @@ Decisions are the backbone of software architecture. Unlike code (which shows *w
 
 But `.decisions/` directories are unindexed markdown. helix-decisions makes them **searchable in < 100ms** via semantic indexing and tracks relationships between decisions.
 
-## Core Idea
+## Directory Scope
 
-```bash
-# First invocation: index all decisions into HelixDB
-helix-decisions search "database migration" 
+helix-decisions is **repo-scoped**, not global. Each repository has one `.decisions/` directory at its root. Monorepos have one `.decisions/` directory per repo.
 
-# Result: Ranked decisions with scores and metadata
-# [
-#   { id: 3, title: "...", status: "accepted", score: 0.87, ... },
-#   { id: 1, title: "...", status: "proposed", score: 0.72, ... }
-# ]
-
-# Second invocation: fast delta + search
-helix-decisions search "caching strategy"  # < 100ms (mostly search, minimal indexing)
-
-# Follow supersedes chains
-helix-decisions chain 3  # Shows decision lineage
-
-# Find related decisions
-helix-decisions related 3  # Shows all connected decisions
-```
-
-**Key:** Persistent HelixDB index, delta indexing on each call.
+**Discovery:** `helix-decisions` automatically finds `.decisions/` by walking up from your current directory to the git root.
 
 ## Installation
 
@@ -44,18 +26,54 @@ helix-decisions related 3  # Shows all connected decisions
 cargo install --path .
 ```
 
+## Quick Start
+
+```bash
+# Create decisions directory
+mkdir .decisions
+
+# Create your first decision
+cat > .decisions/001-initial-architecture.md << 'EOF'
+---
+id: 1
+title: Initial Architecture
+status: proposed
+date: 2026-01-06
+deciders:
+  - Alice
+tags:
+  - architecture
+---
+
+# Context
+...
+
+# Decision
+...
+EOF
+
+# Search decisions
+helix-decisions search "architecture"
+
+# Follow supersedes chains
+helix-decisions chain 1
+
+# Find related decisions
+helix-decisions related 1
+```
+
 ## Usage
 
 ```bash
-# Search decisions (default: .decisions/)
+# Search decisions (auto-discovers .decisions/)
 helix-decisions search <QUERY> [OPTIONS]
 
 # Options:
---directory <PATH>         # Decision directory (default: .decisions/)
+--directory <PATH>         # Override decision directory
 --limit <N>                # Results limit (default: 10)
 --status <STATUS>          # Filter by status (proposed|accepted|superseded|deprecated)
 --tags <TAGS>              # Filter by tags (comma-separated)
---json                     # JSON output (default for piping)
+--json                     # JSON output
 
 # Follow supersedes chain
 helix-decisions chain <ID>
@@ -63,12 +81,106 @@ helix-decisions chain <ID>
 # Find related decisions
 helix-decisions related <ID>
 
-# Examples:
-helix-decisions search "caching"
-helix-decisions --directory ./architecture search "database" --status accepted
-helix-decisions search "performance" --limit 3 --json
-helix-decisions chain 5
+# Install git hooks (manual, opt-in)
+helix-decisions init-hooks
+
+# Remove git hooks
+helix-decisions remove-hooks
 ```
+
+## Enforcing Immutability
+
+Accepted decisions (status: accepted) should not be modified—instead, create new decisions with `amends: [id]` to reference the original.
+
+To enforce this with git hooks:
+
+```bash
+helix-decisions init-hooks
+```
+
+This will install a pre-commit hook that blocks commits modifying accepted decisions.
+
+**Bypass options:**
+- `git commit --no-verify` — Skip hook for a single commit
+- `HELIX_DECISIONS_SKIP_HOOKS=1` — Environment variable bypass
+- Delete `.git/hooks/pre-commit` — Remove hook entirely
+
+## Configuration
+
+Global config at `~/.helix/config/helix-decisions.toml`:
+
+```toml
+strict = true  # Block modifications to accepted decisions (default: true)
+```
+
+Per-repo config at `.helix/helix-decisions.toml` overrides global.
+
+## Decision Format
+
+Decisions are markdown files with YAML frontmatter in `.decisions/`:
+
+```yaml
+---
+id: 3
+uuid: hx-a1b2c3  # Optional: hash-based UUID for distributed safety
+title: Database Migration Strategy
+status: accepted
+date: 2026-01-04
+deciders:
+  - Alice
+  - Bob
+tags:
+  - database
+  - migration
+content_hash: abc123...  # Optional: for immutability proof
+git_commit: def456...    # Optional: commit when accepted
+supersedes: 1            # Optional: decision this replaces
+amends: [2]              # Optional: decisions this amends
+depends_on: [2, 4]       # Optional: prerequisite decisions
+related_to: 5            # Optional: related decisions
+---
+
+# Context and Problem Statement
+...
+
+# Decision
+...
+```
+
+### Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Local sequential ID (1, 2, 3...) |
+| `title` | string | Human-readable title |
+| `status` | string | proposed, accepted, superseded, deprecated |
+| `date` | date | ISO 8601 date |
+
+### Optional Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `uuid` | string | Hash-based UUID (hx-xxxxxx) for distributed safety |
+| `deciders` | list | People who made the decision |
+| `tags` | list | Categorization tags |
+| `content_hash` | string | SHA256 hash for immutability |
+| `git_commit` | string | Git commit when accepted |
+| `supersedes` | int/list | Decision(s) this replaces |
+| `amends` | int/list | Decision(s) this amends |
+| `depends_on` | int/list | Prerequisite decisions |
+| `related_to` | int/list | Related decisions |
+
+## ID Scheme
+
+- **`id`**: Local sequential integer (1, 2, 3...) for human readability
+- **`uuid`**: Optional hash-based UUID (via helix-id) for distributed safety across branches
+
+## How It Works
+
+1. **First invocation:** Scan `.decisions/`, embed with fastembed, store index (~2-5s)
+2. **Subsequent invocations:** Delta check (file hashes), re-index only changed decisions (~100ms)
+
+Index is stored at `.helix/data/decisions/` within your repository.
 
 ## Output
 
@@ -103,47 +215,6 @@ helix-decisions chain 5
 }
 ```
 
-## Decision Format
-
-Decisions are markdown files with YAML frontmatter in `.decisions/`:
-
-```yaml
----
-id: 3
-uuid: hx-a1b2c3  # Optional: hash-based UUID for distributed safety
-title: Database Migration Strategy
-status: accepted
-date: 2026-01-04
-deciders:
-  - Alice
-  - Bob
-tags:
-  - database
-  - migration
-content_hash: abc123...  # Optional: for immutability proof
-git_commit: def456...    # Optional: commit when accepted
-supersedes: 1            # Optional: decision this replaces
-depends_on: [2, 4]       # Optional: prerequisite decisions
-related_to: 5            # Optional: related decisions
----
-
-# Context and Problem Statement
-...
-
-# Decision
-...
-```
-
-## ID Scheme
-
-- **`id`**: Local sequential integer (1, 2, 3...) for human readability
-- **`uuid`**: Optional hash-based UUID (via helix-id) for distributed safety across branches
-
-## How It Works
-
-1. **First invocation:** Scan `.decisions/`, embed with fastembed, store in HelixDB (~2-5s)
-2. **Subsequent invocations:** Delta check (file hashes), re-index only changed decisions, search (~100ms)
-
 ## Architecture
 
 ```
@@ -152,13 +223,16 @@ User/Agent
     ↓
 ┌─────────────────────────────────┐
 │   helix-decisions CLI           │
+│   • search, chain, related      │
+│   • init-hooks, remove-hooks    │
 └──────────┬──────────────────────┘
            │
     ┌──────▼──────────────────────┐
-    │ Embedded HelixDB             │
-    │ • Vector index               │
-    │ • Graph relationships        │
-    │ • Persistent (~/.helix/)     │
+    │ Shared Infrastructure        │
+    │ • helix-embeddings (search)  │
+    │ • helix-storage (persist)    │
+    │ • helix-discovery (find)     │
+    │ • helix-config (settings)    │
     └──────────────────────────────┘
 ```
 

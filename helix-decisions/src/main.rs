@@ -1,8 +1,9 @@
-//! helix-decisions CLI - Decision graph infrastructure with semantic search.
-
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use helix_decisions::{ChainResponse, DecisionSearcher, RelatedResponse, SearchResponse, Status};
+use helix_decisions::{
+    ChainResponse, DecisionSearcher, RelatedResponse, SearchResponse, Status, hooks,
+};
+use helix_discovery::{DiscoveryError, find_git_root_from_cwd, find_marker_from_cwd};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -12,8 +13,8 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 
-    #[arg(short, long, default_value = ".decisions", global = true)]
-    directory: PathBuf,
+    #[arg(short, long, global = true)]
+    directory: Option<PathBuf>,
 
     #[arg(short, long, global = true)]
     json: bool,
@@ -36,15 +37,35 @@ enum Commands {
     Related {
         decision_id: u32,
     },
+    InitHooks {
+        #[arg(long)]
+        force: bool,
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
+    RemoveHooks,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    match cli.command {
+        Commands::InitHooks { force, yes } => {
+            return handle_init_hooks(force, yes);
+        }
+        Commands::RemoveHooks => {
+            return handle_remove_hooks();
+        }
+        _ => {}
+    }
+
+    let directory = resolve_decisions_directory(cli.directory)?;
+
     let mut searcher = DecisionSearcher::new()?;
-    searcher.sync(&cli.directory)?;
+    searcher.sync(&directory)?;
 
     match cli.command {
+        Commands::InitHooks { .. } | Commands::RemoveHooks => unreachable!(),
         Commands::Search {
             query,
             limit,
@@ -100,6 +121,66 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+fn handle_init_hooks(force: bool, yes: bool) -> Result<()> {
+    let git_root = find_git_root_from_cwd().map_err(|_| {
+        anyhow::anyhow!("Not in a git repository. init-hooks must be run from within a git repo.")
+    })?;
+
+    if !yes {
+        hooks::print_hook_warning();
+        if !hooks::confirm_installation()? {
+            println!("Cancelled.");
+            return Ok(());
+        }
+    }
+
+    hooks::install_hook(&git_root, force)?;
+    println!(
+        "Installed pre-commit hook at {}/.git/hooks/pre-commit",
+        git_root.display()
+    );
+    Ok(())
+}
+
+fn handle_remove_hooks() -> Result<()> {
+    let git_root = find_git_root_from_cwd().map_err(|_| {
+        anyhow::anyhow!("Not in a git repository. remove-hooks must be run from within a git repo.")
+    })?;
+
+    if hooks::uninstall_hook(&git_root)? {
+        println!("Removed pre-commit hook.");
+    } else {
+        println!("No helix-decisions hook found.");
+    }
+    Ok(())
+}
+
+fn resolve_decisions_directory(explicit: Option<PathBuf>) -> Result<PathBuf> {
+    if let Some(dir) = explicit {
+        return Ok(dir);
+    }
+
+    match find_marker_from_cwd(".decisions") {
+        Ok(path) => Ok(path),
+        Err(DiscoveryError::NotInGitRepo) => {
+            anyhow::bail!(
+                "Not in a git repository.\n\
+                 helix-decisions expects a .decisions/ directory at your repo root.\n\
+                 Run from a git repository or use --directory to specify the path."
+            )
+        }
+        Err(DiscoveryError::MarkerNotFound { searched, .. }) => {
+            anyhow::bail!(
+                ".decisions/ directory not found at git root: {}\n\
+                 Create it with: mkdir .decisions\n\
+                 Or use --directory to specify a different path.",
+                searched.display()
+            )
+        }
+        Err(e) => anyhow::bail!("Failed to find decisions directory: {e}"),
+    }
+}
+
 fn print_search(response: &SearchResponse) {
     if response.results.is_empty() {
         println!("No results found for: \"{}\"", response.query);
@@ -141,8 +222,8 @@ fn print_chain(response: &ChainResponse) {
         let prefix = if i == 0 { "└" } else { "  └" };
         let current = if node.is_current { " (current)" } else { "" };
         println!(
-            "{} {:03}: {} [{}]{}",
-            prefix, node.id, node.title, node.status, current
+            "{prefix} {:03}: {} [{}]{current}",
+            node.id, node.title, node.status
         );
     }
     println!();

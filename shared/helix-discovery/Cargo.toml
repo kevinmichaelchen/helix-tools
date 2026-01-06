@@ -1,0 +1,23 @@
+[package]
+name = "helix-discovery"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/kevinmichaelchen/helix-tools"
+description = "Project and git root discovery for helix-tools"
+readme = "README.md"
+keywords = ["git", "project", "discovery", "filesystem"]
+categories = ["development-tools", "filesystem"]
+
+[lib]
+name = "helix_discovery"
+path = "src/lib.rs"
+
+[dependencies]
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

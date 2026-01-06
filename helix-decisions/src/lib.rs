@@ -20,8 +20,10 @@
 //! # }
 //! ```
 
+pub mod config;
 pub mod delta;
 pub mod embeddings;
+pub mod hooks;
 pub mod loader;
 pub mod searcher;
 pub mod storage;

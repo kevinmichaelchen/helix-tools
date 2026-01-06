@@ -1,0 +1,22 @@
+[package]
+name = "helix-embeddings"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/kevinmichaelchen/helix-tools"
+description = "Shared embedding infrastructure for helix-tools using fastembed"
+readme = "README.md"
+keywords = ["embeddings", "fastembed", "vector", "semantic-search"]
+categories = ["text-processing", "development-tools"]
+
+[lib]
+name = "helix_embeddings"
+path = "src/lib.rs"
+
+[dependencies]
+fastembed = "4"
+thiserror = "2"
+helix-config = { path = "../helix-config" }
+
+[lints]
+workspace = true
