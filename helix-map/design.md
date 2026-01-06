@@ -1,5 +1,39 @@
 # Design
 
+## Shared Dependencies
+
+`helix-map` leverages shared libraries from the helix-tools workspace:
+
+### helix-id
+
+**Purpose:** Hash-based ID generation for symbols and files.
+
+**Usage in helix-map:**
+- `SymbolId` (`sym-xxxxxx`) - Identifies symbols in the index
+- `FileId` (`fil-xxxxxx`) - Identifies indexed files
+
+**Integration:**
+```rust
+use helix_id::define_id;
+
+define_id!(SymbolId, "sym");
+define_id!(FileId, "fil");
+```
+
+See: [shared/helix-id/specs/design.md](../shared/helix-id/specs/design.md)
+
+### helix-config
+
+**Purpose:** Hierarchical configuration loading.
+
+**Usage in helix-map:**
+- Global config from `~/.config/helix/config.toml`
+- Project config from `.helix/helix-map.toml`
+
+See: [shared/helix-config/specs/design.md](../shared/helix-config/specs/design.md)
+
+---
+
 ## Overview
 
 `helix-map` indexes a repository into a compact symbol graph stored in HelixDB
