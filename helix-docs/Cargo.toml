@@ -1,0 +1,76 @@
+[package]
+name = "helix-docs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Local documentation cache for AI-assisted development"
+readme = "README.md"
+keywords = ["documentation", "search", "embeddings", "ai", "developer-tools"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "helix-docs"
+path = "src/main.rs"
+
+[dependencies]
+# Async runtime
+tokio.workspace = true
+async-trait = "0.1"
+
+# CLI
+clap.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+
+# Embeddings
+fastembed.workspace = true
+
+# Error handling
+thiserror.workspace = true
+anyhow.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Date/time
+chrono.workspace = true
+
+# ID generation
+uuid.workspace = true
+blake3.workspace = true
+hex.workspace = true
+
+# HTTP client (for GitHub API)
+reqwest = { version = "0.12", features = ["json", "gzip"] }
+
+# Markdown parsing (for chunking)
+pulldown-cmark.workspace = true
+
+# Configuration
+toml = "0.8"
+directories = "5"
+
+# Progress and terminal output
+indicatif = "0.17"
+console = "0.15"
+syntect = "5"
+
+# File watching (for future daemon)
+notify.workspace = true
+
+# HelixDB (when available as crate)
+# helix-db = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
+tokio-test = "0.4"
+pretty_assertions = "1"
+
+[lints]
+workspace = true
