@@ -1,0 +1,27 @@
+[package]
+name = "helix-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Global per-user daemon for helix-tools IPC, sync queueing, and single-writer enforcement"
+readme = "README.md"
+keywords = ["daemon", "ipc", "sync", "queue"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "helixd"
+path = "src/bin/helixd.rs"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

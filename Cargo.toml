@@ -12,6 +12,7 @@ members = [
     "shared/helix-storage",
     "shared/helix-embeddings",
     "shared/helix-discovery",
+    "shared/helix-daemon",
     # "shared/helix-embed",
     # "shared/helix-search",
     # "shared/helix-chunk",
