@@ -93,6 +93,12 @@ This document defines the technical architecture, data model, trait abstractions
                               └─────────────────────┘
 ```
 
+### Daemon Integration (Planned)
+
+helix-docs uses the global helixd daemon for background ingestion and sync. The CLI
+enqueues work via IPC and optionally waits with `--sync`. Protocol details live in
+`shared/helix-daemon/specs/design.md`.
+
 ### Layered Architecture (Hexagonal/Ports & Adapters)
 
 ```

@@ -5,8 +5,8 @@
 **Author:** Kevin Chen
 
 > **Implementation Status:**  
-> - **MVP (Phase 1-2):** Complete — JSON file storage with fastembed  
-> - **Phase 3 (Planned):** Native HelixDB integration for sub-50ms delta sync
+> - **Phase 1-2:** Complete — HelixDB storage with fastembed  
+> - **Phase 3 (Planned):** Incremental indexing + daemonized sync for sub-50ms delta sync
 
 ## Vision
 
@@ -76,13 +76,14 @@ So that deployments align with architectural decisions.
 
 ### FR-2: Index into HelixDB
 - **Input:** Parsed decisions
-- **Output:** Persistent vector index in `~/.helix/data/decisions/`
+- **Output:** Persistent vector index in project-local `.helix/data/decisions/`
 - **Requirements:**
   - Embed each decision body using fastembed (CPU)
   - Store embeddings + metadata in HelixDB
   - Create graph edges for relationships
   - Create index on first run (~2-5s for 100 decisions)
   - HelixDB persists across invocations
+  - Reuse persisted embeddings when content hash and model are unchanged
 
 ### FR-3: Delta Indexing
 - **Input:** Current decisions directory
@@ -91,6 +92,7 @@ So that deployments align with architectural decisions.
   - Track file hashes to detect changes
   - Re-index only changed/new decisions
   - Remove deleted decisions from index
+  - Detect renames via content hash + decision id/uuid and update path without re-embed
   - Execute in < 100ms for typical case (no changes)
 
 ### FR-4: Semantic Search
@@ -144,17 +146,31 @@ So that deployments align with architectural decisions.
   - Track `git_commit` of last full index for baseline comparison
   - Handle force-pushes and rebases gracefully (fall back to full manifest scan)
 
+### FR-10: Indexer Daemon and Consistency
+- **Input:** CLI invocation + repo path
+- **Output:** Immediate query results + queued background sync
+- **Requirements:**
+  - A global per-user daemon owns all HelixDB write transactions (single writer)
+  - Requests are namespaced by `{repo_root, tool}` to keep data scoped per repo
+  - CLI enqueues a "scan + delta sync" request on each invocation
+  - CLI uses existing index immediately (eventual consistency)
+  - IPC uses local sockets (Unix domain sockets + Windows named pipes)
+  - Unix socket path: `~/.helix/run/helixd.sock`
+  - Protocol v1 is defined in `shared/helix-daemon/specs/design.md`
+  - Provide `--sync` to block until the pending sync completes
+  - If the daemon is not running, `--sync` runs a direct sync with a writer lock
+
 ## Non-Functional Requirements
 
 ### Performance
 
-#### MVP (Phase 1-2) — JSON File Storage
+#### Phase 1-2 — HelixDB Storage
 | Operation | Target | Notes |
 |-----------|--------|-------|
 | First search | 2-5s | Full indexing |
 | Subsequent search | < 200ms | File hash comparison + search |
 | Delta sync (no changes) | ~100ms | Full file scan for hash comparison |
-| Delta sync (1 file changed) | ~500ms | Re-embed + write JSON |
+| Delta sync (1 file changed) | ~500ms | Re-embed + LMDB write |
 | Query embedding | 50-100ms | fastembed |
 | Graph traversal | < 50ms | In-memory |
 
@@ -172,12 +188,13 @@ So that deployments align with architectural decisions.
 **Phase 3 Key Improvements:**
 - **Git-first detection:** Use `gix` to skip unchanged files before hashing
 - **Incremental updates:** Update only changed nodes/edges, not full rewrite
-- **Native HNSW:** HelixDB's built-in vector index vs JSON serialization
+- **Native HNSW:** HelixDB's built-in vector index
 
 ### Reliability
 - Handle missing `.decisions/` gracefully
 - Handle malformed YAML (skip with warning)
 - Handle deleted decisions (remove from index)
+- Prevent concurrent writers across multiple CLI invocations
 
 ### Compatibility
 - Linux, macOS, Windows

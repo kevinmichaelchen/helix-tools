@@ -8,12 +8,12 @@
 >
 > | Phase | Status | Description |
 > |-------|--------|-------------|
-> | Phase 1-2 (MVP) | ✅ Complete | Types, loader, embeddings, storage, CLI, hooks |
-> | Phase 3 (HelixDB) | 🚧 Planned | Native graph storage, incremental indexing |
+> | Phase 1-2 (Core) | ✅ Complete | Types, loader, embeddings, HelixDB storage, CLI, hooks |
+> | Phase 3 (Indexer + Daemon) | 🚧 Planned | Incremental indexing, background sync |
 
 ---
 
-## Phase 1-2: MVP (COMPLETE)
+## Phase 1-2: Core (COMPLETE)
 
 ### Task 1.1: Project Setup ✅
 - [x] Create `helix-decisions/` directory structure
@@ -50,7 +50,7 @@
 
 ### Task 1.5: Storage Module ✅
 - [x] Define `DecisionStorage` trait
-- [x] Implement `PersistentDecisionStorage` (JSON backend)
+- [x] Implement `HelixDecisionStorage` (HelixDB backend)
 - [x] Implement `open()` for project-local storage
 - [x] Implement `index(decisions)` method
 - [x] Implement `search(embedding, limit)` method
@@ -90,7 +90,7 @@
 
 ---
 
-## Phase 3: HelixDB Integration (PLANNED)
+## Phase 3: Indexer + Daemon (PLANNED)
 
 > **Reference Documents:**
 > - `docs/phase3/PHASE_3_PLAN.md` - Detailed architecture
@@ -142,6 +142,8 @@
   - Stage 2: Content hash check
   - Stage 3: Full re-index (parse, embed, upsert)
   - Handle deletions (tombstone node + vector)
+  - Attempt rename match before deletion (content hash + decision id/uuid)
+  - Reuse vector_id when content hash + embedding model unchanged
   - Save manifest after sync
   - Return `SyncStats` (files_scanned, added, modified, deleted, duration_ms)
 - [ ] Implement `upsert_decision_node()`:
@@ -192,8 +194,6 @@
 - [ ] Add `HelixDecisionStorage` wrapper struct
 - [ ] Implement `DecisionStorage` trait for `HelixDecisionStorage`
 - [ ] Delegate methods to `HelixDecisionBackend`
-- [ ] Keep `PersistentDecisionStorage` for backward compatibility
-- [ ] Add deprecation warning when using JSON backend
 - [ ] Unit tests (5 tests):
   - Trait implementation
   - Search with filters
@@ -228,7 +228,6 @@
 
 #### Task 3.3.3: Documentation
 - [ ] Update README.md with HelixDB architecture section
-- [ ] Add migration guide (JSON → HelixDB)
 - [ ] Document graph schema
 - [ ] Add code comments on complex methods
 
@@ -237,6 +236,29 @@
 - [ ] Run `cargo clippy` (0 warnings)
 - [ ] Run `cargo fmt`
 - [ ] Verify backward compatibility
+
+#### Task 3.4: Indexer Daemon and Consistency
+
+##### Task 3.4.1: Daemon Process
+- [ ] Add `helix-decisions daemon` subcommand (or dedicated binary)
+- [ ] Implement a global per-user daemon with `{repo_root, tool}` namespacing
+- [ ] Define a stable socket naming scheme for helix-tools
+- [ ] Use Unix socket path `~/.helix/run/helixd.sock` (named pipe equivalent on Windows)
+- [ ] Auto-start daemon on first CLI invocation if socket is missing
+- [ ] Maintain a single-writer lock for LMDB
+- [ ] Process a queue of sync requests (repo path + decision dir)
+- [ ] Exit cleanly after idle timeout (configurable)
+
+##### Task 3.4.2: IPC + Queue
+- [ ] Use `shared/helix-daemon` IPC client
+- [ ] CLI sends `enqueue_sync` on each invocation
+- [ ] CLI uses `wait_sync` for `--sync`
+
+##### Task 3.4.3: Strong Consistency Flag
+- [ ] Add `--sync` to block until the queued sync completes
+- [ ] Implement `wait_sync` with timeout and clear error reporting
+- [ ] If daemon is unavailable, run a direct sync under the writer lock
+- [ ] Emit a warning when serving potentially stale results
 
 ---
 
@@ -252,16 +274,10 @@
 - [ ] Find all decisions in a status chain
 - [ ] Find decisions with specific tag combinations
 
-### Task 4.3: Migration CLI
-- [ ] `helix-decisions migrate` command
-- [ ] Auto-migrate from JSON to HelixDB
-- [ ] Preserve all data and relationships
-- [ ] Remove legacy JSON files after migration
-
-### Task 4.4: Daemon Mode (Optional)
-- [ ] File watching for automatic re-indexing
-- [ ] Background embedding
-- [ ] RPC interface for faster CLI
+### Task 4.3: File Watcher Enhancements (Optional)
+- [ ] File watching for continuous re-indexing (fs events)
+- [ ] Smarter debounce/coalesce for bursty file changes
+- [ ] Push notifications for stale index warnings
 
 ---
 
@@ -284,7 +300,7 @@
 
 | Milestone | Tasks | Status | Target |
 |-----------|-------|--------|--------|
-| **M1: MVP Types** | 1.1-1.2 | ✅ Complete | - |
+| **M1: Core Types** | 1.1-1.2 | ✅ Complete | - |
 | **M2: Load & Embed** | 1.3-1.4 | ✅ Complete | - |
 | **M3: Storage** | 1.5 | ✅ Complete | - |
 | **M4: Search** | 1.6-1.7 | ✅ Complete | - |
@@ -298,7 +314,7 @@
 
 ## Notes
 
-- MVP complete with JSON storage - fully functional for small-medium repos
+- Core complete with HelixDB storage - fully functional for small-medium repos
 - Phase 3 adds HelixDB for performance at scale (100+ decisions)
 - HelixDB patterns MUST follow corrections in `docs/phase3/PHASE_3_CORRECTIONS.md`
 - Key insight: Edges require 3 DB writes (edges_db, out_edges_db, in_edges_db)

@@ -8,11 +8,11 @@
 >
 > | Phase | Status | Description |
 > |-------|--------|-------------|
-> | **Phase 1-2 (MVP)** | ✅ Complete | JSON file storage, semantic search, git hooks |
-> | **Phase 3 (HelixDB)** | 🚧 Planned | LMDB graph storage, incremental indexing |
+> | **Phase 1-2 (Core)** | ✅ Complete | HelixDB storage, semantic search, git hooks |
+> | **Phase 3 (Indexer + Daemon)** | 🚧 Planned | Incremental indexing, background sync |
 >
-> The MVP uses `helix-storage` (JSON files). Phase 3 replaces this with native HelixDB
-> for graph traversal and incremental indexing. See [Phase 3 Implementation](#phase-3-helixdb-implementation) below.
+> HelixDB is the only storage backend. Phase 3 adds incremental indexing and a daemon
+> for background sync. See [Phase 3 Implementation](#phase-3-indexer-daemon-implementation) below.
 
 ## Design Philosophy
 
@@ -57,6 +57,48 @@ This graph structure enables powerful queries beyond simple search:
 │   relations  │   │               │   │            │
 └──────────────┘   └───────────────┘   └────────────┘
 ```
+
+## Runtime Roles and Consistency
+
+helix-decisions uses a split read/write model to keep queries fast while ensuring a single
+writer to LMDB:
+
+- **CLI (read path):** Opens read transactions and serves queries from the current index.
+- **Indexer daemon (write path):** Owns all write transactions, processes a queue of
+  "scan + delta sync" requests, and updates LMDB + manifest.
+- **Strong consistency:** `--sync` blocks until the daemon finishes the pending sync. If the
+  daemon is not running, the CLI can take the writer lock and perform a direct sync.
+- **Shared infrastructure:** The daemon + IPC layer should be reusable across helix-tools
+  CLIs (shared crate with a stable local protocol).
+
+```
+CLI (read) -> LMDB (read txn) -> results
+CLI -> daemon queue -> daemon (single writer) -> LMDB (write txn)
+```
+
+## IPC Transport
+
+- **Local sockets:** Use Unix domain sockets on macOS/Linux and named pipes on Windows.
+- **Why:** Low-latency request/response for `--sync`, no open TCP ports, easy per-user
+  permissions via filesystem ACLs.
+- **Socket path (Unix):** `~/.helix/run/helixd.sock`
+
+## IPC Protocol (v1)
+
+helix-decisions uses the shared helixd protocol defined in
+`shared/helix-daemon/specs/design.md`.
+
+## Daemon Scope (Decision)
+
+- **Global per-user daemon:** One helix-tools daemon per user, multiplexing requests across
+  repos and tools. All requests are namespaced by `{repo_root, tool}` to keep data and locks
+  scoped correctly (decisions, issues, docs, maps).
+- **Why:** Fewer background processes, shared backpressure, and consistent IPC for all tools.
+- **Implications:** The daemon must enforce per-repo writer locks and fair scheduling.
+
+## Daemon Lifecycle
+
+Lifecycle behavior is defined by helixd. See `shared/helix-daemon/specs/design.md`.
 
 ## Graph Schema
 
@@ -460,18 +502,14 @@ impl Embedder {
 }
 ```
 
-### storage.rs (MVP Implementation)
-
-> **Note:** This is the MVP implementation using `helix-storage` (JSON files).
-> See [Phase 3 Implementation](#phase-3-helixdb-implementation) for the HelixDB version.
+### storage.rs (HelixDB Implementation)
 
 ```rust
-use crate::types::{ChainNode, Decision, DecisionMetadata, RelatedDecision, RelationType};
+use crate::helix_backend::HelixDecisionBackend;
+use crate::types::{ChainNode, Decision, RelatedDecision};
 use anyhow::Result;
-use helix_storage::{JsonFileBackend, StorageConfig, StorageNode, VectorStorage};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub trait DecisionStorage: Send + Sync {
     fn index(&mut self, decisions: Vec<Decision>) -> Result<()>;
@@ -482,19 +520,16 @@ pub trait DecisionStorage: Send + Sync {
     fn get_related(&self, decision_id: u32) -> Result<Vec<RelatedDecision>>;
 }
 
-pub struct PersistentDecisionStorage {
-    backend: JsonFileBackend<StoredDecision>,
-    decisions_cache: Vec<Decision>,
-    decision_id_to_idx: HashMap<u32, usize>,
+pub struct HelixDecisionStorage {
+    backend: HelixDecisionBackend,
 }
 
-impl PersistentDecisionStorage {
-    pub fn open() -> Result<Self> {
-        let config = StorageConfig::project_local("decisions")?;
-        Self::open_with_config(config)
+impl HelixDecisionStorage {
+    pub fn open(repo_root: &Path) -> Result<Self> {
+        Ok(Self {
+            backend: HelixDecisionBackend::new(repo_root)?,
+        })
     }
-    
-    // ... implementation delegates to helix-storage JsonFileBackend
 }
 ```
 
@@ -661,7 +696,7 @@ impl DecisionSearcher {
 ```
 1. CLI parses args (query, options)
 2. DecisionSearcher::new() opens HelixDB (creates if needed)
-3. DecisionSearcher::sync(dir) loads all decisions from .decisions/
+3. CLI acquires writer lock (or waits for daemon) and runs a full sync
 4. Delta check finds all decisions are new
 5. Embed all decisions with fastembed (~2-5s)
 6. Store decisions as vectors in HelixDB (with properties)
@@ -676,12 +711,10 @@ impl DecisionSearcher {
 ```
 1. CLI parses args
 2. DecisionSearcher::new() opens existing HelixDB
-3. DecisionSearcher::sync(dir) loads current decisions
-4. Delta check compares hashes to stored
-5. Only re-embed changed decisions (usually 0)
-6. Update edges for changed decisions
-7. Remove deleted decisions and their edges
-8. Search proceeds as normal (~100ms total)
+3. CLI serves query from existing index immediately
+4. CLI enqueues "scan + delta sync" request to daemon
+5. Daemon performs delta sync (re-embed changed, update edges, handle deletes/renames)
+6. Search proceeds as normal (~100ms total)
 ```
 
 ### Graph Traversal (chain/related commands)
@@ -751,22 +784,13 @@ helix-decisions search "authentication" --json
 
 ## Storage Schema
 
-### MVP Storage (JSON-based)
+### Storage (HelixDB)
 
-The MVP uses `helix-storage` with `JsonFileBackend`:
-
-```
-.helix/data/decisions/
-└── storage.json     # All decisions + embeddings serialized as JSON
-```
-
-### Phase 3 Storage (HelixDB)
-
-See [Phase 3: HelixDB Implementation](#phase-3-helixdb-implementation) for the corrected
+See [Phase 3: Indexer + Daemon Implementation](#phase-3-indexer-daemon-implementation) for the corrected
 graph schema with proper arena allocation, 3-DB edge writes, and vector mapping.
 
 ```
-.helixdb/
+.helix/data/decisions/
 ├── data.mdb         # LMDB data file (nodes, edges, vectors, metadata)
 └── lock.mdb         # LMDB lock file
 ```
@@ -840,15 +864,15 @@ Using `fastembed` with `AllMiniLML6V2`:
 
 ---
 
-## Phase 3: HelixDB Implementation
+## Phase 3: Indexer + Daemon Implementation
 
 > **Status:** Planned  
 > **Documents:** See `docs/phase3/PHASE_3_PLAN.md` and `docs/phase3/PHASE_3_CORRECTIONS.md`
 
-Phase 3 replaces the JSON file backend with native HelixDB for:
+Phase 3 focuses on incremental indexing and background sync on top of HelixDB:
 - **Incremental indexing** via 3-stage change detection
 - **Native graph traversal** for chain/related queries
-- **LMDB persistence** (no re-scanning on restart)
+- **Daemonized sync** for single-writer guarantees and low-latency queries
 
 ### Architecture (Phase 3)
 
@@ -973,6 +997,16 @@ pub struct IndexManifest {
 }
 ```
 
+### Rename/Delete Detection and Embedding Reuse
+
+- **Rename detection:** If a stored entry disappears but a new file appears with the same
+  `decision_id` or `uuid` and identical `content_hash`, treat it as a rename. Update only the
+  `file_path` property and manifest entry (no re-embedding).
+- **Embedding reuse:** Persist `vector_id` and `embedding_model` in the manifest. If the
+  `content_hash` is unchanged and the model matches, reuse the existing vector.
+- **Deletion:** If no rename match exists, tombstone the node and vector and remove the
+  manifest entry.
+
 ### 3-Stage Incremental Indexing
 
 ```
@@ -1000,8 +1034,9 @@ sync() {
        ║ Create relationship edges (3 DBs per edge)
        ╚══════════════════════════════════════════════════════════╝
     
-    4. Delete nodes + vectors for removed files
-    5. Save manifest back to metadata_db
+    4. Attempt rename match for removed files before deletion
+    5. Delete nodes + vectors for removed files (no rename match)
+    6. Save manifest back to metadata_db
 }
 ```
 
@@ -1029,7 +1064,14 @@ impl HelixDecisionBackend {
     pub fn new(repo_root: &Path) -> Result<Self> {
         // Determine DB path (respect HELIX_DB_PATH env var)
         let db_path = std::env::var("HELIX_DB_PATH")
-            .unwrap_or_else(|_| repo_root.join(".helixdb").to_string_lossy().to_string());
+            .unwrap_or_else(|_| {
+                repo_root
+                    .join(".helix")
+                    .join("data")
+                    .join("decisions")
+                    .to_string_lossy()
+                    .to_string()
+            });
         
         // Create engine with path passed through opts
         let opts = HelixGraphEngineOpts {
@@ -1196,7 +1238,7 @@ impl HelixDecisionBackend {
 
 ### Performance Targets (Phase 3)
 
-| Operation | MVP | Phase 3 | Notes |
+| Operation | Phase 1-2 | Phase 3 | Notes |
 |-----------|-----|---------|-------|
 | First sync | 2-5s | 2-5s | Embedding dominates |
 | Delta sync (no changes) | ~100ms | <50ms | 3-stage skip |
@@ -1206,38 +1248,25 @@ impl HelixDecisionBackend {
 | Graph traversal | N/A (in-memory) | <50ms | Native LMDB |
 | Total search | <200ms | <100ms | After first run |
 
-### Index Location (Phase 3)
+### Index Location
 
 ```
 your-repo/
 ├── .decisions/          # Source of truth (Markdown files)
 │   ├── 001-arch.md
 │   └── 002-db.md
-├── .helixdb/            # HelixDB storage (Phase 3)
-│   ├── data.mdb         # LMDB data file
-│   └── lock.mdb         # LMDB lock file
 └── .helix/
-    └── data/decisions/  # JSON storage (MVP - deprecated)
-        └── storage.json
+    └── data/decisions/  # HelixDB storage
+        ├── data.mdb     # LMDB data file
+        └── lock.mdb     # LMDB lock file
 ```
 
-### Migration Path
+### Storage Initialization
 
 ```rust
 pub fn open_storage() -> Result<Box<dyn DecisionStorage>> {
     let repo_root = find_git_root()?;
-    
-    if helixdb_exists(&repo_root) {
-        // Phase 3: Use HelixDB
-        Ok(Box::new(HelixDecisionStorage::open(&repo_root)?))
-    } else if legacy_json_exists(&repo_root) {
-        // MVP: Use JSON backend (deprecated)
-        eprintln!("Warning: Using legacy JSON storage. Run 'helix-decisions migrate' to upgrade.");
-        Ok(Box::new(PersistentDecisionStorage::open()?))
-    } else {
-        // Fresh install: Use HelixDB
-        Ok(Box::new(HelixDecisionStorage::open(&repo_root)?))
-    }
+    Ok(Box::new(HelixDecisionStorage::open(&repo_root)?))
 }
 ```
 

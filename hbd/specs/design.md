@@ -16,7 +16,7 @@ This document defines the technical architecture, data model, and query implemen
 > - HelixDB embedded in the binary (like SQLite—no server to run) as query cache
 > - fastembed for local semantic search (no API calls needed)
 > - BM25 + vector hybrid search
-> - Sync daemon for file watching
+> - helixd daemon for file watching and background sync
 >
 > **Note:** Markdown files remain the source of truth. HelixDB acts as a fast query cache
 > that can be rebuilt from `.tickets/` at any time.
@@ -70,13 +70,19 @@ This document defines the technical architecture, data model, and query implemen
                                    │
                              ┌─────v─────┐
                              │  Daemon   │
-                             │  (hbd-d)  │
+                             │ (helixd)  │
                              │           │
                              │  - Sync   │
                              │  - Watch  │
                              │  - Embed  │
                              └───────────┘
 ```
+
+### Daemon Integration (Planned)
+
+hbd uses the global helixd daemon for background sync and embedding. The CLI
+enqueues work via IPC and optionally waits with `--sync`. Protocol details live
+in `shared/helix-daemon/specs/design.md`.
 
 ### Current Architecture (Implemented)
 
@@ -125,7 +131,7 @@ This document defines the technical architecture, data model, and query implemen
                                    │
                              ┌─────v─────┐
                              │  Daemon   │
-                             │  (hbd-d)  │
+                             │ (helixd)  │
                              │           │
                              │  - Sync   │
                              │  - Watch  │
@@ -141,7 +147,7 @@ This document defines the technical architecture, data model, and query implemen
 | **Git Layer** | Source of truth, merge-friendly storage, version history |
 | **HelixDB** | Fast queries, graph traversal, vector/BM25 search |
 | **Embedding Layer** | Text vectorization for semantic search |
-| **Daemon (hbd-d)** | Background sync, file watching, async embedding |
+| **Daemon (helixd)** | Background sync, file watching, async embedding |
 
 ### Data Flow
 

@@ -2,7 +2,7 @@
 
 Decision graph infrastructure with semantic search and persistent indexing.
 
-**Status:** MVP Complete  
+**Status:** Core Complete  
 **Created:** 2026-01-05
 
 ## Why helix-decisions?
@@ -70,6 +70,7 @@ helix-decisions search <QUERY> [OPTIONS]
 
 # Options:
 --directory <PATH>         # Override decision directory
+--sync                     # Block until index is up to date
 --limit <N>                # Results limit (default: 10)
 --status <STATUS>          # Filter by status (proposed|accepted|superseded|deprecated)
 --tags <TAGS>              # Filter by tags (comma-separated)
@@ -177,10 +178,22 @@ related_to: 5            # Optional: related decisions
 
 ## How It Works
 
-1. **First invocation:** Scan `.decisions/`, embed with fastembed, store index (~2-5s)
-2. **Subsequent invocations:** Delta check (file hashes), re-index only changed decisions (~100ms)
+1. **First invocation:** Scan `.decisions/`, embed with fastembed, build LMDB index (sync, ~2-5s)
+2. **Subsequent invocations:** Query existing LMDB immediately, then queue a background sync
+3. **Strong consistency (optional):** `--sync` blocks until the index is up to date
 
-Index is stored at `.helix/data/decisions/` within your repository.
+Index is stored at `.helix/data/decisions/` within your repository (LMDB `data.mdb`,
+`lock.mdb`).
+
+## Consistency and Indexing
+
+- **Single writer:** The global helixd daemon owns all write transactions to LMDB.
+- **Background updates:** CLI enqueues a "scan + delta sync" request and returns results from
+  the current index immediately.
+- **`--sync` flag:** Blocks until the daemon finishes the pending sync (or runs a direct sync
+  if no daemon is running).
+- **Rename/delete detection:** The daemon updates the manifest and removes or renames entries
+  without forcing a full re-embed.
 
 ## Output
 
@@ -230,7 +243,7 @@ User/Agent
     ┌──────▼──────────────────────┐
     │ Shared Infrastructure        │
     │ • helix-embeddings (search)  │
-    │ • helix-storage (persist)    │
+    │ • helix-db (LMDB)            │
     │ • helix-discovery (find)     │
     │ • helix-config (settings)    │
     └──────────────────────────────┘

@@ -13,7 +13,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 > | 4 dependency types (blocks, related, waits_for, duplicate_of) | 3 types (blocks, related, waits_for) |
 > | HelixDB for storage and queries | File-based storage only |
 > | Async embedding generation | Not implemented |
-> | Daemon mode with file watching | Not implemented |
+> | helixd daemon with file watching | Not implemented |
 >
 > These requirements remain the target specification. Implementation will align as features are added.
 
@@ -399,7 +399,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 | AC-016.1 | WHEN a user runs `hbd sync` THE SYSTEM SHALL export any dirty HelixDB changes to `.tickets/` Markdown files |
 | AC-016.2 | WHEN a user runs `hbd sync` THE SYSTEM SHALL import any `.tickets/` changes not in HelixDB |
 | AC-016.3 | THE SYSTEM SHALL use content hashing to detect changes (not timestamps) |
-| AC-016.4 | WHEN a daemon is running THE SYSTEM SHALL auto-sync every 5 seconds (debounced) |
+| AC-016.4 | WHEN helixd is running THE SYSTEM SHALL auto-sync every 5 seconds (debounced) |
 
 ---
 
@@ -635,7 +635,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 
 | ID | Acceptance Criterion |
 |----|---------------------|
-| AC-026F.1 | WHEN a user runs `hbd info` THE SYSTEM SHALL display: database path, issue prefix, daemon status |
+| AC-026F.1 | WHEN a user runs `hbd info` THE SYSTEM SHALL display: database path, issue prefix, helixd status |
 | AC-026F.2 | THE SYSTEM SHALL show: total issue count, embedding model status, last sync time |
 | AC-026F.3 | THE SYSTEM SHALL indicate if the project is initialized |
 | AC-026F.4 | WHEN `--json` flag is provided THE SYSTEM SHALL output all info as JSON |
