@@ -77,6 +77,7 @@
 - [x] Output JSON format
 - [x] Auto-discovery of `.decisions/` directory
 - [x] Help text and examples
+- [ ] Add `check` command for frontmatter + uuid validation
 
 ### Task 1.8: Git Hooks ✅
 - [x] Implement `hooks.rs` module
@@ -148,7 +149,8 @@
   - Stage 2: Content hash check
   - Stage 3: Full re-index (parse, embed, upsert)
   - Handle deletions (tombstone node + vector)
-  - Attempt rename match before deletion (content hash + decision id/uuid)
+  - Attempt rename match before deletion (content hash + uuid only)
+  - If uuid is missing, treat rename as delete + add
   - Reuse vector_id when content hash + embedding model unchanged
   - Update vectors in place when content changes
   - Batch writes into LMDB transactions (nodes/vectors first, edges second)

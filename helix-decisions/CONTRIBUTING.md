@@ -30,7 +30,7 @@ date: 2026-01-06                # ISO 8601 date
 
 ```yaml
 ---
-uuid: hx-a1b2c3                 # Hash-based UUID (for distributed safety)
+uuid: hx-a1b2c3                 # Required: hash-based UUID for rename safety
 deciders:                       # Who made this decision
   - Alice
   - Bob

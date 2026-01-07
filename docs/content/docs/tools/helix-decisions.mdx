@@ -37,6 +37,9 @@ helix-decisions chain <ID>
 # Find related decisions
 helix-decisions related <ID>
 
+# Validate decision files
+helix-decisions check [--json]
+
 # Examples
 helix-decisions search "caching"
 helix-decisions search "database migration" --status accepted
@@ -114,7 +117,7 @@ Decisions are markdown files with YAML frontmatter:
 ```yaml
 ---
 id: 3
-uuid: hx-a1b2c3  # Optional: hash-based UUID for distributed safety
+uuid: hx-a1b2c3  # Required: hash-based UUID for rename safety
 title: Database Migration Strategy
 status: accepted
 date: 2026-01-04
@@ -138,10 +141,15 @@ related_to: 5            # Optional: related decisions
 ...
 ```
 
+### Validation
+
+`helix-decisions check` validates all `.md` files in `.decisions/` and fails if frontmatter is
+missing or invalid, or if required fields like `uuid` are missing.
+
 ### ID Scheme
 
 - **`id`**: Local sequential integer (1, 2, 3...) for human readability
-- **`uuid`**: Optional hash-based UUID (via helix-id) for distributed safety across branches
+- **`uuid`**: Required hash-based UUID (via helix-id) for distributed safety across branches
 
 ### Status Values
 

@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use helix_daemon::Client as DaemonClient;
 use helix_decisions::{
     ChainResponse, DecisionSearcher, RelatedResponse, SearchResponse, Status, hooks,
+    loader::load_decisions_with_errors,
 };
 use helix_discovery::{DiscoveryError, find_git_root_from_cwd, find_marker_from_cwd};
 use std::path::PathBuf;
@@ -48,6 +49,7 @@ enum Commands {
         yes: bool,
     },
     RemoveHooks,
+    Check,
 }
 
 fn main() -> Result<()> {
@@ -59,6 +61,10 @@ fn main() -> Result<()> {
         }
         Commands::RemoveHooks => {
             return handle_remove_hooks();
+        }
+        Commands::Check => {
+            let directory = resolve_decisions_directory(cli.directory)?;
+            return handle_check(&directory, cli.json);
         }
         _ => {}
     }
@@ -85,7 +91,7 @@ fn main() -> Result<()> {
     }
 
     match cli.command {
-        Commands::InitHooks { .. } | Commands::RemoveHooks => unreachable!(),
+        Commands::InitHooks { .. } | Commands::RemoveHooks | Commands::Check => unreachable!(),
         Commands::Search {
             query,
             limit,
@@ -204,6 +210,87 @@ fn handle_remove_hooks() -> Result<()> {
         println!("No helix-decisions hook found.");
     }
     Ok(())
+}
+
+fn handle_check(directory: &std::path::Path, json: bool) -> Result<()> {
+    let report = load_decisions_with_errors(directory)?;
+    let mut errors: Vec<CheckError> = Vec::new();
+
+    for error in &report.errors {
+        let field = if error.message.to_lowercase().contains("frontmatter") {
+            "frontmatter"
+        } else {
+            "file"
+        };
+        errors.push(CheckError {
+            file: error.file_path.display().to_string(),
+            field: field.to_string(),
+            message: error.message.clone(),
+        });
+    }
+
+    for decision in &report.decisions {
+        let file = decision.file_path.display().to_string();
+
+        if decision.metadata.title.trim().is_empty() {
+            errors.push(CheckError {
+                file: file.clone(),
+                field: "title".to_string(),
+                message: "missing or empty".to_string(),
+            });
+        }
+
+        if decision.metadata.uuid.is_none() {
+            errors.push(CheckError {
+                file: file.clone(),
+                field: "uuid".to_string(),
+                message: "missing (required for rename optimization)".to_string(),
+            });
+        }
+    }
+
+    let error_files: std::collections::HashSet<_> = errors.iter().map(|e| &e.file).collect();
+    let result = CheckResult {
+        total: report.total_files,
+        valid: report.total_files.saturating_sub(error_files.len()),
+        errors: errors.clone(),
+    };
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&result)?);
+    } else if errors.is_empty() {
+        println!("✓ All {} decisions valid", report.total_files);
+    } else {
+        for err in &errors {
+            eprintln!("✗ {}: {} {}", err.file, err.field, err.message);
+        }
+        eprintln!();
+        eprintln!(
+            "{} error(s) in {} decision(s)",
+            errors.len(),
+            result.total - result.valid
+        );
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        std::process::exit(1);
+    }
+}
+
+#[derive(Clone, serde::Serialize)]
+struct CheckError {
+    file: String,
+    field: String,
+    message: String,
+}
+
+#[derive(serde::Serialize)]
+struct CheckResult {
+    total: usize,
+    valid: usize,
+    errors: Vec<CheckError>,
 }
 
 fn resolve_decisions_directory(explicit: Option<PathBuf>) -> Result<PathBuf> {

@@ -41,20 +41,20 @@ pub fn compute_delta(
                 to_modify.push(decision);
             }
             None => {
-                if let Some(old_entry) = manifest.find_by_content_hash(&decision.content_hash) {
-                    let old_path = old_entry.file_path.to_string_lossy().to_string();
+                let renamed_from = decision.metadata.uuid.as_ref().and_then(|uuid| {
+                    manifest
+                        .find_by_content_hash(&decision.content_hash)
+                        .filter(|old_entry| old_entry.uuid.as_ref() == Some(uuid))
+                        .map(|old_entry| old_entry.file_path.to_string_lossy().to_string())
+                        .filter(|old_path| old_path != &normalized_path)
+                });
 
-                    let is_same_decision = old_entry.decision_id == decision.metadata.id
-                        || (decision.metadata.uuid.is_some()
-                            && decision.metadata.uuid == old_entry.uuid);
-
-                    if is_same_decision && old_path != normalized_path {
-                        renamed.push((old_path.clone(), normalized_path));
-                        renamed_old_paths.insert(old_path);
-                        continue;
-                    }
+                if let Some(old_path) = renamed_from {
+                    renamed.push((old_path.clone(), normalized_path));
+                    renamed_old_paths.insert(old_path);
+                } else {
+                    to_add.push(decision);
                 }
-                to_add.push(decision);
             }
         }
     }
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rename_detection_by_content_hash() {
+    fn test_no_rename_without_uuid() {
         let repo_root = PathBuf::from("/repo");
         let mut manifest = IndexManifest::new();
         manifest.upsert(ManifestEntry::new(
@@ -217,17 +217,10 @@ mod tests {
                 .collect();
 
         let delta = compute_delta(&repo_root, current, stored, &manifest);
-        assert!(delta.to_add.is_empty());
+        assert_eq!(delta.to_add.len(), 1);
         assert!(delta.to_modify.is_empty());
-        assert!(delta.to_remove.is_empty());
-        assert_eq!(delta.renamed.len(), 1);
-        assert_eq!(
-            delta.renamed[0],
-            (
-                ".decisions/001-old.md".to_string(),
-                ".decisions/001-new.md".to_string()
-            )
-        );
+        assert_eq!(delta.to_remove.len(), 1);
+        assert!(delta.renamed.is_empty());
         assert_eq!(delta.unchanged_count, 0);
     }
 
@@ -265,20 +258,27 @@ mod tests {
     }
 
     #[test]
-    fn test_no_false_rename_different_id() {
+    fn test_no_rename_with_different_uuid() {
         let repo_root = PathBuf::from("/repo");
         let mut manifest = IndexManifest::new();
-        manifest.upsert(ManifestEntry::new(
+        let mut entry = ManifestEntry::new(
             PathBuf::from(".decisions/001-old.md"),
             1704067200,
             1024,
             "same-hash".to_string(),
             1,
-            None,
+            Some("hx-old111".to_string()),
             "model",
-        ));
+        );
+        entry.uuid = Some("hx-old111".to_string());
+        manifest.upsert(entry);
 
-        let current = vec![make_decision(2, ".decisions/002-new.md", "same-hash")];
+        let current = vec![make_decision_with_uuid(
+            2,
+            ".decisions/002-new.md",
+            "same-hash",
+            "hx-new222",
+        )];
         let stored: HashMap<_, _> =
             [(".decisions/001-old.md".to_string(), "same-hash".to_string())]
                 .into_iter()

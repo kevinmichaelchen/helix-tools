@@ -92,7 +92,8 @@ So that deployments align with architectural decisions.
   - Track file hashes to detect changes
   - Re-index only changed/new decisions
   - Remove deleted decisions from index
-  - Detect renames via content hash + decision id/uuid and update path without re-embed
+  - Detect renames via content hash + uuid and update path without re-embed
+  - If uuid is missing, treat rename as delete + add
   - Execute in < 100ms for typical case (no changes)
 
 ### FR-4: Semantic Search
@@ -134,6 +135,14 @@ So that deployments align with architectural decisions.
   - Global options: `--directory`, `--json`
   - Search options: `--limit`, `--status`, `--tags`
   - Help: `helix-decisions --help`
+
+### FR-11: Validation (Lint/Check)
+- **Input:** Decisions directory
+- **Output:** Validation report + exit code
+- **Requirements:**
+  - `helix-decisions check` SHALL fail when frontmatter is missing or invalid
+  - `helix-decisions check` SHALL fail when `uuid` is missing
+  - Git hooks MAY invoke `helix-decisions check` to enforce uuid presence
 
 ### FR-9: Incremental Indexing (Phase 3)
 - **Input:** Git working tree state + manifest of indexed decisions
@@ -206,7 +215,7 @@ So that deployments align with architectural decisions.
 ### DecisionMetadata (Required)
 ```yaml
 id: integer           # Local sequential (1, 2, 3...)
-uuid: string          # Optional: hash-based UUID for distributed safety
+uuid: string          # Required for rename optimization; enforced by check/hook
 title: string
 status: enum          # proposed | accepted | superseded | deprecated
 date: date            # YYYY-MM-DD
@@ -247,10 +256,11 @@ related_to: integer | [integer]     # Loosely related decisions
 - Unique within a single repository
 
 ### Global UUID (`uuid`)
-- Optional hash-based identifier via helix-id
+- Hash-based identifier via helix-id
 - Format: `hx-xxxxxx` (6 hex chars from Blake3 hash)
 - Safe for distributed collaboration across branches
 - Generated from decision content or UUID
+- Required for rename optimization; lint/check should enforce presence
 
 ## Immutability Model
 
@@ -269,6 +279,7 @@ COMMANDS:
   search <QUERY>    Search decisions semantically
   chain <ID>        Show supersedes chain
   related <ID>      Find related decisions
+  check             Validate decision frontmatter
 
 GLOBAL OPTIONS:
   -d, --directory <PATH>   Decision directory (default: .decisions/)

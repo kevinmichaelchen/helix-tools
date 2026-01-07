@@ -60,6 +60,9 @@ helix-decisions chain 1
 
 # Find related decisions
 helix-decisions related 1
+
+# Validate decision files
+helix-decisions check
 ```
 
 ## Usage
@@ -81,6 +84,9 @@ helix-decisions chain <ID>
 
 # Find related decisions
 helix-decisions related <ID>
+
+# Validate decision files (frontmatter + required fields)
+helix-decisions check [--json]
 
 # Install git hooks (manual, opt-in)
 helix-decisions init-hooks
@@ -123,7 +129,7 @@ Decisions are markdown files with YAML frontmatter in `.decisions/`:
 ```yaml
 ---
 id: 3
-uuid: hx-a1b2c3  # Optional: hash-based UUID for distributed safety
+uuid: hx-a1b2c3  # Required: hash-based UUID for rename safety
 title: Database Migration Strategy
 status: accepted
 date: 2026-01-04
@@ -153,6 +159,7 @@ related_to: 5            # Optional: related decisions
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | integer | Local sequential ID (1, 2, 3...) |
+| `uuid` | string | Hash-based UUID (hx-xxxxxx) for rename safety |
 | `title` | string | Human-readable title |
 | `status` | string | proposed, accepted, superseded, deprecated |
 | `date` | date | ISO 8601 date |
@@ -161,7 +168,6 @@ related_to: 5            # Optional: related decisions
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `uuid` | string | Hash-based UUID (hx-xxxxxx) for distributed safety |
 | `deciders` | list | People who made the decision |
 | `tags` | list | Categorization tags |
 | `content_hash` | string | SHA256 hash for immutability |
@@ -171,10 +177,15 @@ related_to: 5            # Optional: related decisions
 | `depends_on` | int/list | Prerequisite decisions |
 | `related_to` | int/list | Related decisions |
 
+## Validation
+
+`helix-decisions check` validates all `.md` files in `.decisions/` and fails if frontmatter is
+missing or invalid, or if required fields like `uuid` are missing.
+
 ## ID Scheme
 
 - **`id`**: Local sequential integer (1, 2, 3...) for human readability
-- **`uuid`**: Optional hash-based UUID (via helix-id) for distributed safety across branches
+- **`uuid`**: Required hash-based UUID (via helix-id) for distributed safety across branches
 
 ## How It Works
 

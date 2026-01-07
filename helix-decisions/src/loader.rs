@@ -4,10 +4,37 @@ use crate::types::{Decision, DecisionMetadata};
 use anyhow::{Context, Result};
 use gray_matter::{Matter, engine::YAML};
 use sha2::{Digest, Sha256};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn load_decisions(dir: &Path) -> Result<Vec<Decision>> {
+    let report = load_decisions_with_errors(dir)?;
+
+    for error in &report.errors {
+        eprintln!(
+            "Warning: Skipping {}: {}",
+            error.file_path.display(),
+            error.message
+        );
+    }
+
+    Ok(report.decisions)
+}
+
+pub struct LoadDecisionError {
+    pub file_path: PathBuf,
+    pub message: String,
+}
+
+pub struct LoadDecisionsReport {
+    pub decisions: Vec<Decision>,
+    pub errors: Vec<LoadDecisionError>,
+    pub total_files: usize,
+}
+
+pub fn load_decisions_with_errors(dir: &Path) -> Result<LoadDecisionsReport> {
     let mut decisions = Vec::new();
+    let mut errors = Vec::new();
+    let mut total_files = 0usize;
     let matter = Matter::<YAML>::new();
 
     if !dir.exists() {
@@ -19,14 +46,22 @@ pub fn load_decisions(dir: &Path) -> Result<Vec<Decision>> {
         let path = entry.path();
 
         if path.extension().is_some_and(|e| e == "md") {
+            total_files += 1;
             match load_decision(&path, &matter) {
                 Ok(decision) => decisions.push(decision),
-                Err(e) => eprintln!("Warning: Skipping {}: {e}", path.display()),
+                Err(e) => errors.push(LoadDecisionError {
+                    file_path: path,
+                    message: e.to_string(),
+                }),
             }
         }
     }
 
-    Ok(decisions)
+    Ok(LoadDecisionsReport {
+        decisions,
+        errors,
+        total_files,
+    })
 }
 
 fn load_decision(path: &Path, matter: &Matter<YAML>) -> Result<Decision> {
@@ -112,6 +147,31 @@ This is a test decision.
     fn test_missing_directory() {
         let result = load_decisions(Path::new("/nonexistent/path"));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_load_decisions_with_errors_reports_invalid_files() {
+        let dir = TempDir::new().unwrap();
+        create_test_decision(
+            dir.path(),
+            "001-good.md",
+            r#"---
+id: 1
+title: Good Decision
+status: accepted
+date: 2026-01-05
+---
+
+Body
+"#,
+        );
+        create_test_decision(dir.path(), "002-bad.md", "No frontmatter here");
+
+        let report = load_decisions_with_errors(dir.path()).unwrap();
+        assert_eq!(report.total_files, 2);
+        assert_eq!(report.decisions.len(), 1);
+        assert_eq!(report.errors.len(), 1);
+        assert!(report.errors[0].message.contains("frontmatter"));
     }
 
     #[test]

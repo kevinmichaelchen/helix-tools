@@ -35,6 +35,7 @@ This graph structure enables powerful queries beyond simple search:
 │  • search <query>     - Semantic vector search       │
 │  • chain <id>         - Show supersedes chain        │
 │  • related <id>       - Find related decisions       │
+│  • check              - Validate decision files      │
 └──────────────────────────┬──────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────┐
@@ -139,11 +140,12 @@ Decisions are stored as graph nodes with properties and vector embeddings.
 - Used in filenames: `003-database-migration.md`
 
 ### Global UUID (`uuid`)
-- Optional hash-based identifier via helix-id
+- Required hash-based identifier via helix-id
 - Format: `hx-xxxxxx` (6 hex chars from Blake3 hash)
 - Safe for distributed collaboration across branches
 - Generated from decision content or random UUID
 - Prevents merge conflicts when multiple developers create decisions
+- Required in frontmatter; `helix-decisions check` enforces presence
 
 ### Why Both?
 - `id`: For humans ("see decision 5")
@@ -809,7 +811,7 @@ graph schema with proper arena allocation, 3-DB edge writes, and vector mapping.
 ```yaml
 ---
 id: 5
-uuid: hx-a1b2c3             # Optional: hash-based UUID for distributed safety
+uuid: hx-a1b2c3             # Required: hash-based UUID for rename safety
 title: PostgreSQL for Primary Database
 status: accepted
 date: 2026-01-04
@@ -882,6 +884,7 @@ Phase 3 focuses on incremental indexing and background sync on top of HelixDB:
 │  • search <query>     - Semantic vector search                   │
 │  • chain <id>         - Show supersedes chain                    │
 │  • related <id>       - Find related decisions                   │
+│  • check              - Validate decision files                  │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────────┐
@@ -999,9 +1002,10 @@ pub struct IndexManifest {
 
 ### Rename/Delete Detection and Embedding Reuse
 
-- **Rename detection:** If a stored entry disappears but a new file appears with the same
-  frontmatter `id` or `uuid` and identical `content_hash`, treat it as a rename. Update only
-  the `file_path` property and manifest entry (no re-embedding).
+- **Rename detection (uuid-only):** If a stored entry disappears but a new file appears with
+  the same frontmatter `uuid` and identical `content_hash`, treat it as a rename. Update only
+  the `file_path` property and manifest entry (no re-embedding). If `uuid` is missing, treat
+  the change as delete + add.
 - **Embedding reuse:** Persist `vector_id` and `embedding_model` in the manifest. If the
   `content_hash` is unchanged and the model matches, reuse the existing vector.
 - **Deletion:** If no rename match exists, tombstone the node and vector and remove the
@@ -1011,9 +1015,10 @@ pub struct IndexManifest {
 
 - **Path normalization:** Store repo-root-relative paths using `/` separators and no `.`/`..`
   segments. Normalize incoming paths before manifest lookup.
-- **Identity:** `uuid` (if present) is the stable identity; otherwise `id` is used.
-- **Conflicts:** If two files share the same `uuid` or `id` but different `content_hash`,
-  abort the sync with a hard error. If both exist with the same hash, also abort (ambiguous).
+- **Identity:** `uuid` is the stable identity and is required for rename optimization.
+- **Conflicts:** If two files share the same `uuid` but different `content_hash`, abort the
+  sync with a hard error. If multiple files share the same `uuid` and hash, also abort
+  (ambiguous).
 
 ### 3-Stage Incremental Indexing
 
