@@ -41,6 +41,9 @@ pub struct ManifestEntry {
     /// ID of the vector in storage (for reuse on updates)
     pub vector_id: Option<String>,
 
+    /// ID of the node in HelixDB graph storage
+    pub node_id: Option<u128>,
+
     /// Embedding model used (e.g., "bge-small-en-v1.5")
     pub embedding_model: String,
 
@@ -49,7 +52,6 @@ pub struct ManifestEntry {
 }
 
 impl ManifestEntry {
-    /// Create a new manifest entry from file metadata.
     #[must_use]
     pub fn new(
         file_path: PathBuf,
@@ -68,6 +70,7 @@ impl ManifestEntry {
             decision_id,
             uuid,
             vector_id: None,
+            node_id: None,
             embedding_model: embedding_model.to_string(),
             indexer_version: INDEXER_VERSION,
         }

@@ -68,7 +68,7 @@ fn main() -> Result<()> {
 
     let daemon_result = enqueue_daemon_sync(&git_root, &directory, cli.sync);
 
-    let mut searcher = DecisionSearcher::new()?;
+    let mut searcher = DecisionSearcher::new(&git_root)?;
     searcher.sync(&directory)?;
 
     if let Err(e) = &daemon_result

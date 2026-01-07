@@ -9,7 +9,8 @@
 //! use std::path::Path;
 //!
 //! # fn main() -> anyhow::Result<()> {
-//! let mut searcher = DecisionSearcher::new()?;
+//! let repo_root = Path::new(".");
+//! let mut searcher = DecisionSearcher::new(repo_root)?;
 //! searcher.sync(Path::new(".decisions/"))?;
 //!
 //! let results = searcher.search("database migration", 10, None, None)?;
@@ -24,6 +25,7 @@ pub mod config;
 pub mod delta;
 pub mod embeddings;
 pub mod git_utils;
+pub mod helix_backend;
 pub mod hooks;
 pub mod loader;
 pub mod manifest;

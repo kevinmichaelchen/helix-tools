@@ -18,13 +18,17 @@ sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 thiserror = "2"
+uuid = { version = "1", features = ["v4"] }
+bincode = "1.3"
+bumpalo = { version = "3", features = ["collections"] }
+heed3 = "0.22.0"
 
 helix-id = { path = "../shared/helix-id" }
 helix-config = { path = "../shared/helix-config" }
-helix-storage = { path = "../shared/helix-storage" }
 helix-embeddings = { path = "../shared/helix-embeddings" }
 helix-discovery = { path = "../shared/helix-discovery" }
 helix-daemon = { path = "../shared/helix-daemon" }
+helix-db = { git = "https://github.com/HelixDB/helix-db.git", features = ["vectors"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [dev-dependencies]

@@ -3,7 +3,7 @@
 use crate::delta::compute_delta;
 use crate::embeddings::{Embedder, create_embedder};
 use crate::loader::load_decisions;
-use crate::storage::{DecisionStorage, PersistentDecisionStorage};
+use crate::storage::{DecisionStorage, HelixDecisionStorage};
 use crate::types::{ChainResponse, RelatedResponse, SearchResponse, SearchResult, Status};
 use anyhow::Result;
 use std::path::Path;
@@ -14,8 +14,8 @@ pub struct DecisionSearcher {
 }
 
 impl DecisionSearcher {
-    pub fn new() -> Result<Self> {
-        let storage = Box::new(PersistentDecisionStorage::open()?);
+    pub fn new(repo_root: &Path) -> Result<Self> {
+        let storage = Box::new(HelixDecisionStorage::open(repo_root)?);
         let embedder = create_embedder()?;
         Ok(Self { storage, embedder })
     }

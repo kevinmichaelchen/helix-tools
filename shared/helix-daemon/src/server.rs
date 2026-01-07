@@ -61,6 +61,9 @@ impl Server {
         now.saturating_sub(last) > self.idle_timeout_ms
     }
 
+    // Event loop handling multiple async channels (commands, signals, idle timeout) requires
+    // this complexity; splitting would obscure the unified state machine logic.
+    #[allow(clippy::cognitive_complexity)]
     pub async fn run(&self) -> Result<(), DaemonError> {
         let socket_path = self.expanded_socket_path();
 
