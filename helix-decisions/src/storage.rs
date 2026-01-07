@@ -12,6 +12,9 @@ pub trait DecisionStorage: Send + Sync {
     fn get_hashes(&self) -> Result<HashMap<String, String>>;
     fn get_chain(&self, decision_id: u32) -> Result<Vec<ChainNode>>;
     fn get_related(&self, decision_id: u32) -> Result<Vec<RelatedDecision>>;
+    fn repo_root(&self) -> &Path;
+    fn manifest(&self) -> &crate::manifest::IndexManifest;
+    fn handle_rename(&mut self, old_path: &str, new_path: &str) -> Result<()>;
 }
 
 pub struct HelixDecisionStorage {
@@ -81,7 +84,7 @@ impl DecisionStorage for HelixDecisionStorage {
         let embedding_model = self.backend.embedding_model().to_string();
 
         let mut manifest_entries: Vec<ManifestEntry> = Vec::new();
-        let mut node_ids_and_relationships: Vec<(u128, Vec<(RelationType, u128)>)> = Vec::new();
+        let mut decision_node_ids: Vec<(u32, u128)> = Vec::new();
 
         {
             let mut wtxn = self.backend.begin_write_txn()?;
@@ -108,8 +111,7 @@ impl DecisionStorage for HelixDecisionStorage {
                     existing_entry.as_ref(),
                 )?;
 
-                let relationships = self.resolve_relationship_node_ids(decision);
-                node_ids_and_relationships.push((node_id, relationships));
+                decision_node_ids.push((decision.metadata.id, node_id));
 
                 manifest_entries.push(ManifestEntry {
                     file_path: std::path::PathBuf::from(&normalized_path),
@@ -132,11 +134,22 @@ impl DecisionStorage for HelixDecisionStorage {
             self.backend.manifest_mut().upsert(entry);
         }
 
+        let mut node_ids_and_relationships: Vec<(u128, Vec<(RelationType, u128)>)> = Vec::new();
+        for decision in &decisions {
+            let relationships = self.resolve_relationship_node_ids(decision);
+            if let Some(&(_, node_id)) = decision_node_ids
+                .iter()
+                .find(|(id, _)| *id == decision.metadata.id)
+            {
+                node_ids_and_relationships.push((node_id, relationships));
+            }
+        }
+
         {
             let mut wtxn = self.backend.begin_write_txn()?;
             for (node_id, relationships) in node_ids_and_relationships {
+                self.backend.remove_outgoing_edges(&mut wtxn, node_id)?;
                 if !relationships.is_empty() {
-                    self.backend.remove_outgoing_edges(&mut wtxn, node_id)?;
                     self.backend
                         .create_relationship_edges(&mut wtxn, node_id, &relationships)?;
                 }
@@ -193,6 +206,27 @@ impl DecisionStorage for HelixDecisionStorage {
 
     fn get_related(&self, decision_id: u32) -> Result<Vec<RelatedDecision>> {
         self.backend.get_related(decision_id)
+    }
+
+    fn repo_root(&self) -> &Path {
+        self.backend.repo_root()
+    }
+
+    fn manifest(&self) -> &crate::manifest::IndexManifest {
+        self.backend.manifest()
+    }
+
+    fn handle_rename(&mut self, old_path: &str, new_path: &str) -> Result<()> {
+        if let Some(mut entry) = self
+            .backend
+            .manifest_mut()
+            .remove(&std::path::PathBuf::from(old_path))
+        {
+            entry.file_path = std::path::PathBuf::from(new_path);
+            self.backend.manifest_mut().upsert(entry);
+            self.backend.commit_manifest()?;
+        }
+        Ok(())
     }
 }
 

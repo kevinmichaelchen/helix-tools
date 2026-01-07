@@ -27,11 +27,22 @@ impl DecisionSearcher {
         let decisions = load_decisions(dir)?;
         let scanned = decisions.len() as u32;
         let stored_hashes = self.storage.get_hashes()?;
-        let delta = compute_delta(decisions, stored_hashes);
+        let repo_root = self.storage.repo_root().to_path_buf();
+        let delta = compute_delta(
+            &repo_root,
+            decisions,
+            stored_hashes,
+            self.storage.manifest(),
+        );
 
         let deleted = delta.to_remove.len() as u32;
         if !delta.to_remove.is_empty() {
             self.storage.remove(delta.to_remove)?;
+        }
+
+        let renamed = delta.renamed.len() as u32;
+        for (old_path, new_path) in &delta.renamed {
+            self.storage.handle_rename(old_path, new_path)?;
         }
 
         let added = delta.to_add.len() as u32;
@@ -54,7 +65,7 @@ impl DecisionSearcher {
             added,
             modified,
             deleted,
-            renamed: 0,
+            renamed,
             unchanged: delta.unchanged_count,
             errors: 0,
             duration_ms: start.elapsed().as_millis() as u64,
