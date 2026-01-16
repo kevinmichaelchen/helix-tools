@@ -77,7 +77,7 @@
 - [x] Output JSON format
 - [x] Auto-discovery of `.decisions/` directory
 - [x] Help text and examples
-- [ ] Add `check` command for frontmatter + uuid validation
+- [x] Add `check` command for frontmatter + uuid validation
 
 ### Task 1.8: Git Hooks ✅
 - [x] Implement `hooks.rs` module
