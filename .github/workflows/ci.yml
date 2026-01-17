@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -13,9 +17,39 @@ env:
   RUSTC_WRAPPER: sccache
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      ui: ${{ steps.filter.outputs.ui }}
+      tauri: ${{ steps.filter.outputs.tauri }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - '**/*.rs'
+              - '**/Cargo.toml'
+              - '**/build.rs'
+              - 'Cargo.lock'
+              - 'rust-toolchain*'
+              - '.github/workflows/ci.yml'
+              - '!hbd-ui/**'
+            ui:
+              - 'hbd-ui/**'
+              - '.github/workflows/ci.yml'
+            tauri:
+              - 'hbd-ui/src-tauri/**'
+              - '.github/workflows/ci.yml'
+
   fmt:
     name: Format (Rust)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -26,6 +60,8 @@ jobs:
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -41,6 +77,8 @@ jobs:
   build:
     name: Build (Rust)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -54,6 +92,8 @@ jobs:
   test:
     name: Test (Rust)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.rust == 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -67,6 +107,8 @@ jobs:
   lint-ui:
     name: Lint (UI)
     runs-on: ubuntu-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.ui == 'true'
     defaults:
       run:
         working-directory: hbd-ui
@@ -83,6 +125,8 @@ jobs:
   build-tauri:
     name: Build (Tauri macOS)
     runs-on: macos-latest
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.tauri == 'true'
     defaults:
       run:
         working-directory: hbd-ui
