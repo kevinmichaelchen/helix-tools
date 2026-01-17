@@ -7,6 +7,7 @@ use helix_db::{
     helix_engine::{
         storage_core::{HelixGraphStorage, storage_methods::StorageMethods},
         traversal_core::config::{Config, GraphConfig, VectorConfig},
+        types::SecondaryIndex,
         vector_core::hnsw::HNSW,
     },
     protocol::value::Value,
@@ -61,7 +62,10 @@ impl HelixDecisionBackend {
                 ef_search: Some(64),
             }),
             graph_config: Some(GraphConfig {
-                secondary_indices: Some(vec!["id".to_string(), "vector_id".to_string()]),
+                secondary_indices: Some(vec![
+                    SecondaryIndex::Index("id".to_string()),
+                    SecondaryIndex::Index("vector_id".to_string()),
+                ]),
             }),
             db_max_size_gb: Some(1),
             ..Default::default()
@@ -286,7 +290,7 @@ impl HelixDecisionBackend {
             if let Some(value) = node.get_property(index_name) {
                 let serialized = bincode::serialize(value)
                     .map_err(|e| anyhow::anyhow!("Failed to serialize index value: {e}"))?;
-                db.put(wtxn, &serialized, &node.id)
+                db.0.put(wtxn, &serialized, &node.id)
                     .map_err(|e| anyhow::anyhow!("Failed to update secondary index: {e}"))?;
             }
         }
@@ -310,7 +314,7 @@ impl HelixDecisionBackend {
                 if let Some(value) = node.get_property(index_name)
                     && let Ok(serialized) = bincode::serialize(value)
                 {
-                    let _ = db.delete(wtxn, &serialized);
+                    let _ = db.0.delete(wtxn, &serialized);
                 }
             }
         }
@@ -521,9 +525,9 @@ impl HelixDecisionBackend {
             let key = bincode::serialize(&Value::String(vector_id.to_string()))
                 .map_err(|e| anyhow::anyhow!("Failed to serialize vector_id: {e}"))?;
 
-            if let Some(node_id) = db
-                .get(rtxn, &key)
-                .map_err(|e| anyhow::anyhow!("Failed to lookup vector_id: {e}"))?
+            if let Some(node_id) =
+                db.0.get(rtxn, &key)
+                    .map_err(|e| anyhow::anyhow!("Failed to lookup vector_id: {e}"))?
             {
                 return Ok(Some(node_id));
             }
@@ -754,9 +758,9 @@ impl HelixDecisionBackend {
             let key = bincode::serialize(&Value::I64(i64::from(decision_id)))
                 .map_err(|e| anyhow::anyhow!("Failed to serialize decision_id: {e}"))?;
 
-            if let Some(node_id) = db
-                .get(rtxn, &key)
-                .map_err(|e| anyhow::anyhow!("Failed to lookup decision_id: {e}"))?
+            if let Some(node_id) =
+                db.0.get(rtxn, &key)
+                    .map_err(|e| anyhow::anyhow!("Failed to lookup decision_id: {e}"))?
             {
                 return Ok(Some(node_id));
             }
