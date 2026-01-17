@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "demo-got",
     "hbd",
     "hbd-ui/src-tauri",
     "helix-decisions",
