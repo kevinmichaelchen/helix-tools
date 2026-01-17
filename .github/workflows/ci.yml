@@ -42,7 +42,7 @@ jobs:
               - 'hbd-ui/**'
               - '.github/workflows/ci.yml'
             tauri:
-              - 'hbd-ui/**'
+              - 'hbd-ui/src-tauri/**'
               - '.github/workflows/ci.yml'
 
   fmt:
