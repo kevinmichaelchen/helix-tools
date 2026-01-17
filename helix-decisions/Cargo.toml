@@ -29,6 +29,7 @@ helix-embeddings = { path = "../shared/helix-embeddings" }
 helix-discovery = { path = "../shared/helix-discovery" }
 helix-daemon = { path = "../shared/helix-daemon" }
 helix-db = { git = "https://github.com/HelixDB/helix-db.git", features = ["vectors"] }
+helix-graph-ops = { path = "../helix-graph-ops" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 
 [dev-dependencies]

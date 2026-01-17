@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "demo-got",
+    "helix-graph-ops",
     "hbd",
     "hbd-ui/src-tauri",
     "helix-decisions",
@@ -10,7 +11,6 @@ members = [
     "helix-repo",
     "shared/helix-id",
     "shared/helix-config",
-    "shared/helix-storage",
     "shared/helix-embeddings",
     "shared/helix-discovery",
     "shared/helix-daemon",

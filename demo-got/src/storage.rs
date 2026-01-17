@@ -13,6 +13,7 @@ use helix_db::{
     protocol::value::Value,
     utils::{items::Edge, label_hash::hash_label, properties::ImmutablePropertiesMap},
 };
+use helix_graph_ops as graph_ops;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -209,45 +210,17 @@ impl GotStorage {
             properties: Some(properties),
         };
 
-        let node_bytes = node
-            .to_bincode_bytes()
-            .map_err(|e| GotError::SerializationError(format!("Failed to serialize node: {e}")))?;
-
-        self.storage
-            .nodes_db
-            .put(
-                &mut wtxn,
-                HelixGraphStorage::node_key(&node_id),
-                &node_bytes,
-            )
+        graph_ops::put_node(&self.storage, &mut wtxn, &node)
             .map_err(|e| GotError::DatabaseError(format!("Failed to store node: {e}")))?;
 
-        // Update secondary indices
-        self.update_secondary_indices(&mut wtxn, &node)?;
+        graph_ops::update_secondary_indices(&self.storage, &mut wtxn, &node).map_err(|e| {
+            GotError::DatabaseError(format!("Failed to update secondary index: {e}"))
+        })?;
 
         wtxn.commit()
             .map_err(|e| GotError::DatabaseError(format!("Failed to commit node: {e}")))?;
 
         Ok(node_id)
-    }
-
-    /// Update secondary indices for a node.
-    fn update_secondary_indices(
-        &self,
-        wtxn: &mut heed3::RwTxn<'_>,
-        node: &helix_db::utils::items::Node<'_>,
-    ) -> Result<()> {
-        for (index_name, db) in &self.storage.secondary_indices {
-            if let Some(value) = node.get_property(index_name) {
-                let serialized = bincode::serialize(value).map_err(|e| {
-                    GotError::SerializationError(format!("Failed to serialize index value: {e}"))
-                })?;
-                db.0.put(wtxn, &serialized, &node.id).map_err(|e| {
-                    GotError::DatabaseError(format!("Failed to update secondary index: {e}"))
-                })?;
-            }
-        }
-        Ok(())
     }
 
     /// Create an edge between two nodes.
@@ -275,35 +248,8 @@ impl GotStorage {
             properties: None,
         };
 
-        let edge_bytes = edge
-            .to_bincode_bytes()
-            .map_err(|e| GotError::SerializationError(format!("Failed to serialize edge: {e}")))?;
-
-        self.storage
-            .edges_db
-            .put(
-                &mut wtxn,
-                HelixGraphStorage::edge_key(&edge_id),
-                &edge_bytes,
-            )
+        graph_ops::put_edge(&self.storage, &mut wtxn, &edge)
             .map_err(|e| GotError::DatabaseError(format!("Failed to store edge: {e}")))?;
-
-        // Write to out_edges_db (for forward traversal)
-        let label_hash = hash_label(edge_label, None);
-        let out_key = HelixGraphStorage::out_edge_key(&from_node_id, &label_hash);
-        let out_val = HelixGraphStorage::pack_edge_data(&edge_id, &to_node_id);
-        self.storage
-            .out_edges_db
-            .put(&mut wtxn, &out_key, &out_val)
-            .map_err(|e| GotError::DatabaseError(format!("Failed to store out edge: {e}")))?;
-
-        // Write to in_edges_db (for reverse traversal)
-        let in_key = HelixGraphStorage::in_edge_key(&to_node_id, &label_hash);
-        let in_val = HelixGraphStorage::pack_edge_data(&edge_id, &from_node_id);
-        self.storage
-            .in_edges_db
-            .put(&mut wtxn, &in_key, &in_val)
-            .map_err(|e| GotError::DatabaseError(format!("Failed to store in edge: {e}")))?;
 
         wtxn.commit()
             .map_err(|e| GotError::DatabaseError(format!("Failed to commit edge: {e}")))?;
@@ -317,17 +263,12 @@ impl GotStorage {
             GotError::DatabaseError(format!("Failed to start read transaction: {e}"))
         })?;
 
-        if let Some(db) = self.storage.secondary_indices.get("id") {
-            let key = bincode::serialize(&Value::String(person_id.to_string())).map_err(|e| {
-                GotError::SerializationError(format!("Failed to serialize lookup key: {e}"))
-            })?;
-
-            if let Some(node_id) =
-                db.0.get(&rtxn, &key)
-                    .map_err(|e| GotError::DatabaseError(format!("Failed to lookup: {e}")))?
-            {
-                return Ok(Some(node_id));
-            }
+        let key = Value::String(person_id.to_string());
+        if let Some(node_id) =
+            graph_ops::lookup_secondary_index(&self.storage, &rtxn, "id", &key)
+                .map_err(|e| GotError::DatabaseError(format!("Failed to lookup: {e}")))?
+        {
+            return Ok(Some(node_id));
         }
 
         Ok(None)
@@ -408,25 +349,8 @@ impl GotStorage {
         })?;
 
         let label_hash = hash_label(relation_type.as_edge_label(), None);
-        let in_key = HelixGraphStorage::in_edge_key(&node_id, &label_hash);
-
-        let mut neighbors = Vec::new();
-
-        let iter = self
-            .storage
-            .in_edges_db
-            .prefix_iter(&rtxn, &in_key)
-            .map_err(|e| GotError::DatabaseError(format!("Failed to iterate edges: {e}")))?;
-
-        for result in iter {
-            let (_, value) =
-                result.map_err(|e| GotError::DatabaseError(format!("Failed to read edge: {e}")))?;
-            let (_, from_node_id) = HelixGraphStorage::unpack_adj_edge_data(value)
-                .map_err(|e| GotError::DatabaseError(format!("Failed to unpack edge: {e:?}")))?;
-            neighbors.push(from_node_id);
-        }
-
-        Ok(neighbors)
+        graph_ops::incoming_neighbors(&self.storage, &rtxn, node_id, &label_hash)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to read incoming edges: {e}")))
     }
 
     /// Get all nodes connected by outgoing edges of a specific type.
@@ -441,25 +365,8 @@ impl GotStorage {
         })?;
 
         let label_hash = hash_label(relation_type.as_edge_label(), None);
-        let out_key = HelixGraphStorage::out_edge_key(&node_id, &label_hash);
-
-        let mut neighbors = Vec::new();
-
-        let iter = self
-            .storage
-            .out_edges_db
-            .prefix_iter(&rtxn, &out_key)
-            .map_err(|e| GotError::DatabaseError(format!("Failed to iterate edges: {e}")))?;
-
-        for result in iter {
-            let (_, value) =
-                result.map_err(|e| GotError::DatabaseError(format!("Failed to read edge: {e}")))?;
-            let (_, to_node_id) = HelixGraphStorage::unpack_adj_edge_data(value)
-                .map_err(|e| GotError::DatabaseError(format!("Failed to unpack edge: {e:?}")))?;
-            neighbors.push(to_node_id);
-        }
-
-        Ok(neighbors)
+        graph_ops::outgoing_neighbors(&self.storage, &rtxn, node_id, &label_hash)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to read outgoing edges: {e}")))
     }
 
     /// Get statistics about the graph.
@@ -559,4 +466,123 @@ impl GotStorage {
 pub struct IngestStats {
     pub nodes_inserted: usize,
     pub edges_inserted: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GotStorage;
+    use crate::error::Result;
+    use crate::loader::{FamilyTree, RelationshipDef};
+    use crate::types::{House, Person, RelationType};
+    use tempfile::TempDir;
+
+    fn build_tree() -> FamilyTree {
+        FamilyTree {
+            houses: Vec::new(),
+            people: vec![
+                Person {
+                    id: "ned-stark".to_string(),
+                    name: "Eddard Stark".to_string(),
+                    house: House::Stark,
+                    titles: vec!["Lord of Winterfell".to_string()],
+                    alias: None,
+                    is_alive: true,
+                },
+                Person {
+                    id: "catelyn-stark".to_string(),
+                    name: "Catelyn Stark".to_string(),
+                    house: House::Tully,
+                    titles: Vec::new(),
+                    alias: None,
+                    is_alive: true,
+                },
+                Person {
+                    id: "robb-stark".to_string(),
+                    name: "Robb Stark".to_string(),
+                    house: House::Stark,
+                    titles: vec!["King in the North".to_string()],
+                    alias: None,
+                    is_alive: true,
+                },
+            ],
+            relationships: vec![
+                RelationshipDef::ParentOf {
+                    from: "ned-stark".to_string(),
+                    to: vec!["robb-stark".to_string()],
+                },
+                RelationshipDef::SpouseOf {
+                    between: vec!["ned-stark".to_string(), "catelyn-stark".to_string()],
+                },
+            ],
+        }
+    }
+
+    fn open_storage() -> Result<(TempDir, GotStorage)> {
+        let temp = TempDir::new()?;
+        let storage = GotStorage::new(temp.path())?;
+        Ok((temp, storage))
+    }
+
+    #[test]
+    fn test_ingest_and_relationship_queries() -> Result<()> {
+        let (_temp, mut storage) = open_storage()?;
+        let tree = build_tree();
+        let stats = storage.ingest(&tree)?;
+
+        assert_eq!(stats.nodes_inserted, 3);
+        assert_eq!(stats.edges_inserted, 3);
+
+        let ned_node = storage.lookup_by_id("ned-stark")?.expect("ned node");
+        let robb_node = storage.lookup_by_id("robb-stark")?.expect("robb node");
+        let catelyn_node = storage
+            .lookup_by_id("catelyn-stark")?
+            .expect("catelyn node");
+
+        let ned = storage.get_person(ned_node)?;
+        assert_eq!(ned.name, "Eddard Stark");
+        assert_eq!(ned.house, House::Stark);
+
+        let outgoing_parent = storage.get_outgoing_neighbors(ned_node, RelationType::ParentOf)?;
+        assert_eq!(outgoing_parent, vec![robb_node]);
+
+        let incoming_parent = storage.get_incoming_neighbors(robb_node, RelationType::ParentOf)?;
+        assert_eq!(incoming_parent, vec![ned_node]);
+
+        let spouse_out = storage.get_outgoing_neighbors(ned_node, RelationType::SpouseOf)?;
+        assert_eq!(spouse_out, vec![catelyn_node]);
+
+        let spouse_in = storage.get_incoming_neighbors(ned_node, RelationType::SpouseOf)?;
+        assert_eq!(spouse_in, vec![catelyn_node]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_stats_house_members_and_clear() -> Result<()> {
+        let (_temp, mut storage) = open_storage()?;
+        let tree = build_tree();
+        storage.ingest(&tree)?;
+
+        let stats = storage.get_stats()?;
+        assert_eq!(stats.node_count, 3);
+        assert_eq!(stats.edge_count, 3);
+        assert_eq!(stats.house_counts.get("Stark").copied().unwrap_or(0), 2);
+        assert_eq!(stats.house_counts.get("Tully").copied().unwrap_or(0), 1);
+
+        let stark_members = storage.get_house_members(House::Stark)?;
+        let mut stark_ids: Vec<String> = stark_members.into_iter().map(|p| p.id).collect();
+        stark_ids.sort();
+        assert_eq!(
+            stark_ids,
+            vec!["ned-stark".to_string(), "robb-stark".to_string()]
+        );
+
+        storage.clear()?;
+        let cleared_stats = storage.get_stats()?;
+        assert_eq!(cleared_stats.node_count, 0);
+        assert_eq!(cleared_stats.edge_count, 0);
+        assert!(cleared_stats.house_counts.is_empty());
+
+        Ok(())
+    }
 }

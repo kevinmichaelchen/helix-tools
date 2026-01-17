@@ -13,6 +13,7 @@ use helix_db::{
     protocol::value::Value,
     utils::{items::Edge, label_hash::hash_label, properties::ImmutablePropertiesMap},
 };
+use helix_graph_ops as graph_ops;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -255,16 +256,11 @@ impl HelixDecisionBackend {
             properties: Some(properties),
         };
 
-        let node_bytes = node
-            .to_bincode_bytes()
-            .map_err(|e| anyhow::anyhow!("Failed to serialize node: {e}"))?;
-
-        self.storage
-            .nodes_db
-            .put(wtxn, HelixGraphStorage::node_key(&node_id), &node_bytes)
+        graph_ops::put_node(&self.storage, wtxn, &node)
             .map_err(|e| anyhow::anyhow!("Failed to store node: {e}"))?;
 
-        self.update_secondary_indices(wtxn, &node)?;
+        graph_ops::update_secondary_indices(&self.storage, wtxn, &node)
+            .map_err(|e| anyhow::anyhow!("Failed to update secondary index: {e}"))?;
 
         Ok((node_id, vector_id))
     }
@@ -279,22 +275,6 @@ impl HelixDecisionBackend {
         let result = self.upsert_decision_node(&mut wtxn, decision, embedding, existing_entry)?;
         self.commit_txn(wtxn)?;
         Ok(result)
-    }
-
-    fn update_secondary_indices(
-        &self,
-        wtxn: &mut heed3::RwTxn<'_>,
-        node: &helix_db::utils::items::Node<'_>,
-    ) -> Result<()> {
-        for (index_name, db) in &self.storage.secondary_indices {
-            if let Some(value) = node.get_property(index_name) {
-                let serialized = bincode::serialize(value)
-                    .map_err(|e| anyhow::anyhow!("Failed to serialize index value: {e}"))?;
-                db.0.put(wtxn, &serialized, &node.id)
-                    .map_err(|e| anyhow::anyhow!("Failed to update secondary index: {e}"))?;
-            }
-        }
-        Ok(())
     }
 
     fn delete_secondary_index_entries_internal(
@@ -346,29 +326,8 @@ impl HelixDecisionBackend {
                 properties: None,
             };
 
-            let edge_bytes = edge
-                .to_bincode_bytes()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize edge: {e}"))?;
-
-            self.storage
-                .edges_db
-                .put(wtxn, HelixGraphStorage::edge_key(&edge_id), &edge_bytes)
+            graph_ops::put_edge(&self.storage, wtxn, &edge)
                 .map_err(|e| anyhow::anyhow!("Failed to store edge: {e}"))?;
-
-            let label_hash = hash_label(edge_label, None);
-            let out_key = HelixGraphStorage::out_edge_key(&from_node_id, &label_hash);
-            let out_val = HelixGraphStorage::pack_edge_data(&edge_id, to_node_id);
-            self.storage
-                .out_edges_db
-                .put(wtxn, &out_key, &out_val)
-                .map_err(|e| anyhow::anyhow!("Failed to store out edge: {e}"))?;
-
-            let in_key = HelixGraphStorage::in_edge_key(to_node_id, &label_hash);
-            let in_val = HelixGraphStorage::pack_edge_data(&edge_id, &from_node_id);
-            self.storage
-                .in_edges_db
-                .put(wtxn, &in_key, &in_val)
-                .map_err(|e| anyhow::anyhow!("Failed to store in edge: {e}"))?;
         }
 
         Ok(())
@@ -521,19 +480,9 @@ impl HelixDecisionBackend {
         vector_id: u128,
         _arena: &Bump,
     ) -> Result<Option<u128>> {
-        if let Some(db) = self.storage.secondary_indices.get("vector_id") {
-            let key = bincode::serialize(&Value::String(vector_id.to_string()))
-                .map_err(|e| anyhow::anyhow!("Failed to serialize vector_id: {e}"))?;
-
-            if let Some(node_id) =
-                db.0.get(rtxn, &key)
-                    .map_err(|e| anyhow::anyhow!("Failed to lookup vector_id: {e}"))?
-            {
-                return Ok(Some(node_id));
-            }
-        }
-
-        Ok(None)
+        let key = Value::String(vector_id.to_string());
+        graph_ops::lookup_secondary_index(&self.storage, rtxn, "vector_id", &key)
+            .map_err(|e| anyhow::anyhow!("Failed to lookup vector_id: {e}"))
     }
 
     fn node_to_decision(
@@ -754,19 +703,9 @@ impl HelixDecisionBackend {
         decision_id: u32,
         _arena: &Bump,
     ) -> Result<Option<u128>> {
-        if let Some(db) = self.storage.secondary_indices.get("id") {
-            let key = bincode::serialize(&Value::I64(i64::from(decision_id)))
-                .map_err(|e| anyhow::anyhow!("Failed to serialize decision_id: {e}"))?;
-
-            if let Some(node_id) =
-                db.0.get(rtxn, &key)
-                    .map_err(|e| anyhow::anyhow!("Failed to lookup decision_id: {e}"))?
-            {
-                return Ok(Some(node_id));
-            }
-        }
-
-        Ok(None)
+        let key = Value::I64(i64::from(decision_id));
+        graph_ops::lookup_secondary_index(&self.storage, rtxn, "id", &key)
+            .map_err(|e| anyhow::anyhow!("Failed to lookup decision_id: {e}"))
     }
 
     fn get_decision_id_from_node(
@@ -799,24 +738,8 @@ impl HelixDecisionBackend {
         _arena: &Bump,
     ) -> Result<Vec<u128>> {
         let label_hash = hash_label(relation_type.as_edge_label(), None);
-        let out_key = HelixGraphStorage::out_edge_key(&node_id, &label_hash);
-
-        let mut targets = Vec::new();
-
-        let iter = self
-            .storage
-            .out_edges_db
-            .prefix_iter(rtxn, &out_key)
-            .map_err(|e| anyhow::anyhow!("Failed to iterate edges: {e}"))?;
-
-        for result in iter {
-            let (_, value) = result.map_err(|e| anyhow::anyhow!("Failed to read edge: {e}"))?;
-            let (_, to_node_id) = HelixGraphStorage::unpack_adj_edge_data(value)
-                .map_err(|e| anyhow::anyhow!("Failed to unpack edge: {e:?}"))?;
-            targets.push(to_node_id);
-        }
-
-        Ok(targets)
+        graph_ops::outgoing_neighbors(&self.storage, rtxn, node_id, &label_hash)
+            .map_err(|e| anyhow::anyhow!("Failed to read outgoing edges: {e}"))
     }
 
     fn get_incoming_edge_sources(
@@ -827,24 +750,8 @@ impl HelixDecisionBackend {
         _arena: &Bump,
     ) -> Result<Vec<u128>> {
         let label_hash = hash_label(relation_type.as_edge_label(), None);
-        let in_key = HelixGraphStorage::in_edge_key(&node_id, &label_hash);
-
-        let mut sources = Vec::new();
-
-        let iter = self
-            .storage
-            .in_edges_db
-            .prefix_iter(rtxn, &in_key)
-            .map_err(|e| anyhow::anyhow!("Failed to iterate edges: {e}"))?;
-
-        for result in iter {
-            let (_, value) = result.map_err(|e| anyhow::anyhow!("Failed to read edge: {e}"))?;
-            let (_, from_node_id) = HelixGraphStorage::unpack_adj_edge_data(value)
-                .map_err(|e| anyhow::anyhow!("Failed to unpack edge: {e:?}"))?;
-            sources.push(from_node_id);
-        }
-
-        Ok(sources)
+        graph_ops::incoming_neighbors(&self.storage, rtxn, node_id, &label_hash)
+            .map_err(|e| anyhow::anyhow!("Failed to read incoming edges: {e}"))
     }
 
     pub fn get_hashes(&self) -> Result<HashMap<String, String>> {

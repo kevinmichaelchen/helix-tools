@@ -1,0 +1,12 @@
+[package]
+name = "helix-graph-ops"
+version = "0.1.0"
+edition = "2024"
+description = "HelixDB graph storage helpers"
+license = "MIT"
+repository = "https://github.com/kevinmichaelchen/helix-tools"
+
+[dependencies]
+helix-db = { workspace = true }
+heed3 = "0.22.0"
+bincode = "1.3"

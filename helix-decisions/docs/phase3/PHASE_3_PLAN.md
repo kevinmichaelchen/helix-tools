@@ -423,9 +423,9 @@ helix-db = { path = "../../helix-db/helix-db" }  # Already in workspace!
 ### Workspace Structure Verification
 ```bash
 helix-tools/
+├── helix-graph-ops/         # HelixDB graph helpers
 ├── helix-decisions/         # ← We're here
 ├── shared/
-│   ├── helix-storage/       # Can be deprecated/removed later
 │   ├── helix-embeddings/    # Still needed (fastembed)
 │   └── ...
 └── workspace/

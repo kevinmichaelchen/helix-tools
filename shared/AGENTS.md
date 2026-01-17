@@ -7,7 +7,6 @@ own `AGENTS.md` next to its `Cargo.toml` for details.
 
 - Shared crates should stay lightweight and reusable.
 - Avoid direct HelixDB dependencies here; tools own storage traits/backends.
-- `helix-storage` is deprecated scaffolding (kept for reference only).
 
 ## Crates
 
@@ -18,7 +17,6 @@ own `AGENTS.md` next to its `Cargo.toml` for details.
 | `shared/helix-embeddings` | fastembed wrapper              |
 | `shared/helix-discovery`  | Git/project marker discovery   |
 | `shared/helix-daemon`     | IPC client/server for helixd   |
-| `shared/helix-storage`    | Deprecated storage abstraction |
 
 ## Where To Look
 
