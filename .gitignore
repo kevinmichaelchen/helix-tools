@@ -7,6 +7,7 @@ Cargo.lock
 .helix/helix.db/
 .helix/models/
 .helix-map/
+.demo-got/
 .fastembed_cache/
 
 # IDE
@@ -23,3 +24,19 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+
+# START Ruler Generated Files
+/.codex/config.json
+/.codex/config.json.bak
+/.codex/config.toml
+/.codex/config.toml.bak
+/.mcp.json
+/.mcp.json.bak
+/AGENTS.md
+/AGENTS.md.bak
+/CLAUDE.md
+/CLAUDE.md.bak
+/opencode.json
+/opencode.json.bak
+# END Ruler Generated Files

@@ -1,0 +1,308 @@
+# Game of Thrones Family Tree Data
+# ~30 people from Houses Targaryen, Stark, Baratheon, Tully, and Lannister
+
+houses:
+  - name: Stark
+    seat: Winterfell
+    words: "Winter is Coming"
+  - name: Targaryen
+    seat: Dragonstone
+    words: "Fire and Blood"
+  - name: Baratheon
+    seat: Storm's End
+    words: "Ours is the Fury"
+  - name: Tully
+    seat: Riverrun
+    words: "Family, Duty, Honor"
+  - name: Lannister
+    seat: Casterly Rock
+    words: "Hear Me Roar"
+
+people:
+  # === TARGARYENS (8) ===
+  - id: aegon-i
+    name: Aegon I Targaryen
+    house: targaryen
+    titles: ["King of the Andals and the First Men", "Lord of the Seven Kingdoms"]
+    alias: The Conqueror
+    is_alive: false
+
+  - id: aegon-v
+    name: Aegon V Targaryen
+    house: targaryen
+    titles: ["King of the Andals and the First Men"]
+    alias: Egg
+    is_alive: false
+
+  - id: aerys-ii
+    name: Aerys II Targaryen
+    house: targaryen
+    titles: ["King of the Andals and the First Men"]
+    alias: The Mad King
+    is_alive: false
+
+  - id: rhaella-targaryen
+    name: Rhaella Targaryen
+    house: targaryen
+    titles: ["Queen of the Seven Kingdoms"]
+    is_alive: false
+
+  - id: rhaegar-targaryen
+    name: Rhaegar Targaryen
+    house: targaryen
+    titles: ["Crown Prince of the Seven Kingdoms"]
+    alias: The Last Dragon
+    is_alive: false
+
+  - id: viserys-targaryen
+    name: Viserys Targaryen
+    house: targaryen
+    titles: ["King of the Andals (self-styled)"]
+    alias: The Beggar King
+    is_alive: false
+
+  - id: daenerys-targaryen
+    name: Daenerys Targaryen
+    house: targaryen
+    titles: ["Queen of the Andals and the First Men", "Mother of Dragons", "Breaker of Chains"]
+    alias: Stormborn
+    is_alive: false
+
+  - id: jon-snow
+    name: Jon Snow
+    house: stark  # Raised as Stark, true name Aegon Targaryen
+    titles: ["Lord Commander of the Night's Watch", "King in the North"]
+    alias: The White Wolf
+    is_alive: true
+
+  # === STARKS (11) ===
+  - id: rickard-stark
+    name: Rickard Stark
+    house: stark
+    titles: ["Lord of Winterfell", "Warden of the North"]
+    is_alive: false
+
+  - id: brandon-stark-elder
+    name: Brandon Stark
+    house: stark
+    titles: ["Heir to Winterfell"]
+    alias: The Wild Wolf
+    is_alive: false
+
+  - id: ned-stark
+    name: Eddard Stark
+    house: stark
+    titles: ["Lord of Winterfell", "Warden of the North", "Hand of the King"]
+    alias: Ned
+    is_alive: false
+
+  - id: lyanna-stark
+    name: Lyanna Stark
+    house: stark
+    titles: []
+    alias: The She-Wolf
+    is_alive: false
+
+  - id: benjen-stark
+    name: Benjen Stark
+    house: stark
+    titles: ["First Ranger of the Night's Watch"]
+    is_alive: false
+
+  - id: catelyn-stark
+    name: Catelyn Stark
+    house: tully  # Born Tully, married Stark
+    titles: ["Lady of Winterfell"]
+    is_alive: false
+
+  - id: robb-stark
+    name: Robb Stark
+    house: stark
+    titles: ["King in the North"]
+    alias: The Young Wolf
+    is_alive: false
+
+  - id: sansa-stark
+    name: Sansa Stark
+    house: stark
+    titles: ["Queen in the North", "Lady of Winterfell"]
+    is_alive: true
+
+  - id: arya-stark
+    name: Arya Stark
+    house: stark
+    titles: []
+    alias: No One
+    is_alive: true
+
+  - id: bran-stark
+    name: Bran Stark
+    house: stark
+    titles: ["King of the Six Kingdoms", "The Three-Eyed Raven"]
+    alias: Bran the Broken
+    is_alive: true
+
+  - id: rickon-stark
+    name: Rickon Stark
+    house: stark
+    titles: []
+    is_alive: false
+
+  # === BARATHEONS (6) ===
+  - id: steffon-baratheon
+    name: Steffon Baratheon
+    house: baratheon
+    titles: ["Lord of Storm's End"]
+    is_alive: false
+
+  - id: robert-baratheon
+    name: Robert Baratheon
+    house: baratheon
+    titles: ["King of the Andals and the First Men", "Lord of the Seven Kingdoms"]
+    alias: The Usurper
+    is_alive: false
+
+  - id: stannis-baratheon
+    name: Stannis Baratheon
+    house: baratheon
+    titles: ["Lord of Dragonstone", "Master of Ships"]
+    alias: The Mannis
+    is_alive: false
+
+  - id: renly-baratheon
+    name: Renly Baratheon
+    house: baratheon
+    titles: ["Lord of Storm's End", "Master of Laws"]
+    is_alive: false
+
+  - id: shireen-baratheon
+    name: Shireen Baratheon
+    house: baratheon
+    titles: ["Princess"]
+    is_alive: false
+
+  - id: gendry
+    name: Gendry
+    house: baratheon
+    titles: ["Lord of Storm's End"]
+    alias: Gendry Waters (formerly)
+    is_alive: true
+
+  # === TULLYS (3) ===
+  - id: hoster-tully
+    name: Hoster Tully
+    house: tully
+    titles: ["Lord of Riverrun", "Lord Paramount of the Trident"]
+    is_alive: false
+
+  - id: lysa-tully
+    name: Lysa Arryn
+    house: tully  # Born Tully
+    titles: ["Lady of the Eyrie"]
+    is_alive: false
+
+  - id: edmure-tully
+    name: Edmure Tully
+    house: tully
+    titles: ["Lord of Riverrun", "Lord Paramount of the Trident"]
+    is_alive: true
+
+  # === LANNISTERS (2) ===
+  - id: cersei-lannister
+    name: Cersei Lannister
+    house: lannister
+    titles: ["Queen of the Seven Kingdoms"]
+    is_alive: false
+
+  - id: joffrey-baratheon
+    name: Joffrey Baratheon
+    house: baratheon  # Nominally, actually Lannister
+    titles: ["King of the Andals and the First Men"]
+    is_alive: false
+
+relationships:
+  # === TARGARYEN LINEAGE ===
+  # Aegon V -> Aerys II (simplified, skipping generations)
+  - type: parent_of
+    from: aegon-v
+    to: [aerys-ii]
+
+  # Aerys II + Rhaella -> Rhaegar, Viserys, Daenerys
+  - type: spouse_of
+    between: [aerys-ii, rhaella-targaryen]
+
+  - type: parent_of
+    from: aerys-ii
+    to: [rhaegar-targaryen, viserys-targaryen, daenerys-targaryen]
+
+  - type: parent_of
+    from: rhaella-targaryen
+    to: [rhaegar-targaryen, viserys-targaryen, daenerys-targaryen]
+
+  - type: sibling_of
+    between: [rhaegar-targaryen, viserys-targaryen, daenerys-targaryen]
+
+  # Rhaegar + Lyanna -> Jon Snow (the big reveal!)
+  - type: parent_of
+    from: rhaegar-targaryen
+    to: [jon-snow]
+
+  - type: parent_of
+    from: lyanna-stark
+    to: [jon-snow]
+
+  # === STARK LINEAGE ===
+  # Rickard -> Brandon, Ned, Lyanna, Benjen
+  - type: parent_of
+    from: rickard-stark
+    to: [brandon-stark-elder, ned-stark, lyanna-stark, benjen-stark]
+
+  - type: sibling_of
+    between: [brandon-stark-elder, ned-stark, lyanna-stark, benjen-stark]
+
+  # Ned + Catelyn -> Robb, Sansa, Arya, Bran, Rickon
+  - type: spouse_of
+    between: [ned-stark, catelyn-stark]
+
+  - type: parent_of
+    from: ned-stark
+    to: [robb-stark, sansa-stark, arya-stark, bran-stark, rickon-stark]
+
+  - type: parent_of
+    from: catelyn-stark
+    to: [robb-stark, sansa-stark, arya-stark, bran-stark, rickon-stark]
+
+  - type: sibling_of
+    between: [robb-stark, sansa-stark, arya-stark, bran-stark, rickon-stark]
+
+  # === BARATHEON LINEAGE ===
+  # Steffon -> Robert, Stannis, Renly
+  - type: parent_of
+    from: steffon-baratheon
+    to: [robert-baratheon, stannis-baratheon, renly-baratheon]
+
+  - type: sibling_of
+    between: [robert-baratheon, stannis-baratheon, renly-baratheon]
+
+  # Robert + Cersei (political marriage)
+  - type: spouse_of
+    between: [robert-baratheon, cersei-lannister]
+
+  # Stannis -> Shireen
+  - type: parent_of
+    from: stannis-baratheon
+    to: [shireen-baratheon]
+
+  # Robert -> Gendry (bastard, legitimized later)
+  - type: parent_of
+    from: robert-baratheon
+    to: [gendry, joffrey-baratheon]  # Joffrey nominally Robert's son
+
+  # === TULLY LINEAGE ===
+  # Hoster -> Catelyn, Lysa, Edmure
+  - type: parent_of
+    from: hoster-tully
+    to: [catelyn-stark, lysa-tully, edmure-tully]
+
+  - type: sibling_of
+    between: [catelyn-stark, lysa-tully, edmure-tully]
