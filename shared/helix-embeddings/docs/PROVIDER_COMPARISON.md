@@ -9,7 +9,7 @@
 | Provider      | Integration | GPU Support | Rust Native  | Recommended For                |
 | ------------- | ----------- | ----------- | ------------ | ------------------------------ |
 | **fastembed** | ✅ Current  | CPU only    | ✅ Yes       | Default, simple deployments    |
-| **Candle**    | 🔧 Planned  | Metal/CUDA  | ✅ Yes       | Pure Rust, GPU acceleration    |
+| **Candle**    | ✅ Current  | Metal/CUDA  | ✅ Yes       | Pure Rust, GPU acceleration    |
 | **llama.cpp** | 🔧 Planned  | Metal/CUDA  | Via bindings | GGUF models, memory efficiency |
 | **Ollama**    | 🔧 Planned  | Metal/CUDA  | HTTP API     | Easy setup, model management   |
 | **vLLM**      | 🔧 Planned  | CUDA/Metal* | HTTP API     | High-throughput, production    |
@@ -312,13 +312,13 @@ output = llm.encode("text")
 
 Based on helix-tools requirements (offline-first, Rust-native, Apple Silicon support):
 
-### Phase 1: Current
+### Phase 1: Complete
 
-1. **fastembed** ✅ — Already implemented, good default
+1. **fastembed** ✅ — Default provider, CPU-only
+2. **Candle** ✅ — Pure Rust with Metal/CUDA support
 
 ### Phase 2: High Priority
 
-2. **Candle** — Pure Rust with Metal support
 3. **Ollama** — Easy to implement (HTTP client), wide adoption
 
 ### Phase 3: Future

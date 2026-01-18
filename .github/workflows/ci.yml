@@ -68,8 +68,8 @@ jobs:
         with:
           components: clippy
       - uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Clippy (exclude Tauri - needs GTK)
-        run: cargo clippy --workspace --exclude hbd-ui --all-targets --all-features -- -D warnings
+      - name: Clippy (exclude Tauri and demo-got - need GTK/Metal)
+        run: cargo clippy --workspace --exclude hbd-ui --exclude demo-got --all-targets -- -D warnings
         env:
           CARGO_INCREMENTAL: 0
       - run: sccache --show-stats
@@ -83,8 +83,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Build (exclude Tauri - needs GTK)
-        run: cargo build --workspace --exclude hbd-ui --all-features
+      - name: Build (exclude Tauri and demo-got - need GTK/Metal)
+        run: cargo build --workspace --exclude hbd-ui --exclude demo-got
         env:
           CARGO_INCREMENTAL: 0
       - run: sccache --show-stats
@@ -98,8 +98,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: mozilla-actions/sccache-action@v0.0.9
-      - name: Test (exclude Tauri - needs GTK)
-        run: cargo test --workspace --exclude hbd-ui --all-features
+      - name: Test (exclude Tauri and demo-got - need GTK/Metal)
+        run: cargo test --workspace --exclude hbd-ui --exclude demo-got
         env:
           CARGO_INCREMENTAL: 0
       - run: sccache --show-stats
