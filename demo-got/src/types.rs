@@ -128,3 +128,15 @@ pub struct GraphStats {
     pub edge_count: usize,
     pub house_counts: std::collections::HashMap<String, usize>,
 }
+
+/// A search result from semantic search.
+#[derive(Debug, Clone, Serialize)]
+pub struct SearchResult {
+    /// The matched person.
+    pub person: Person,
+    /// Similarity score (0.0 to 1.0, higher is more similar).
+    pub score: f32,
+    /// Optional snippet from the bio that matched.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub snippet: Option<String>,
+}
