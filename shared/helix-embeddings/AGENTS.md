@@ -41,22 +41,22 @@ shared/helix-embeddings/
 
 ## Code Map
 
-| Symbol | Type | Line | Role |
-|--------|------|------|------|
-| `EmbeddingProvider` | Trait | 38 | Abstract interface for any embedding backend |
-| `Embedder` | Struct | 49 | Public API, wraps `Box<dyn EmbeddingProvider>` |
-| `FastEmbedProvider` | Struct | 99 | ONNX-based implementation via fastembed-rs |
-| `provider_from_config()` | Fn | 196 | Factory: config → provider (only fastembed now) |
-| `fastembed_model_from_string()` | Fn | 204 | Flexible model name parsing |
+| Symbol                          | Type   | Line | Role                                            |
+| ------------------------------- | ------ | ---- | ----------------------------------------------- |
+| `EmbeddingProvider`             | Trait  | 38   | Abstract interface for any embedding backend    |
+| `Embedder`                      | Struct | 49   | Public API, wraps `Box<dyn EmbeddingProvider>`  |
+| `FastEmbedProvider`             | Struct | 99   | ONNX-based implementation via fastembed-rs      |
+| `provider_from_config()`        | Fn     | 196  | Factory: config → provider (only fastembed now) |
+| `fastembed_model_from_string()` | Fn     | 204  | Flexible model name parsing                     |
 
 ## Where To Look
 
-| Task | Location |
-|------|----------|
-| Add new provider | Implement `EmbeddingProvider` trait, update `provider_from_config()` |
-| Change fastembed behavior | `FastEmbedProvider` impl (line 106-194) |
-| Add supported model | Update `fastembed_model_from_string()` or use fastembed's built-in parsing |
-| Config options | `helix-config` crate (`EmbeddingConfig` struct) |
+| Task                      | Location                                                                   |
+| ------------------------- | -------------------------------------------------------------------------- |
+| Add new provider          | Implement `EmbeddingProvider` trait, update `provider_from_config()`       |
+| Change fastembed behavior | `FastEmbedProvider` impl (line 106-194)                                    |
+| Add supported model       | Update `fastembed_model_from_string()` or use fastembed's built-in parsing |
+| Config options            | `helix-config` crate (`EmbeddingConfig` struct)                            |
 
 ## Adding a New Provider
 
@@ -85,8 +85,8 @@ shared/helix-embeddings/
 
 ## Anti-Patterns
 
-| Don't | Why |
-|-------|-----|
-| Call fastembed directly | Use `Embedder` API for consistency |
-| Mix models in same index | Embeddings are incompatible across models |
+| Don't                     | Why                                         |
+| ------------------------- | ------------------------------------------- |
+| Call fastembed directly   | Use `Embedder` API for consistency          |
+| Mix models in same index  | Embeddings are incompatible across models   |
 | Skip dimension validation | Mismatched dimensions cause silent failures |

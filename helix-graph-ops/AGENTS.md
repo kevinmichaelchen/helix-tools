@@ -14,6 +14,6 @@ secondary index updates, and adjacency traversal.
 
 ## Where To Look
 
-| Task                     | Location      |
-| ------------------------ | ------------- |
-| Graph helper functions   | `src/lib.rs`  |
+| Task                   | Location     |
+| ---------------------- | ------------ |
+| Graph helper functions | `src/lib.rs` |

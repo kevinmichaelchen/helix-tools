@@ -10,13 +10,13 @@ own `AGENTS.md` next to its `Cargo.toml` for details.
 
 ## Crates
 
-| Crate                     | Purpose                        |
-| ------------------------- | ------------------------------ |
-| `shared/helix-config`     | Hierarchical config loading    |
-| `shared/helix-id`         | Hash-based ID generation       |
-| `shared/helix-embeddings` | fastembed wrapper              |
-| `shared/helix-discovery`  | Git/project marker discovery   |
-| `shared/helix-daemon`     | IPC client/server for helixd   |
+| Crate                     | Purpose                      |
+| ------------------------- | ---------------------------- |
+| `shared/helix-config`     | Hierarchical config loading  |
+| `shared/helix-id`         | Hash-based ID generation     |
+| `shared/helix-embeddings` | fastembed wrapper            |
+| `shared/helix-discovery`  | Git/project marker discovery |
+| `shared/helix-daemon`     | IPC client/server for helixd |
 
 ## Where To Look
 
