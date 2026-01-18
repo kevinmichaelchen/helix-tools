@@ -1,0 +1,23 @@
+[package]
+name = "ix-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Ixchel CLI"
+readme = "README.md"
+keywords = ["cli", "knowledge-graph", "git", "rag"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+clap.workspace = true
+ix-core = { path = "../ix-core" }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "ixchel"
+path = "src/main.rs"
+

@@ -1,0 +1,20 @@
+[package]
+name = "ix-storage-helixdb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "HelixDB-backed storage adapter for Ixchel"
+readme = "README.md"
+keywords = ["helixdb", "storage", "knowledge-graph"]
+categories = ["database"]
+
+[dependencies]
+anyhow.workspace = true
+helix-db.workspace = true
+ix-core = { path = "../ix-core" }
+
+[lints]
+workspace = true
+

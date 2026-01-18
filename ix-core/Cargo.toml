@@ -1,0 +1,21 @@
+[package]
+name = "ix-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Ixchel core library: registries, validation, sync orchestration, and context building"
+readme = "README.md"
+keywords = ["knowledge-graph", "rag", "git", "provenance"]
+categories = ["development-tools"]
+
+[dependencies]
+anyhow.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true
+
