@@ -38,6 +38,18 @@ pub struct IxchelRepo {
     pub config: IxchelConfig,
 }
 
+const METADATA_KEYS: &[&str] = &[
+    "id",
+    "type",
+    "title",
+    "status",
+    "date",
+    "created_at",
+    "updated_at",
+    "created_by",
+    "tags",
+];
+
 impl IxchelRepo {
     pub fn open_from(start: &Path) -> Result<Self> {
         let repo_root = find_git_root(start).with_context(|| {
@@ -86,6 +98,7 @@ impl IxchelRepo {
         std::fs::create_dir_all(&ixchel_dir)
             .with_context(|| format!("Failed to create {}", ixchel_dir.display()))?;
         paths.ensure_layout()?;
+        ensure_project_gitignore(repo_root)?;
 
         let config_path = paths.config_path();
         if force || !config_path.exists() {
@@ -171,6 +184,21 @@ impl IxchelRepo {
             .with_context(|| format!("Unknown entity id prefix: {id}"))?;
 
         std::fs::read_to_string(&path).with_context(|| format!("Failed to read {}", path.display()))
+    }
+
+    pub fn delete_entity(&self, id: &str) -> Result<()> {
+        let path = self
+            .paths
+            .entity_path(id)
+            .with_context(|| format!("Unknown entity id prefix: {id}"))?;
+
+        if !path.exists() {
+            anyhow::bail!("Entity does not exist: {id} ({})", path.display());
+        }
+
+        std::fs::remove_file(&path)
+            .with_context(|| format!("Failed to delete {}", path.display()))?;
+        Ok(())
     }
 
     pub fn list(&self, kind: Option<EntityKind>) -> Result<Vec<EntitySummary>> {
@@ -344,6 +372,42 @@ impl IxchelRepo {
                     message: "missing or empty title".to_string(),
                 });
             }
+
+            let expected_file = format!("{}.md", item.id);
+            if item
+                .path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .is_some_and(|name| name != expected_file)
+            {
+                errors.push(CheckError {
+                    path: item.path.clone(),
+                    message: format!("file name does not match id (expected {expected_file})"),
+                });
+            }
+
+            let raw = std::fs::read_to_string(&item.path)
+                .with_context(|| format!("Failed to read {}", item.path.display()))?;
+            let doc = parse_markdown(&item.path, &raw)?;
+
+            for (rel, targets) in extract_relationships(&doc.frontmatter) {
+                for target in targets {
+                    let Some(target_path) = self.paths.entity_path(&target) else {
+                        errors.push(CheckError {
+                            path: item.path.clone(),
+                            message: format!("unknown id prefix in {rel}: {target}"),
+                        });
+                        continue;
+                    };
+
+                    if !target_path.exists() {
+                        errors.push(CheckError {
+                            path: item.path.clone(),
+                            message: format!("broken link {rel} -> {target}"),
+                        });
+                    }
+                }
+            }
         }
 
         Ok(CheckReport { errors })
@@ -370,4 +434,68 @@ fn default_template(kind: EntityKind) -> String {
         EntityKind::Agent => "## Notes\n\n_Agent description and preferences._\n".to_string(),
         EntityKind::Session => "## Notes\n\n_Session context._\n".to_string(),
     }
+}
+
+fn ensure_project_gitignore(repo_root: &Path) -> Result<()> {
+    let path = repo_root.join(".gitignore");
+    let existing = std::fs::read_to_string(&path).unwrap_or_default();
+
+    let has_data = existing.lines().any(|l| l.trim() == ".ixchel/data/");
+    let has_models = existing.lines().any(|l| l.trim() == ".ixchel/models/");
+    if has_data && has_models {
+        return Ok(());
+    }
+
+    let mut out = existing;
+    if !out.ends_with('\n') && !out.is_empty() {
+        out.push('\n');
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+
+    out.push_str("# Ixchel (rebuildable cache)\n");
+    if !has_data {
+        out.push_str(".ixchel/data/\n");
+    }
+    if !has_models {
+        out.push_str(".ixchel/models/\n");
+    }
+
+    std::fs::write(&path, out).with_context(|| format!("Failed to write {}", path.display()))?;
+    Ok(())
+}
+
+fn extract_relationships(frontmatter: &serde_yaml::Mapping) -> Vec<(String, Vec<String>)> {
+    let mut rels = Vec::new();
+
+    for (key, value) in frontmatter {
+        let serde_yaml::Value::String(key) = key else {
+            continue;
+        };
+
+        if METADATA_KEYS.contains(&key.as_str()) {
+            continue;
+        }
+
+        let targets = match value {
+            serde_yaml::Value::Sequence(seq) => seq
+                .iter()
+                .filter_map(|v| match v {
+                    serde_yaml::Value::String(s) => Some(s.clone()),
+                    _ => None,
+                })
+                .collect::<Vec<_>>(),
+            serde_yaml::Value::String(s) => vec![s.clone()],
+            _ => Vec::new(),
+        };
+
+        if targets.is_empty() {
+            continue;
+        }
+
+        rels.push((key.clone(), targets));
+    }
+
+    rels
 }

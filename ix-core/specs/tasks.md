@@ -10,7 +10,7 @@
 
 - [x] Parse Markdown + YAML frontmatter
 - [x] Create/list/show/link/unlink file-first entities
-- [ ] Validate relationship targets (broken-link detection)
+- [x] Validate relationship targets (broken-link detection)
 
 ## Phase 2: Index + Search
 
