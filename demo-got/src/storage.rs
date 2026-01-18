@@ -230,6 +230,11 @@ impl GotStorage {
         Ok(node_id)
     }
 
+    /// Insert a person as a node in the graph without an embedding.
+    pub fn insert_person_basic(&self, person: &Person) -> Result<u128> {
+        self.insert_person(person)
+    }
+
     /// Insert a person as a node in the graph with an embedding vector.
     /// Returns (node_id, vector_id).
     pub fn insert_person_with_embedding(

@@ -521,17 +521,18 @@ fn ingest_with_embeddings(
 
     // First pass: insert all people as nodes
     for person in &tree.people {
-        let node_id = if let Some(embedding) = embeddings.get(&person.id) {
+        let (node_id, used_embedding) = if let Some(embedding) = embeddings.get(&person.id) {
             // Insert with embedding
             let (node_id, _vector_id) = storage.insert_person_with_embedding(person, embedding)?;
-            stats.embeddings_inserted += 1;
-            node_id
+            (node_id, true)
         } else {
-            // Fall back to basic insert (calls the internal method via ingest)
-            // For now, we'll skip people without embeddings in the embedding path
-            // They can be ingested via the regular path
-            continue;
+            // Fall back to basic insert so the graph stays complete.
+            let node_id = storage.insert_person_basic(person)?;
+            (node_id, false)
         };
+        if used_embedding {
+            stats.embeddings_inserted += 1;
+        }
         id_to_node.insert(person.id.clone(), node_id);
         stats.nodes_inserted += 1;
     }
