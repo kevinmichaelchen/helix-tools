@@ -11,8 +11,11 @@ keywords = ["cli", "knowledge-graph", "git", "rag"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
+anyhow.workspace = true
 clap.workspace = true
 ix-core = { path = "../ix-core" }
+ix-storage-helixdb = { path = "../ix-storage-helixdb" }
+serde_yaml.workspace = true
 
 [lints]
 workspace = true
@@ -20,4 +23,3 @@ workspace = true
 [[bin]]
 name = "ixchel"
 path = "src/main.rs"
-

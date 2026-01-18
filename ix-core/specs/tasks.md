@@ -1,19 +1,25 @@
 # ix-core Tasks
 
-## Phase 0: Skeleton
+## Phase 0: Repo + Layout
 
-- [ ] Define the minimal `ix-core` façade API used by `ix-cli` and `ix-mcp`
-- [ ] Define storage traits (file/graph/vector) with a small “happy path”
-- [ ] Decide the canonical `.ixchel/` (or `.helix/`) on-disk layout and IDs
+- [x] Decide canonical `.ixchel/` on-disk layout
+- [x] Provide repo discovery (git-root + `.ixchel` marker)
+- [x] Define a minimal façade API used by `ix-cli`
 
-## Phase 1: Git-first sync
+## Phase 1: Git-First Entities
 
-- [ ] Parse Markdown + YAML frontmatter into typed entities
-- [ ] Implement file ↔ graph reconciliation with provenance (content hashes)
-- [ ] Add incremental sync (changed files only)
+- [x] Parse Markdown + YAML frontmatter
+- [x] Create/list/show/link/unlink file-first entities
+- [ ] Validate relationship targets (broken-link detection)
 
-## Phase 2: Search and context
+## Phase 2: Index + Search
 
-- [ ] Chunk + embed pipeline interfaces
-- [ ] Hybrid retrieval + graph expansion
-- [ ] Context assembly formats (markdown/json/xml)
+- [x] Define an index backend trait (`IndexBackend`)
+- [x] Wire a working `sync` + `search` path via HelixDB backend
+- [ ] Add incremental sync (changed files only) + deletions/renames
+
+## Phase 3: Graph + Context
+
+- [x] Provide a basic graph view from file relationships
+- [x] Provide a basic context builder (1-hop expansion)
+- [ ] Add configurable depth + edge-type prioritization

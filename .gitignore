@@ -6,6 +6,8 @@ Cargo.lock
 # HelixDB data (local cache, not source of truth)
 .helix/helix.db/
 .helix/models/
+.ixchel/data/
+.ixchel/models/
 .helix-map/
 .fastembed_cache/
 

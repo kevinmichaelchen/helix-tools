@@ -12,9 +12,17 @@ categories = ["database"]
 
 [dependencies]
 anyhow.workspace = true
+bincode = "1.3"
+blake3.workspace = true
+bumpalo = { version = "3", features = ["collections"] }
+fastembed.workspace = true
+heed3 = "0.22.0"
 helix-db.workspace = true
+helix-graph-ops = { path = "../helix-graph-ops" }
 ix-core = { path = "../ix-core" }
+serde_json.workspace = true
+serde_yaml.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
-
