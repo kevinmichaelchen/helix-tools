@@ -1,6 +1,6 @@
 # helix-embeddings
 
-Shared embedding infrastructure for helix-tools using fastembed.
+Shared embedding infrastructure for helix-tools with pluggable providers.
 
 ## Why
 
@@ -21,7 +21,7 @@ let embedder = Embedder::new()?;
 
 // Embed single text
 let embedding = embedder.embed("How to handle authentication?")?;
-assert_eq!(embedding.len(), 384); // Default model dimension
+assert_eq!(embedding.len(), embedder.dimension());
 
 // Embed batch (more efficient)
 let embeddings = embedder.embed_batch(&[
@@ -36,13 +36,15 @@ Configure via `~/.helix/config/config.toml`:
 
 ```toml
 [embedding]
-model = "BAAI/bge-small-en-v1.5"  # Default model
+provider = "fastembed"             # Default provider
+model = "BAAI/bge-small-en-v1.5"   # Default model
 batch_size = 32                    # Batch size for embed_batch
+dimension = 384                    # Optional override (auto-detected for fastembed)
 ```
 
 ## Supported Models
 
-Uses fastembed which supports:
+Default provider is fastembed, which supports:
 - `BAAI/bge-small-en-v1.5` (default, 384 dimensions)
 - `BAAI/bge-base-en-v1.5` (768 dimensions)
 - `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions)
