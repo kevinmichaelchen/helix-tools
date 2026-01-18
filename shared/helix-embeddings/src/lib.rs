@@ -450,6 +450,8 @@ impl CandleProvider {
             .unsqueeze(1)
             .map_err(|e| EmbeddingError::EmbedError(e.to_string()))?
             .clamp(1e-9, f64::MAX)
+            .map_err(|e| EmbeddingError::EmbedError(e.to_string()))?
+            .broadcast_as(pooled.shape())
             .map_err(|e| EmbeddingError::EmbedError(e.to_string()))?;
 
         pooled
@@ -661,7 +663,7 @@ mod tests {
         let embedder = Embedder::with_config(&config).unwrap();
         let embedding = embedder.embed("Hello, world!").unwrap();
         assert_eq!(embedding.len(), 384);
-        assert_eq!(embedder.provider_name().starts_with("candle"), true);
+        assert!(embedder.provider_name().starts_with("candle"));
     }
 
     #[test]
