@@ -1,0 +1,183 @@
+# Research Report: Chunk-Level Indexing and Relationship Inference
+
+This report summarizes research on the architectural ideas introduced in commit
+`4b3c3bc` — specifically chunk-level vector indexing and relationship inference
+pipelines for knowledge graphs.
+
+## Executive Summary
+
+The Helix architecture's approach to chunking and link inference aligns with
+current best practices in the RAG and knowledge graph domains. Key validations:
+
+- **Chunk-level indexing** with centroid vectors addresses the precision vs
+  context trade-off
+- **Four-stage suggestion pipelines** (retrieve → filter → rerank → materialize)
+  follow established patterns
+- **Confidence-tagged edges** for suggested vs confirmed links is a clean,
+  well-supported distinction
+
+## 1. Chunk-Level Vector Indexing
+
+### The Core Trade-Off
+
+Traditional vector-only RAG systems face an inherent contradiction: small chunks
+enable precise semantic matching but fragment context, while large chunks
+preserve coherence but dilute semantic focus[ragflow]. This tension directly
+impacts retrieval quality for complex queries requiring multi-hop reasoning.
+
+### Helix's Approach
+
+The architecture addresses this with:
+
+| Component                         | Purpose                                   |
+| --------------------------------- | ----------------------------------------- |
+| ~512 token chunks                 | Fine-grained semantic matching            |
+| Heading-based boundaries          | Preserve semantic coherence               |
+| Centroid vectors per node         | Coarse recall and document-level matching |
+| Chunk IDs on nodes (`vector_ids`) | Section-level recall and scoring          |
+
+### Research Validation
+
+**Structure-aware chunking** using document structure (headings, ASTs) prevents
+semantically coupled content from being split across chunks, improving embedding
+quality[arxiv-ast]. This principle extends naturally to heading-based strategies.
+
+**GraphRAG integration** demonstrates that combining chunk-level vectors with
+knowledge graphs provides approximately 7.4% absolute accuracy improvement over
+vector-only approaches[video-search]. The graph enables cross-chunk context and
+multi-hop reasoning that similarity search alone cannot achieve[graphrag].
+
+**Cross-node aggregation** via relationship paths achieves superior robustness on
+complex queries, even when related information is dispersed across different
+nodes[oreateai-rag].
+
+### HNSW Configuration
+
+The specified HNSW parameters are within recommended ranges:
+
+```rust
+HnswConfig { m: 16, ef_construction: 200, ef_search: 64 }
+```
+
+Current best practices (2025-2026)[arxiv-hnsw][mariadb-vector]:
+
+- **M (graph degree)**: 16-32 for balanced accuracy/performance
+- **ef_search**: 100-200 for higher recall at throughput cost
+- **Distance metric**: Cosine similarity for normalized embeddings
+
+## 2. Relationship Inference Pipeline
+
+### Helix's Four-Stage Pipeline
+
+1. **Chunk retrieval**: Vector search for top-k candidate pairs across entity
+   types
+2. **Pair filtering**: Heuristic filters (type-specific patterns, keyword
+   matching)
+3. **Rerank/classify**: Cross-encoder scoring with relation labels + confidence
+4. **Materialize suggestions**: Attach edges with `confidence`; require
+   confirmation to promote
+
+### Research Validation
+
+**Two-stage retrieval** is standard practice: bi-encoder retrieval (fast, ~50-100
+candidates) followed by cross-encoder reranking for precision[arxiv-reranker].
+Key models include:
+
+| Model             | Type             | Notes                                 |
+| ----------------- | ---------------- | ------------------------------------- |
+| BGE-reranker      | Cross-encoder    | High-precision reranking              |
+| ColBERT           | Late interaction | Token-level matching, efficient       |
+| ModernBERT (2024) | Cross-encoder    | Strong NanoBEIR performance           |
+| RWKV rerankers    | State-based      | Efficient alternative to transformers |
+
+**Link prediction confidence scoring** approaches[pmc-link-prediction][emnlp-calibrator]:
+
+- **Embedding-based scores**: Similarity metrics (dot product of head-tail
+  embeddings)
+- **Probability calibration**: Post-hoc methods adjust raw outputs for
+  well-calibrated probabilities
+- **Hybrid evaluation**: Combine topological and multimodal features with
+  threshold filtering
+
+One study demonstrated 19.8% graph size reduction by filtering low-confidence
+edges using median alignment score thresholds[pmc-link-prediction].
+
+### Confidence Semantics
+
+The pattern of setting `confidence` on auto-mined links while confirmed edges
+omit it provides clear semantics:
+
+```
+Suggested edge:  (A)-[IMPLEMENTS {confidence: 0.82}]->(B)
+Confirmed edge:  (A)-[IMPLEMENTS]->(B)
+```
+
+This aligns with knowledge graph embedding research where calibrated confidence
+enables reliable filtering and user review workflows[emnlp-calibrator].
+
+### Chunk Span Provenance
+
+Storing which section/paragraph drove a suggested link enables:
+
+- Explainable suggestions for user/agent review
+- Debugging of false positives
+- Incremental re-evaluation when source chunks change
+
+## 3. Industry Trends (2025-2026)
+
+### RAG Evolution
+
+RAG systems are evolving toward "Context Engines" with hybrid indexing
+(full-text, vector, and tensor) and text-first tensor reranking for better
+semantic recall[ragflow-2025]. AutoRAG approaches automate pipeline optimization,
+treating rerankers as part of a searchable configuration space[autorag].
+
+### Knowledge Graph + Vector Hybrid
+
+The combination of knowledge graphs with vector retrieval is increasingly
+standard for production systems requiring:
+
+- Multi-hop reasoning
+- Constraint-based queries
+- Cross-document relationship tracking
+
+GraphRAG demonstrates the pattern: after chunking and vectorization, extract
+entities and relationships, cluster into communities, and generate
+summaries[graphrag].
+
+## 4. Recommendations
+
+### Near-Term Enhancements
+
+1. **Late interaction models**: ColBERT-style token-level matching could improve
+   reranking precision for relationship classification
+
+2. **Probability calibration**: Ensure confidence scores are interpretable (0.8
+   means 80% likely correct) using post-hoc calibration methods
+
+3. **Iterative search**: Adaptive ef parameters — start with lower ef, increase
+   until k qualified results found[arxiv-hnsw]
+
+### Metrics to Track
+
+| Metric                 | Purpose                                      |
+| ---------------------- | -------------------------------------------- |
+| Suggestion precision@k | Quality of top-k suggested edges             |
+| Confirmation rate      | % of suggestions promoted to canonical       |
+| Chunk recall           | Whether relevant chunks appear in candidates |
+| Confidence calibration | Predicted vs actual accuracy correlation     |
+
+## References
+
+[arxiv-ast]: https://arxiv.org/html/2601.08773v1
+[arxiv-hnsw]: https://arxiv.org/html/2601.01291v2
+[arxiv-reranker]: https://arxiv.org/html/2601.07861v1
+[autorag]: https://ai.gopubby.com/autorag-the-end-of-guesswork-in-retrieval-augmented-generation-cc9ac0ad578c
+[emnlp-calibrator]: https://aclanthology.org/2025.emnlp-main.1522/
+[graphrag]: https://www.intelligentmachines.blog/post/graphrag-explained-boosting-rag-performance-with-knowledge-graphs
+[mariadb-vector]: https://severalnines.com/blog/introduction-to-mariadb-vector-search/
+[oreateai-rag]: https://www.oreateai.com/blog/a-comparative-study-of-rag-retrievalaugmented-generation-and-kg-knowledge-graph-technologies/fe3580f238aa09853a00da600a3f9325
+[pmc-link-prediction]: https://pmc.ncbi.nlm.nih.gov/articles/PMC12791124/
+[ragflow]: https://ragflow.io/basics/what-is-rag
+[ragflow-2025]: https://ragflow.io/blog/rag-review-2025-from-rag-to-context
+[video-search]: https://thedataguy.pro/blog/2025/12/production-video-search-infrastructure/
