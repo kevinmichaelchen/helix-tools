@@ -2,6 +2,7 @@ pub mod config;
 pub mod entity;
 pub mod index;
 pub mod markdown;
+pub mod migrate;
 pub mod paths;
 pub mod repo;
 
