@@ -74,21 +74,33 @@ pub struct GitHubConfig {
 /// Embedding model configuration.
 #[derive(Debug, Clone, Deserialize)]
 pub struct EmbeddingConfig {
+    /// Provider implementation to use (e.g. "fastembed").
+    #[serde(default = "default_embedding_provider")]
+    pub provider: String,
     /// The embedding model to use.
     #[serde(default = "default_embedding_model")]
     pub model: String,
     /// Batch size for embedding operations.
     #[serde(default = "default_batch_size")]
     pub batch_size: usize,
+    /// Optional dimension override for providers that don't advertise dims.
+    #[serde(default)]
+    pub dimension: Option<usize>,
 }
 
 impl Default for EmbeddingConfig {
     fn default() -> Self {
         Self {
+            provider: default_embedding_provider(),
             model: default_embedding_model(),
             batch_size: default_batch_size(),
+            dimension: None,
         }
     }
+}
+
+fn default_embedding_provider() -> String {
+    "fastembed".to_string()
 }
 
 fn default_embedding_model() -> String {

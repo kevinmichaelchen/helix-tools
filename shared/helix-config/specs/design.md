@@ -135,8 +135,10 @@ The shared `config.toml` contains settings used by multiple tools:
 token = "ghp_xxx"  # Most tools need GitHub access
 
 [embedding]
+provider = "fastembed"
 model = "BAAI/bge-small-en-v1.5"  # helix-docs, helix-map
 batch_size = 32
+dimension = 384
 
 [storage]
 base = "~/.helix/data"  # Override data location if needed
@@ -165,10 +167,14 @@ pub struct GitHubConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct EmbeddingConfig {
+    #[serde(default = "default_embedding_provider")]
+    pub provider: String,
     #[serde(default = "default_model")]
     pub model: String,
     #[serde(default = "default_batch_size")]
     pub batch_size: usize,
+    #[serde(default)]
+    pub dimension: Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -318,8 +324,10 @@ Replaced entirely (not concatenated). This prevents unexpected behavior.
 token = "global_token"
 
 [embedding]
+provider = "fastembed"
 model = "small-model"
 batch_size = 16
+dimension = 384
 
 # .helix/config.toml (project)
 [embedding]
@@ -327,8 +335,10 @@ batch_size = 32  # Override just this field
 
 # Result:
 # github.token = "global_token"
+# embedding.provider = "fastembed"
 # embedding.model = "small-model"
 # embedding.batch_size = 32
+# embedding.dimension = 384
 ```
 
 ---
