@@ -20,7 +20,7 @@ use candle_transformers::models::bert::{BertModel, Config as BertConfig, DTYPE};
 #[cfg(feature = "candle")]
 use hf_hub::{Repo, RepoType, api::sync::Api};
 #[cfg(feature = "candle")]
-use tokenizers::{PaddingParams, PaddingStrategy, Tokenizer};
+use tokenizers::{PaddingParams, PaddingStrategy, Tokenizer, TruncationParams, TruncationStrategy};
 
 #[derive(Debug, Error)]
 pub enum EmbeddingError {
@@ -358,9 +358,18 @@ impl CandleProvider {
             .map_err(|e| EmbeddingError::InitError(format!("Failed to parse config: {e}")))?;
         let dimension = bert_config.hidden_size;
 
-        // Load tokenizer with padding
+        // Load tokenizer with padding + truncation
         let mut tokenizer = Tokenizer::from_file(&tokenizer_path)
             .map_err(|e| EmbeddingError::InitError(format!("Failed to load tokenizer: {e}")))?;
+        tokenizer
+            .with_truncation(Some(TruncationParams {
+                max_length: bert_config.max_position_embeddings,
+                strategy: TruncationStrategy::LongestFirst,
+                ..Default::default()
+            }))
+            .map_err(|e| {
+                EmbeddingError::InitError(format!("Failed to configure tokenizer truncation: {e}"))
+            })?;
         tokenizer.with_padding(Some(PaddingParams {
             strategy: PaddingStrategy::BatchLongest,
             ..Default::default()
