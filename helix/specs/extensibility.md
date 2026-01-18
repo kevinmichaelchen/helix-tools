@@ -4,49 +4,45 @@ This document describes how users can extend Helix with custom entity types, rel
 
 ## Design Philosophy
 
-**Progressive complexity**: Start simple, add power when needed.
+**Progressive complexity**: Start with knowledge-first + lightweight attribution; let users extend or override without forks.
 
-- **v1.0**: Six built-in entity types, predefined relationships, enforced validity matrix
-- **v1.x**: Custom entity types and relationships with sensible defaults
-- **v2.0**: Full validity matrix customization
+- **Baseline**: Knowledge + attribution built-ins, strict validity matrix
+- **v1.x**: Custom entity/relationship definitions, configurable validation modes
+- **v2.0**: Full matrix customization and policy hooks
 
-The internal architecture supports extensibility from day one, even if the user-facing configuration comes later.
+The internal architecture already supports dynamic types; only the UX surface is gated.
 
-## Current Scope (v1.0)
+## Baseline Built-ins
 
-### Built-in Entity Types
+### Entity Types
 
-| Type     | Prefix  | Immutable After |
-| -------- | ------- | --------------- |
-| Decision | `dec-`  | `accepted`      |
-| Issue    | `iss-`  | Never           |
-| Idea     | `idea-` | `evolved`       |
-| Report   | `rpt-`  | `published`     |
-| Source   | `src-`  | Never           |
-| Citation | `cite-` | Never           |
+| Family      | Type     | Prefix  | Notes                       |
+| ----------- | -------- | ------- | --------------------------- |
+| Knowledge   | decision | `dec-`  | Immutable after `accepted`  |
+|             | issue    | `iss-`  |                             |
+|             | idea     | `idea-` | Immutable after `evolved`   |
+|             | report   | `rpt-`  | Immutable after `published` |
+|             | source   | `src-`  |                             |
+|             | citation | `cite-` |                             |
+| Attribution | agent    | `agt-`  | Identity for humans/AI      |
+|             | session  | `ses-`  | Light grouping              |
+| Deferred    | run      | `run-`  | Future extension            |
+|             | plan     | `pln-`  | Future extension            |
+|             | patch    | `pch-`  | Future extension            |
+|             | snapshot | `snap-` | Future extension            |
+|             | file     | `file-` | Future extension            |
+|             | symbol   | `sym-`  | Future extension            |
+|             | test     | `tst-`  | Future extension            |
 
-### Built-in Relationships
+### Relationships
 
-| Relationship   | Semantic                  | Blocking? |
-| -------------- | ------------------------- | --------- |
-| `relates_to`   | General association       | No        |
-| `blocks`       | A must complete before B  | Yes       |
-| `depends_on`   | A requires B              | Yes       |
-| `supersedes`   | A replaces B              | No        |
-| `amends`       | A modifies B              | No        |
-| `evolves_into` | A became B                | No        |
-| `spawns`       | A created B               | No        |
-| `cites`        | A references B            | No        |
-| `quotes`       | A excerpts B              | No        |
-| `supports`     | A provides evidence for B | No        |
-| `contradicts`  | A conflicts with B        | No        |
-| `summarizes`   | A condenses B             | No        |
-| `addresses`    | A responds to B           | No        |
-| `implements`   | A implements B            | No        |
+Core relationships include (see `graph-schema.md` for validity):
 
-### Built-in Validity Matrix
+`relates_to`, `blocks`, `depends_on`, `supersedes`, `amends`, `evolves_into`, `spawns`, `implements`, `addresses`, `summarizes`, `cites`, `quotes`, `supports`, `contradicts`, `used_in`, `recommends`, `observes`, `duplicate_of`, `derives_from`, minimal `claims` (issues only). Deferred types will gain additional edges later.
 
-Hardcoded but architecturally decoupled. See `graph-schema.md` for the full matrix.
+### Validity Matrix
+
+Defined in `graph-schema.md`. Strict mode enforces the baseline; permissive/custom modes can widen it.
 
 ---
 

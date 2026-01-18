@@ -18,23 +18,23 @@ helix <verb> [entity-type] [id] [options]
 
 ### Verbs
 
-| Verb      | Description                | Example                               |
-| --------- | -------------------------- | ------------------------------------- |
-| `create`  | Create new entity          | `helix create decision "Use Redis"`   |
-| `show`    | Display single entity      | `helix show dec-42`                   |
-| `list`    | List entities with filters | `helix list issues --status open`     |
-| `update`  | Modify entity              | `helix update iss-17 --status closed` |
-| `delete`  | Remove entity              | `helix delete idea-9`                 |
-| `search`  | Semantic search            | `helix search "caching strategy"`     |
-| `graph`   | Traverse relationships     | `helix graph dec-42 --depth 3`        |
-| `link`    | Add relationship           | `helix link dec-42 spawns iss-17`     |
-| `unlink`  | Remove relationship        | `helix unlink dec-42 spawns iss-17`   |
-| `context` | Generate AI context        | `helix context iss-17`                |
-| `sync`    | Synchronize files ↔ DB     | `helix sync`                          |
-| `init`    | Initialize .helix/         | `helix init`                          |
-| `check`   | Validate all entities      | `helix check`                         |
-| `health`  | Knowledge health report    | `helix health`                        |
-| `config`  | Manage configuration       | `helix config show`                   |
+| Verb      | Description                   | Example                               |
+| --------- | ----------------------------- | ------------------------------------- |
+| `create`  | Create new entity             | `helix create decision "Use Redis"`   |
+| `show`    | Display single entity         | `helix show dec-42`                   |
+| `list`    | List entities with filters    | `helix list issues --status open`     |
+| `update`  | Modify entity                 | `helix update iss-17 --status closed` |
+| `delete`  | Remove entity                 | `helix delete idea-9`                 |
+| `search`  | Semantic search               | `helix search "caching strategy"`     |
+| `graph`   | Traverse relationships        | `helix graph dec-42 --depth 3`        |
+| `link`    | Add relationship              | `helix link dec-42 spawns iss-17`     |
+| `unlink`  | Remove relationship           | `helix unlink dec-42 spawns iss-17`   |
+| `context` | Generate AI context           | `helix context iss-17`                |
+| `sync`    | Synchronize files ↔ DB        | `helix sync`                          |
+| `init`    | Initialize .helix/            | `helix init`                          |
+| `check`   | Validate all entities         | `helix check`                         |
+| `health`  | Knowledge/graph health report | `helix health`                        |
+| `config`  | Manage configuration          | `helix config show`                   |
 
 ## Global Options
 

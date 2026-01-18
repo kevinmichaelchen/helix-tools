@@ -1,6 +1,6 @@
 # Helix
 
-A local-first, git-native knowledge graph for software teams.
+An AI-aware, git-native knowledge graph for agent swarms. Knowledge artifacts stay central, with lightweight agent attribution. Run logs and code-surface indexing are future extensions.
 
 ```
 helix search "why did we choose PostgreSQL"
@@ -16,26 +16,21 @@ helix search "why did we choose PostgreSQL"
 
 ## What is Helix?
 
-Helix unifies your team's knowledge artifacts into a semantically searchable graph:
+Helix unifies knowledge artifacts with lightweight agent/session attribution:
 
-- **Decisions** — Architecture Decision Records (ADRs)
-- **Issues** — Bugs, features, tasks, epics
-- **Ideas** — Proposals and brainstorms
-- **Reports** — Postmortems, RFCs, retrospectives
-- **Sources** — Papers, articles, documentation
-- **Citations** — Specific quotes and references
+- **Knowledge** — decisions, issues, ideas, reports, sources, citations
+- **Attribution** — agents, sessions (grouping)
 
-All stored as **Markdown files**, tracked in **Git**, indexed in a **graph-vector database**.
+Everything is local-first: Markdown manifests in Git, indexed in a graph + vector database for fast traversal and semantic recall.
 
 ## Why Helix?
 
-| Problem                         | Helix Solution                     |
-| ------------------------------- | ---------------------------------- |
-| "Why did we build it this way?" | Traverse decision → issue → source |
-| "What's blocking this?"         | Graph visualization of blockers    |
-| "Find related decisions"        | Semantic search across all types   |
-| "Generate context for Claude"   | `helix context iss-17`             |
-| "Stale knowledge accumulates"   | Health reports surface orphans     |
+| Problem                                | Helix Solution                                     |
+| -------------------------------------- | -------------------------------------------------- |
+| "Why did we build it this way?"        | Traverse decision → issue → source → citation      |
+| "What is safe to work on right now?"   | `CLAIMS` edges + lease expiry checks on issues     |
+| "Generate grounded context for agents" | Chunked embeddings + graph expansion via `context` |
+| "Stale/contradictory knowledge"        | Health reports across decisions/issues/reports     |
 
 ## Quick Start
 
@@ -62,7 +57,9 @@ Creates:
 ├── ideas/
 ├── reports/
 ├── sources/
-└── citations/
+├── citations/
+├── agents/
+└── sessions/
 ```
 
 ### Create Your First Decision
@@ -127,26 +124,19 @@ dec-a1b2c3: Use PostgreSQL for Primary Storage
 
 ## Core Concepts
 
-### Entity Types
+### Entity Families
 
-| Type     | Prefix  | Description           |
-| -------- | ------- | --------------------- |
-| Decision | `dec-`  | Architectural choices |
-| Issue    | `iss-`  | Work items            |
-| Idea     | `idea-` | Proposals             |
-| Report   | `rpt-`  | Analysis docs         |
-| Source   | `src-`  | External refs         |
-| Citation | `cite-` | Specific quotes       |
+- **Knowledge**: decision (`dec-`), issue (`iss-`), idea (`idea-`), report (`rpt-`), source (`src-`), citation (`cite-`)
+- **Attribution**: agent (`agt-`), session (`ses-`)
 
-### Relationships
+### Relationships (examples)
 
 ```
-Decision ──supersedes──▶ Decision
-Decision ──spawns──────▶ Issue
-Issue ────blocks───────▶ Issue
-Idea ─────evolves_into─▶ Decision
-Report ───cites────────▶ Source
-Citation ─supports─────▶ Decision
+Decision ──spawns────────▶ Issue
+Issue ─────implements────▶ Decision
+Report ────cites─────────▶ Source
+Citation ─supports/contradicts▶ Decision|Idea|Report
+Agent ─────claims────────▶ Issue (lease with expiry)
 ```
 
 ### Storage
@@ -155,7 +145,7 @@ Citation ─supports─────▶ Decision
 .helix/
 ├── decisions/dec-a1b2c3.md    ← Source of truth (git-tracked)
 ├── issues/iss-b2c3d4.md
-└── data/helix.db/             ← Index cache (gitignored)
+└── data/helix.db/             ← Index cache (gitignored: graph + vectors)
 ```
 
 Files are Markdown with YAML frontmatter. The database is a rebuildable cache.

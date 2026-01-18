@@ -2,48 +2,34 @@
 
 ## Vision Statement
 
-Helix is a **local-first, git-native knowledge operating system** that unifies disparate knowledge artifacts — decisions, issues, ideas, reports, sources, and citations — into a single, semantically-searchable graph database with a unified CLI and TUI.
+Helix is a **local-first, git-native knowledge operating system for agent swarms**. It unifies human knowledge with lightweight agent attribution into a single semantically searchable graph so multiple agents can coordinate safely and retain long-horizon memory.
 
 ## The Problem
 
-Software teams accumulate knowledge in silos:
+Knowledge is scattered and loses context:
 
-- **ADRs** in `/docs/decisions/` — forgotten after approval
-- **Issues** in GitHub/Jira — disconnected from architecture
-- **Ideas** in Notion/Slack — lost to the void
-- **Reports** in Google Docs — never referenced again
-- **Papers/Sources** in browser bookmarks — impossible to rediscover
-- **Citations** scattered in comments — no traceability
+- ADRs get stale or forgotten after approval
+- Issues are disconnected from the decisions and sources behind them
+- Reports and retrospectives are hard to rediscover
+- Ideas lose provenance and evolution trails
 
-These artifacts are **deeply interconnected** but stored in **incompatible systems**:
+We need a **graph that keeps knowledge coherent and attributable** so agents can:
 
-- A decision spawns issues
-- An issue cites a source
-- A report summarizes a postmortem
-- An idea evolves into a decision
-
-Yet we cannot:
-
-1. Search across all knowledge types semantically
-2. Traverse the relationships between artifacts
-3. Answer "why did we build it this way?"
-4. Generate context for AI assistants
-5. Maintain knowledge hygiene (stale, orphaned, contradictory)
+1. Coordinate safely (leases on work items)
+2. Recover prior rationale and evidence
+3. Answer “why/what/how” across many hops
+4. Generate precise, debiased context for other agents and humans
 
 ## The Solution
 
 Helix provides:
 
-### 1. Unified Entity Model
+### 1. Unified Entity Model (Knowledge + Attribution)
 
-All knowledge artifacts share:
+- **Knowledge**: decisions, issues, ideas, reports, sources, citations
+- **Attribution**: agents, sessions (light grouping)
 
-- Markdown body with YAML frontmatter
-- Unique identifier with type prefix (`dec-`, `iss-`, `idea-`, etc.)
-- Creation/modification timestamps
-- Creator attribution (human or agent)
-- Semantic embedding for search
-- Relationship links to other entities
+All share YAML frontmatter, IDs, timestamps, attribution, and embeddings (chunked per section).
 
 ### 2. Graph-Vector Storage
 
@@ -81,12 +67,11 @@ helix context iss-17 --for-agent
 - Relationship editor
 - Knowledge health dashboard
 
-### 6. AI-Native Design
+### 6. AI-Native by Default
 
-- `--agent` and `--session` flags for attribution
-- Context generation for LLM consumption
-- Semantic search tuned for AI retrieval
-- Compaction/summarization for long-lived entities
+- Agent/session attribution on every artifact
+- Chunked embeddings and centroid reranking for small-context agents
+- Deferred: run logs, patches, code-surface indexing (future extensions)
 
 ## Design Principles
 
@@ -143,42 +128,25 @@ Agents create knowledge too:
 
 Attribution matters. Track who (or what) created each artifact.
 
-## Entity Types
+## Entity Families
 
-| Type     | Prefix  | Purpose                     | Example                            |
-| -------- | ------- | --------------------------- | ---------------------------------- |
-| Decision | `dec-`  | Architecture choices (ADRs) | "Use event sourcing for audit log" |
-| Issue    | `iss-`  | Work items, bugs, tasks     | "Fix memory leak in parser"        |
-| Idea     | `idea-` | Proposals, brainstorms      | "What if we used WebAssembly?"     |
-| Report   | `rpt-`  | Analysis, postmortems, RFCs | "Q4 Performance Retrospective"     |
-| Source   | `src-`  | External references         | "Redis SIGMOD 2019 Paper"          |
-| Citation | `cite-` | Specific quotes/excerpts    | "Key insight about LSM trees"      |
+| Family      | Type (prefix)                                                                                                   | Purpose                          |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Knowledge   | decision (`dec-`), issue (`iss-`), idea (`idea-`), report (`rpt-`), source (`src-`), citation (`cite-`)         | Human/agent knowledge artifacts  |
+| Attribution | agent (`agt-`), session (`ses-`)                                                                                | Provenance and grouping          |
+| Deferred    | run (`run-`), plan (`pln-`), patch (`pch-`), snapshot (`snap-`), file (`file-`), symbol (`sym-`), test (`tst-`) | Future execution/code extensions |
 
-## Relationship Types
+## Relationship Types (high level)
 
-| Relationship   | Meaning                   | Example                      |
-| -------------- | ------------------------- | ---------------------------- |
-| `blocks`       | A must complete before B  | Issue blocks Issue           |
-| `depends_on`   | A requires B to exist     | Decision depends on Decision |
-| `relates_to`   | General association       | Any → Any                    |
-| `supersedes`   | A replaces B              | Decision supersedes Decision |
-| `amends`       | A modifies B              | Decision amends Decision     |
-| `evolves_into` | A became B                | Idea evolves into Decision   |
-| `spawns`       | A created B               | Decision spawns Issue        |
-| `cites`        | A references B            | Report cites Source          |
-| `quotes`       | A excerpts B              | Citation quotes Source       |
-| `supports`     | A provides evidence for B | Citation supports Decision   |
-| `contradicts`  | A conflicts with B        | Source contradicts Source    |
-| `summarizes`   | A condenses B             | Report summarizes Issues     |
-| `addresses`    | A responds to B           | Decision addresses Issue     |
+`relates_to`, `blocks`, `depends_on`, `supersedes`, `amends`, `evolves_into`, `spawns`, `implements`, `addresses`, `summarizes`, `cites`, `quotes`, `supports`, `contradicts`, `used_in`, `recommends`, `observes`, `duplicate_of`, `derives_from`, `claims` (issues). Deferred types will add more later.
 
 ## Success Metrics
 
 1. **Discoverability**: Find relevant knowledge in <1s semantic search
 2. **Traceability**: Answer "why?" by traversing 3+ hops in the graph
 3. **Freshness**: Surface stale/orphaned knowledge automatically
-4. **Adoption**: Replace 3+ external tools with unified workflow
-5. **AI Utility**: Generate useful context for LLM assistants
+4. **Adoption**: Replace bespoke run logs, ADR tools, and code notebooks with Helix
+5. **AI Utility**: Generate useful, grounded context for agent swarms and humans
 
 ## Non-Goals
 

@@ -32,6 +32,14 @@ This enables:
 - Grouping related agent actions
 - Understanding provenance
 
+## Agent-Native Building Blocks
+
+- **Agents (`agt-`)**: attribution for humans/AI with capabilities.
+- **Sessions (`ses-`)**: light grouping for related creations.
+- **Reservations (`CLAIMS`)**: leases on issues to avoid collisions.
+
+Agents should attribute creations and acquire leases before taking work; run logs and code-surface indexing remain future extensions.
+
 ## CLI Flags for Agents
 
 ### `--agent <id>`
@@ -448,8 +456,15 @@ When starting work on an issue:
 
 ```bash
 # Get full context before diving in
-context=$(helix context iss-17 --depth 2 --format markdown)
-echo "$context"
+  context=$(helix context iss-17 --depth 2 --format markdown)
+  echo "$context"
+```
+
+### 6. Avoid Collisions (lightweight)
+
+```bash
+# Acquire a lease on an issue for 30 minutes
+helix claim iss-17 --agent claude --lease 30m
 ```
 
 ## Filtering Agent Content
