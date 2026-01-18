@@ -681,4 +681,32 @@ mod tests {
         assert_eq!(embeddings.len(), 3);
         assert!(embeddings.iter().all(|e| e.len() == 384));
     }
+
+    #[test]
+    #[cfg(feature = "candle")]
+    #[ignore = "Requires downloading model (~1.3GB)"]
+    fn test_candle_bge_large() {
+        let config = EmbeddingConfig {
+            provider: "candle".to_string(),
+            model: "BAAI/bge-large-en-v1.5".to_string(),
+            batch_size: 8,
+            ..Default::default()
+        };
+        let embedder = Embedder::with_config(&config).unwrap();
+
+        // Verify model loaded correctly
+        assert_eq!(embedder.dimension(), 1024);
+        assert_eq!(embedder.model_name(), "BAAI/bge-large-en-v1.5");
+
+        // Test single embedding
+        let embedding = embedder.embed("Hello, world!").unwrap();
+        assert_eq!(embedding.len(), 1024);
+
+        // Test batch embedding
+        let embeddings = embedder
+            .embed_batch(&["First text", "Second text"])
+            .unwrap();
+        assert_eq!(embeddings.len(), 2);
+        assert!(embeddings.iter().all(|e| e.len() == 1024));
+    }
 }

@@ -130,18 +130,19 @@ Total: < 10ms
 
 ### For helix-tools (hbd, helix-decisions)
 
-| Provider    | Model             | When to Use                  |
-| ----------- | ----------------- | ---------------------------- |
-| `fastembed` | all-MiniLM-L6-v2  | Default. Fast, good quality  |
-| `fastembed` | bge-small-en-v1.5 | Better retrieval, still fast |
-| `candle`    | bge-small-en-v1.5 | GPU acceleration available   |
+| Provider    | Model             | When to Use                     |
+| ----------- | ----------------- | ------------------------------- |
+| `fastembed` | all-MiniLM-L6-v2  | Default. Fast, good quality     |
+| `fastembed` | bge-small-en-v1.5 | Better retrieval, still fast    |
+| `candle`    | bge-small-en-v1.5 | GPU acceleration, balanced      |
+| `candle`    | bge-large-en-v1.5 | **Best quality** (requires GPU) |
 
 ### Model Selection Guide
 
 ```
 Speed Priority:     all-MiniLM-L6-v2 (22M params, 384 dims)
-Quality Priority:   bge-base-en-v1.5 (109M params, 768 dims)
-Balanced:           bge-small-en-v1.5 (33M params, 384 dims) ← Recommended
+Balanced:           bge-small-en-v1.5 (33M params, 384 dims)
+Quality Priority:   bge-large-en-v1.5 (335M params, 1024 dims) ← Recommended with GPU
 ```
 
 ### Memory Considerations (16GB M1 Pro)
@@ -151,22 +152,24 @@ Balanced:           bge-small-en-v1.5 (33M params, 384 dims) ← Recommended
 | all-MiniLM-L6-v2  | ~89 MB  | Plenty for large indices      |
 | bge-small-en-v1.5 | ~134 MB | Comfortable                   |
 | bge-base-en-v1.5  | ~436 MB | Fine for typical workloads    |
+| bge-large-en-v1.5 | ~1.3 GB | Comfortable with 16GB         |
 | nomic-embed-text  | ~548 MB | Works, but watch for pressure |
 
 ---
 
 ## Comparison: Why Not Larger Models?
 
-| Model                   | Params | Quality (MTEB) | Speed   | Verdict          |
-| ----------------------- | ------ | -------------- | ------- | ---------------- |
-| all-MiniLM-L6-v2        | 22M    | Good           | Fastest | Best for dev     |
-| bge-small-en-v1.5       | 33M    | Better         | Fast    | **Best balance** |
-| bge-base-en-v1.5        | 109M   | Great          | Slower  | If quality vital |
-| llama-embed-nemotron-8b | 7.5B   | Best           | Slow    | Overkill         |
+| Model                   | Params | Quality (MTEB)  | Speed   | Verdict              |
+| ----------------------- | ------ | --------------- | ------- | -------------------- |
+| all-MiniLM-L6-v2        | 22M    | Good (~63)      | Fastest | Best for dev         |
+| bge-small-en-v1.5       | 33M    | Better (~63)    | Fast    | Good balance         |
+| bge-base-en-v1.5        | 109M   | Great (~64)     | Medium  | Quality without GPU  |
+| bge-large-en-v1.5       | 335M   | Excellent (~65) | Slower  | **Best with GPU**    |
+| llama-embed-nemotron-8b | 7.5B   | Best (~70)      | Slow    | Overkill for tickets |
 
-For issue/ticket search, the quality difference between 33M and 7.5B parameter
-models is marginal. The smaller models capture semantic meaning well for
-short-form technical text.[^5]
+For issue/ticket search, **bge-large-en-v1.5 with GPU** hits the sweet spot:
+high quality retrieval while staying within your 10-second budget for 10k tickets.
+Models beyond 500M params offer diminishing returns for short-form technical text.[^5]
 
 ---
 
