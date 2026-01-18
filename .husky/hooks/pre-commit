@@ -3,8 +3,11 @@ set -e
 
 echo "Running pre-commit checks..."
 
-echo "Checking formatting..."
+echo "Checking Rust formatting..."
 cargo fmt --all -- --check
+
+echo "Checking dprint formatting..."
+dprint check
 
 echo "Running clippy..."
 cargo clippy --all-targets --all-features -- -D warnings
