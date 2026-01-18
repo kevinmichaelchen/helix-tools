@@ -100,6 +100,34 @@ impl GotStorage {
             .clear(&mut wtxn)
             .map_err(|e| GotError::DatabaseError(format!("Failed to clear in_edges: {e}")))?;
 
+        for (index_name, (db, _)) in &self.storage.secondary_indices {
+            db.clear(&mut wtxn).map_err(|e| {
+                GotError::DatabaseError(format!(
+                    "Failed to clear secondary index {index_name}: {e}"
+                ))
+            })?;
+        }
+
+        self.storage
+            .vectors
+            .vectors_db
+            .clear(&mut wtxn)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to clear vectors: {e}")))?;
+
+        self.storage
+            .vectors
+            .vector_properties_db
+            .clear(&mut wtxn)
+            .map_err(|e| {
+                GotError::DatabaseError(format!("Failed to clear vector properties: {e}"))
+            })?;
+
+        self.storage
+            .vectors
+            .edges_db
+            .clear(&mut wtxn)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to clear vector edges: {e}")))?;
+
         wtxn.commit()
             .map_err(|e| GotError::DatabaseError(format!("Failed to commit clear: {e}")))?;
 
