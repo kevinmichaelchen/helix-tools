@@ -149,23 +149,65 @@ summaries[graphrag].
 
 ### Near-Term Enhancements
 
-1. **Late interaction models**: ColBERT-style token-level matching could improve
-   reranking precision for relationship classification
+1. **Reranker/classifier ablation**: ColBERT-style late interaction models are
+   typically retrieval-focused; using them as a reranker/classifier may
+   complicate per-relation labels. Run a small ablation before committing infra
+   changes:
+   - BGE cross-encoder (baseline)
+   - ColBERT-v2 rerank
+   - Lightweight ModernBERT cross-encoder
+   - Measure latency and precision on a sampled edge-label dataset
 
-2. **Probability calibration**: Ensure confidence scores are interpretable (0.8
-   means 80% likely correct) using post-hoc calibration methods
+2. **Per-relation confidence calibration**: Calibrate confidence scores per
+   relation type using a held-out labeled set:
+   - Start with temperature scaling or Dirichlet calibration
+   - Track reliability curves (predicted vs actual accuracy)
+   - Persist calibrator parameters alongside model version so confidence
+     semantics remain stable across deploys
 
-3. **Iterative search**: Adaptive ef parameters — start with lower ef, increase
-   until k qualified results found[arxiv-hnsw]
+3. **Adaptive HNSW search with guardrails**:
+   - Start with lower ef, increase until k qualified results found[arxiv-hnsw]
+   - Add latency guardrail (e.g., p99 < 50ms) and log when falling back to
+     higher ef
+   - Consider raising M only for collections with sparse edges to avoid
+     over-dense graphs
+
+### Provenance-Backed Invalidation
+
+When source chunks change, suggestion validity degrades. Implement automatic
+invalidation:
+
+- Detect chunk changes via `content_hash` comparison during sync
+- Downgrade or remove suggestions that cite changed chunks
+- Re-run the suggestion pipeline for impacted nodes
+- This preserves confidence semantics over time and bounds re-eval cost
+
+Track **chunk drift** (how often source chunks change) as a leading indicator of
+suggestion invalidation volume.
+
+### Evaluation Harness
+
+Define a small, versioned eval harness to gate changes to chunking, retrieval
+params, and rerankers:
+
+- ~200-500 labeled pairs (relation type + ground truth label)
+- Run on every config change before deploy
+- Track regression on precision, recall, and latency
+- Version the eval set alongside pipeline config
+
+This de-risks all proposed enhancements by catching regressions early.
 
 ### Metrics to Track
 
-| Metric                 | Purpose                                      |
-| ---------------------- | -------------------------------------------- |
-| Suggestion precision@k | Quality of top-k suggested edges             |
-| Confirmation rate      | % of suggestions promoted to canonical       |
-| Chunk recall           | Whether relevant chunks appear in candidates |
-| Confidence calibration | Predicted vs actual accuracy correlation     |
+| Metric                 | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| Suggestion precision@k | Quality of top-k suggested edges                 |
+| True edge recall       | Coverage of known-good edges (requires gold set) |
+| Confirmation rate      | % of suggestions promoted to canonical           |
+| Chunk recall           | Whether relevant chunks appear in candidates     |
+| Confidence calibration | Predicted vs actual accuracy correlation         |
+| Chunk drift            | Rate of source chunk changes (invalidation cost) |
+| Latency p50/p99        | Search and rerank latency SLOs                   |
 
 ## References
 
