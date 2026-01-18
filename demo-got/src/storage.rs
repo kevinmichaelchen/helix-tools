@@ -2,13 +2,14 @@
 
 use crate::error::{GotError, Result};
 use crate::loader::{FamilyTree, RelationshipDef};
-use crate::types::{GraphStats, House, Person, RelationType};
+use crate::types::{GraphStats, House, Person, RelationType, SearchResult};
 use bumpalo::Bump;
 use helix_db::{
     helix_engine::{
         storage_core::{HelixGraphStorage, storage_methods::StorageMethods},
-        traversal_core::config::{Config, GraphConfig},
+        traversal_core::config::{Config, GraphConfig, VectorConfig},
         types::SecondaryIndex,
+        vector_core::hnsw::HNSW,
     },
     protocol::value::Value,
     utils::{items::Edge, label_hash::hash_label, properties::ImmutablePropertiesMap},
@@ -37,10 +38,16 @@ impl GotStorage {
         })?;
 
         let config = Config {
+            vector_config: Some(VectorConfig {
+                m: Some(16),
+                ef_construction: Some(128),
+                ef_search: Some(64),
+            }),
             graph_config: Some(GraphConfig {
                 secondary_indices: Some(vec![
                     SecondaryIndex::Index("id".to_string()),
                     SecondaryIndex::Index("house".to_string()),
+                    SecondaryIndex::Index("vector_id".to_string()),
                 ]),
             }),
             db_max_size_gb: Some(1),
@@ -92,6 +99,34 @@ impl GotStorage {
             .in_edges_db
             .clear(&mut wtxn)
             .map_err(|e| GotError::DatabaseError(format!("Failed to clear in_edges: {e}")))?;
+
+        for (index_name, (db, _)) in &self.storage.secondary_indices {
+            db.clear(&mut wtxn).map_err(|e| {
+                GotError::DatabaseError(format!(
+                    "Failed to clear secondary index {index_name}: {e}"
+                ))
+            })?;
+        }
+
+        self.storage
+            .vectors
+            .vectors_db
+            .clear(&mut wtxn)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to clear vectors: {e}")))?;
+
+        self.storage
+            .vectors
+            .vector_properties_db
+            .clear(&mut wtxn)
+            .map_err(|e| {
+                GotError::DatabaseError(format!("Failed to clear vector properties: {e}"))
+            })?;
+
+        self.storage
+            .vectors
+            .edges_db
+            .clear(&mut wtxn)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to clear vector edges: {e}")))?;
 
         wtxn.commit()
             .map_err(|e| GotError::DatabaseError(format!("Failed to commit clear: {e}")))?;
@@ -223,8 +258,173 @@ impl GotStorage {
         Ok(node_id)
     }
 
-    /// Create an edge between two nodes.
+    /// Insert a person as a node in the graph without an embedding.
+    pub fn insert_person_basic(&self, person: &Person) -> Result<u128> {
+        self.insert_person(person)
+    }
+
+    /// Insert a person as a node in the graph with an embedding vector.
+    /// Returns (node_id, vector_id).
+    pub fn insert_person_with_embedding(
+        &self,
+        person: &Person,
+        embedding: &[f32],
+    ) -> Result<(u128, u128)> {
+        let arena = Bump::new();
+        let mut wtxn =
+            self.storage.graph_env.write_txn().map_err(|e| {
+                GotError::DatabaseError(format!("Failed to start transaction: {e}"))
+            })?;
+
+        // Insert the vector first
+        let embedding_f64: Vec<f64> = embedding.iter().map(|&x| f64::from(x)).collect();
+        let label: &str = arena.alloc_str(NODE_LABEL);
+
+        let vector =
+            self.storage
+                .vectors
+                .insert::<fn(
+                    &helix_db::helix_engine::vector_core::vector::HVector<'_>,
+                    &heed3::RoTxn<'_>,
+                ) -> bool>(&mut wtxn, label, &embedding_f64, None, &arena)
+                .map_err(|e| GotError::EmbeddingError(format!("Failed to insert vector: {e:?}")))?;
+
+        let vector_id = vector.id;
+        let node_id = Uuid::new_v4().as_u128();
+
+        let titles_json = serde_json::to_string(&person.titles).unwrap_or_default();
+        let alias_str = person.alias.clone().unwrap_or_default();
+        let is_alive_str = person.is_alive.to_string();
+
+        let props: Vec<(&str, Value)> = vec![
+            (arena.alloc_str("id"), Value::String(person.id.clone())),
+            (arena.alloc_str("name"), Value::String(person.name.clone())),
+            (
+                arena.alloc_str("house"),
+                Value::String(person.house.to_string()),
+            ),
+            (arena.alloc_str("titles"), Value::String(titles_json)),
+            (arena.alloc_str("alias"), Value::String(alias_str)),
+            (arena.alloc_str("is_alive"), Value::String(is_alive_str)),
+            (
+                arena.alloc_str("vector_id"),
+                Value::String(vector_id.to_string()),
+            ),
+        ];
+
+        let properties = ImmutablePropertiesMap::new(props.len(), props.into_iter(), &arena);
+
+        let node = helix_db::utils::items::Node {
+            id: node_id,
+            label,
+            version: 1,
+            properties: Some(properties),
+        };
+
+        graph_ops::put_node(&self.storage, &mut wtxn, &node)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to store node: {e}")))?;
+
+        graph_ops::update_secondary_indices(&self.storage, &mut wtxn, &node).map_err(|e| {
+            GotError::DatabaseError(format!("Failed to update secondary index: {e}"))
+        })?;
+
+        wtxn.commit()
+            .map_err(|e| GotError::DatabaseError(format!("Failed to commit node: {e}")))?;
+
+        Ok((node_id, vector_id))
+    }
+
+    /// Perform semantic search using a query embedding.
+    /// Returns matching people with similarity scores (higher is more similar).
+    pub fn search_semantic(&self, embedding: &[f32], limit: usize) -> Result<Vec<SearchResult>> {
+        let arena = Bump::new();
+        let rtxn = self.storage.graph_env.read_txn().map_err(|e| {
+            GotError::DatabaseError(format!("Failed to start read transaction: {e}"))
+        })?;
+
+        let query_f64: Vec<f64> = embedding.iter().map(|&x| f64::from(x)).collect();
+        let label: &str = arena.alloc_str(NODE_LABEL);
+
+        let vector_results =
+            self.storage
+                .vectors
+                .search::<fn(
+                    &helix_db::helix_engine::vector_core::vector::HVector<'_>,
+                    &heed3::RoTxn<'_>,
+                ) -> bool>(&rtxn, &query_f64, limit, label, None, false, &arena)
+                .map_err(|e| GotError::VectorSearchError(format!("Vector search failed: {e:?}")))?;
+
+        let mut results = Vec::new();
+
+        for hvector in vector_results {
+            let vector_id = hvector.id;
+            let distance = hvector.get_distance() as f32;
+            // Convert distance to similarity: closer distance = higher similarity
+            let score = 1.0 / (1.0 + distance);
+
+            // Look up the node by vector_id
+            if let Some(node_id) = self.lookup_by_vector_id(&rtxn, vector_id)?
+                && let Ok(person) = self.get_person_internal(&rtxn, node_id, &arena)
+            {
+                results.push(SearchResult {
+                    person,
+                    score,
+                    snippet: None,
+                });
+            }
+        }
+
+        Ok(results)
+    }
+
+    /// Look up a node ID by vector ID using the secondary index.
+    fn lookup_by_vector_id(
+        &self,
+        rtxn: &heed3::RoTxn<'_>,
+        vector_id: u128,
+    ) -> Result<Option<u128>> {
+        let key = Value::String(vector_id.to_string());
+        graph_ops::lookup_secondary_index(&self.storage, rtxn, "vector_id", &key)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to lookup vector_id: {e}")))
+    }
+
+    /// Get a person from a node ID (internal version that takes a transaction).
+    fn get_person_internal(
+        &self,
+        rtxn: &heed3::RoTxn<'_>,
+        node_id: u128,
+        arena: &Bump,
+    ) -> Result<Person> {
+        let node = self
+            .storage
+            .get_node(rtxn, &node_id, arena)
+            .map_err(|e| GotError::DatabaseError(format!("Failed to get node: {e:?}")))?;
+
+        self.node_to_person(&node)
+    }
+
+    /// Create an edge between two nodes (internal use).
     fn create_edge(
+        &self,
+        from_node_id: u128,
+        to_node_id: u128,
+        relation_type: RelationType,
+    ) -> Result<()> {
+        self.create_edge_impl(from_node_id, to_node_id, relation_type)
+    }
+
+    /// Create an edge between two nodes (public for use in main.rs).
+    pub fn create_edge_public(
+        &self,
+        from_node_id: u128,
+        to_node_id: u128,
+        relation_type: RelationType,
+    ) -> Result<()> {
+        self.create_edge_impl(from_node_id, to_node_id, relation_type)
+    }
+
+    /// Implementation for creating edges.
+    fn create_edge_impl(
         &self,
         from_node_id: u128,
         to_node_id: u128,

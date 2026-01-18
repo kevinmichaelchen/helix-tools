@@ -35,6 +35,12 @@ pub enum GotError {
 
     #[error("Invalid relationship: {0}")]
     InvalidRelationship(String),
+
+    #[error("Embedding error: {0}")]
+    EmbeddingError(String),
+
+    #[error("Vector search error: {0}")]
+    VectorSearchError(String),
 }
 
 impl GotError {
@@ -48,6 +54,7 @@ impl GotError {
             Self::DatabaseError(_) | Self::SerializationError(_) => 4,
             Self::IoError(_) => 5,
             Self::InvalidRelationship(_) => 6,
+            Self::EmbeddingError(_) | Self::VectorSearchError(_) => 7,
         }
     }
 }

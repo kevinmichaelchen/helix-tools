@@ -1,0 +1,10 @@
+# Joffrey Baratheon
+
+**House:** Baratheon (nominally), Lannister (by blood)
+**Titles:** King of the Andals and the First Men
+
+Joffrey Baratheon was the eldest son of Queen Cersei Lannister and, officially, King Robert Baratheon—though in truth he was the product of Cersei's incestuous relationship with her twin brother Jaime Lannister. This made him an illegitimate pretender to the Iron Throne, though few dared speak this truth while he lived. Joffrey displayed cruelty from childhood, once cutting open a pregnant cat to see the kittens inside, horrifying even his father Robert. His sadistic nature, combined with unchecked power and Cersei's indulgent parenting, created a monster.
+
+Upon Robert's death, Joffrey ascended to the Iron Throne at thirteen years old. His first major act as king was to order the execution of Eddard Stark on the steps of the Great Sept of Baelor, despite promises of mercy and the political chaos this would cause. This single decision ignited the War of the Five Kings, turning the North and Riverlands against the crown and ensuring years of bloodshed. As king, Joffrey delighted in tormenting his betrothed Sansa Stark, having her beaten by his Kingsguard for her brother Robb's victories and forcing her to look upon her father's severed head.
+
+Joffrey's reign was marked by cowardice, cruelty, and incompetence. He fled the Battle of the Blackwater while his uncle Tyrion fought to defend the city, then later mocked Tyrion's disfigurement and humiliated him publicly. He ordered the massacre of Robert's bastard children throughout King's Landing and reveled in the news of the Red Wedding, planning to serve Robb Stark's head to Sansa at his own wedding feast. That wedding to Margaery Tyrell proved to be his last public appearance—Joffrey died choking on poisoned wine at the feast, his face turning purple as he gasped for breath. His death was orchestrated by Olenna Tyrell and Petyr Baelish, though Tyrion was falsely blamed and arrested for the murder.

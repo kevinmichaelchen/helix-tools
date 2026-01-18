@@ -1,8 +1,9 @@
-//! YAML loader for family tree data.
+//! YAML loader for family tree data and bio loader for markdown files.
 
 use crate::error::{GotError, Result};
 use crate::types::{House, Person};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 /// The root structure of the family tree YAML file.
@@ -99,6 +100,97 @@ impl FamilyTree {
     #[must_use]
     pub fn get_house_members(&self, house: House) -> Vec<&Person> {
         self.people.iter().filter(|p| p.house == house).collect()
+    }
+}
+
+/// A loaded biography with composite text for embedding.
+#[derive(Debug, Clone)]
+pub struct PersonBio {
+    /// The person ID (derived from filename, e.g., "jon-snow").
+    pub person_id: String,
+    /// The raw markdown content of the bio.
+    pub content: String,
+}
+
+impl PersonBio {
+    /// Create composite text for embedding by combining person metadata with bio content.
+    /// Format: "{name} ({alias})\nTitles: {titles}\n\n{bio}"
+    #[must_use]
+    pub fn composite_text(&self, person: &Person) -> String {
+        let mut text = person.name.clone();
+
+        if let Some(ref alias) = person.alias {
+            text.push_str(&format!(" ({})", alias));
+        }
+        text.push('\n');
+
+        if !person.titles.is_empty() {
+            text.push_str(&format!("Titles: {}\n", person.titles.join(", ")));
+        }
+
+        text.push('\n');
+        text.push_str(&self.content);
+
+        text
+    }
+}
+
+/// Loader for markdown biography files.
+pub struct BioLoader;
+
+impl BioLoader {
+    /// Load all biography markdown files from a directory.
+    /// Files should be named like "jon-snow.md" where the filename (without extension)
+    /// matches the person ID in the YAML data.
+    pub fn load_all(data_dir: &Path) -> Result<HashMap<String, PersonBio>> {
+        let mut bios = HashMap::new();
+
+        if !data_dir.exists() {
+            return Ok(bios);
+        }
+
+        let entries = std::fs::read_dir(data_dir).map_err(|e| GotError::LoadError {
+            path: data_dir.to_path_buf(),
+            source: e,
+        })?;
+
+        for entry in entries {
+            let entry = entry.map_err(GotError::IoError)?;
+            let path = entry.path();
+
+            if path.extension().is_some_and(|ext| ext == "md")
+                && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+            {
+                let person_id = stem.to_string();
+                let content = std::fs::read_to_string(&path).map_err(|e| GotError::LoadError {
+                    path: path.clone(),
+                    source: e,
+                })?;
+
+                bios.insert(person_id.clone(), PersonBio { person_id, content });
+            }
+        }
+
+        Ok(bios)
+    }
+
+    /// Load a single biography file for a specific person.
+    pub fn load_one(data_dir: &Path, person_id: &str) -> Result<Option<PersonBio>> {
+        let path = data_dir.join(format!("{person_id}.md"));
+
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let content = std::fs::read_to_string(&path).map_err(|e| GotError::LoadError {
+            path: path.clone(),
+            source: e,
+        })?;
+
+        Ok(Some(PersonBio {
+            person_id: person_id.to_string(),
+            content,
+        }))
     }
 }
 

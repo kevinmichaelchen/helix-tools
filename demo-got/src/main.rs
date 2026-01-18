@@ -2,7 +2,8 @@
 
 use clap::{Parser, Subcommand};
 use demo_got::{
-    FamilyTree, GotStorage, House, find_ancestors, find_descendants, get_person_with_family,
+    BioLoader, FamilyTree, GotStorage, House, find_ancestors, find_descendants,
+    get_person_with_family,
 };
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -35,6 +36,20 @@ enum Commands {
         /// Clear existing data before ingesting
         #[arg(long)]
         clear: bool,
+
+        /// Skip generating embeddings (faster for development iteration)
+        #[arg(long)]
+        skip_embeddings: bool,
+    },
+
+    /// Semantic search across character bios
+    Search {
+        /// Search query (natural language)
+        query: String,
+
+        /// Maximum number of results to return
+        #[arg(short, long, default_value = "5")]
+        limit: usize,
     },
 
     /// Query the family tree graph
@@ -101,7 +116,11 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".data"));
 
     match cli.command {
-        Commands::Ingest { file, clear } => {
+        Commands::Ingest {
+            file,
+            clear,
+            skip_embeddings,
+        } => {
             let yaml_path = file.unwrap_or_else(|| {
                 // Default to data/westeros.yaml in the crate directory
                 PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("data/westeros.yaml")
@@ -115,6 +134,11 @@ fn run(cli: Cli) -> anyhow::Result<()> {
                 tree.relationships.len()
             );
 
+            // Load biographies
+            let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("data");
+            let bios = BioLoader::load_all(&data_dir)?;
+            println!("Loaded {} character biographies", bios.len());
+
             let mut storage = GotStorage::new(&db_path)?;
 
             if clear {
@@ -123,12 +147,61 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             }
 
             println!("Ingesting into HelixDB at {}...", db_path.display());
-            let stats = storage.ingest(&tree)?;
 
-            println!(
-                "Ingested {} nodes and {} edges",
-                stats.nodes_inserted, stats.edges_inserted
-            );
+            if skip_embeddings {
+                // Use the original ingest without embeddings
+                let stats = storage.ingest(&tree)?;
+                println!(
+                    "Ingested {} nodes and {} edges (no embeddings)",
+                    stats.nodes_inserted, stats.edges_inserted
+                );
+            } else {
+                // Generate embeddings and ingest with vectors
+                println!("Initializing embedding model...");
+                let embedder = helix_embeddings::Embedder::new()
+                    .map_err(|e| anyhow::anyhow!("Failed to create embedder: {e}"))?;
+
+                // Build composite texts for people with bios
+                let mut texts_with_ids: Vec<(String, String)> = Vec::new();
+                for person in &tree.people {
+                    if let Some(bio) = bios.get(&person.id) {
+                        let composite = bio.composite_text(person);
+                        texts_with_ids.push((person.id.clone(), composite));
+                    }
+                }
+
+                if texts_with_ids.is_empty() {
+                    println!("Warning: No biographies found, falling back to basic ingest");
+                    let stats = storage.ingest(&tree)?;
+                    println!(
+                        "Ingested {} nodes and {} edges (no embeddings)",
+                        stats.nodes_inserted, stats.edges_inserted
+                    );
+                } else {
+                    println!(
+                        "Generating embeddings for {} characters...",
+                        texts_with_ids.len()
+                    );
+                    let texts: Vec<&str> = texts_with_ids.iter().map(|(_, t)| t.as_str()).collect();
+                    let embeddings = embedder
+                        .embed_batch(&texts)
+                        .map_err(|e| anyhow::anyhow!("Failed to generate embeddings: {e}"))?;
+
+                    // Create a map of person_id -> embedding
+                    let embedding_map: std::collections::HashMap<String, Vec<f32>> = texts_with_ids
+                        .iter()
+                        .zip(embeddings)
+                        .map(|((id, _), emb)| (id.clone(), emb))
+                        .collect();
+
+                    // Ingest with embeddings
+                    let stats = ingest_with_embeddings(&mut storage, &tree, &embedding_map)?;
+                    println!(
+                        "Ingested {} nodes and {} edges ({} with embeddings)",
+                        stats.nodes_inserted, stats.edges_inserted, stats.embeddings_inserted
+                    );
+                }
+            }
 
             // Verify persistence
             let db_stats = storage.get_stats()?;
@@ -136,6 +209,66 @@ fn run(cli: Cli) -> anyhow::Result<()> {
             println!("  Nodes in DB: {}", db_stats.node_count);
             println!("  Edges in DB: {}", db_stats.edge_count);
             println!("  Houses: {:?}", db_stats.house_counts);
+        }
+
+        Commands::Search { query, limit } => {
+            if !GotStorage::exists(&db_path) {
+                anyhow::bail!(
+                    "Database not found at {}. Run 'demo-got ingest' first.",
+                    db_path.display()
+                );
+            }
+
+            let storage = GotStorage::new(&db_path)?;
+
+            // Generate query embedding
+            let embedder = helix_embeddings::Embedder::new()
+                .map_err(|e| anyhow::anyhow!("Failed to create embedder: {e}"))?;
+            let query_embedding = embedder
+                .embed(&query)
+                .map_err(|e| anyhow::anyhow!("Failed to embed query: {e}"))?;
+
+            // Perform semantic search
+            let results = storage.search_semantic(&query_embedding, limit)?;
+
+            if cli.json {
+                let output: Vec<_> = results
+                    .iter()
+                    .map(|r| {
+                        serde_json::json!({
+                            "id": r.person.id,
+                            "name": r.person.name,
+                            "house": r.person.house.to_string(),
+                            "alias": r.person.alias,
+                            "score": r.score,
+                        })
+                    })
+                    .collect();
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            } else {
+                println!("Search results for: \"{}\"", query);
+                println!();
+                if results.is_empty() {
+                    println!("  (no results found)");
+                } else {
+                    for (i, result) in results.iter().enumerate() {
+                        let alias = result
+                            .person
+                            .alias
+                            .as_ref()
+                            .map(|a| format!(" \"{}\"", a))
+                            .unwrap_or_default();
+                        println!(
+                            "{}. {}{} (House {}) - score: {:.3}",
+                            i + 1,
+                            result.person.name,
+                            alias,
+                            result.person.house,
+                            result.score
+                        );
+                    }
+                }
+            }
         }
 
         Commands::Query { query_type } => {
@@ -359,5 +492,110 @@ fn run(cli: Cli) -> anyhow::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+/// Statistics from an ingest operation with embeddings.
+struct IngestWithEmbeddingsStats {
+    nodes_inserted: usize,
+    edges_inserted: usize,
+    embeddings_inserted: usize,
+}
+
+/// Ingest family tree data with embeddings for semantic search.
+fn ingest_with_embeddings(
+    storage: &mut GotStorage,
+    tree: &FamilyTree,
+    embeddings: &std::collections::HashMap<String, Vec<f32>>,
+) -> anyhow::Result<IngestWithEmbeddingsStats> {
+    use demo_got::{RelationType, RelationshipDef};
+
+    let mut stats = IngestWithEmbeddingsStats {
+        nodes_inserted: 0,
+        edges_inserted: 0,
+        embeddings_inserted: 0,
+    };
+
+    // Track person ID -> node ID mapping for relationship creation
+    let mut id_to_node: std::collections::HashMap<String, u128> = std::collections::HashMap::new();
+
+    // First pass: insert all people as nodes
+    for person in &tree.people {
+        let (node_id, used_embedding) = if let Some(embedding) = embeddings.get(&person.id) {
+            // Insert with embedding
+            let (node_id, _vector_id) = storage.insert_person_with_embedding(person, embedding)?;
+            (node_id, true)
+        } else {
+            // Fall back to basic insert so the graph stays complete.
+            let node_id = storage.insert_person_basic(person)?;
+            (node_id, false)
+        };
+        if used_embedding {
+            stats.embeddings_inserted += 1;
+        }
+        id_to_node.insert(person.id.clone(), node_id);
+        stats.nodes_inserted += 1;
+    }
+
+    // Second pass: create all relationship edges
+    for rel in &tree.relationships {
+        match rel {
+            RelationshipDef::ParentOf { from, to } => {
+                let Some(&from_node) = id_to_node.get(from) else {
+                    continue;
+                };
+
+                for child_id in to {
+                    let Some(&to_node) = id_to_node.get(child_id) else {
+                        continue;
+                    };
+                    create_edge_internal(storage, from_node, to_node, RelationType::ParentOf)?;
+                    stats.edges_inserted += 1;
+                }
+            }
+            RelationshipDef::SpouseOf { between } => {
+                if between.len() >= 2 {
+                    let Some(&a) = id_to_node.get(&between[0]) else {
+                        continue;
+                    };
+                    let Some(&b) = id_to_node.get(&between[1]) else {
+                        continue;
+                    };
+                    // Bidirectional: create edges in both directions
+                    create_edge_internal(storage, a, b, RelationType::SpouseOf)?;
+                    create_edge_internal(storage, b, a, RelationType::SpouseOf)?;
+                    stats.edges_inserted += 2;
+                }
+            }
+            RelationshipDef::SiblingOf { between } => {
+                // Create edges between all pairs (bidirectional)
+                for i in 0..between.len() {
+                    for j in (i + 1)..between.len() {
+                        let Some(&a) = id_to_node.get(&between[i]) else {
+                            continue;
+                        };
+                        let Some(&b) = id_to_node.get(&between[j]) else {
+                            continue;
+                        };
+                        create_edge_internal(storage, a, b, RelationType::SiblingOf)?;
+                        create_edge_internal(storage, b, a, RelationType::SiblingOf)?;
+                        stats.edges_inserted += 2;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(stats)
+}
+
+/// Helper to create an edge using the public storage method.
+fn create_edge_internal(
+    storage: &GotStorage,
+    from_node_id: u128,
+    to_node_id: u128,
+    relation_type: demo_got::RelationType,
+) -> anyhow::Result<()> {
+    storage.create_edge_public(from_node_id, to_node_id, relation_type)?;
     Ok(())
 }
