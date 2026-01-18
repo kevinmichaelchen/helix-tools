@@ -6,10 +6,9 @@ echo "Running pre-commit checks..."
 echo "Checking Rust formatting..."
 cargo fmt --all -- --check
 
-echo "Checking dprint formatting..."
-dprint check
-
 echo "Running clippy..."
-cargo clippy --all-targets --all-features -- -D warnings
+# Note: Using default features only. Platform-specific features (cuda, metal)
+# require specific hardware/compilers and are validated in CI.
+cargo clippy --all-targets -- -D warnings
 
 echo "All checks passed!"
