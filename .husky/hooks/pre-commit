@@ -5,7 +5,7 @@ echo "Running pre-commit checks..."
 
 echo "Checking Markdown formatting..."
 if command -v dprint >/dev/null 2>&1; then
-  dprint check --staged
+  dprint check --staged --allow-no-files
 else
   echo "dprint is required. Install it with one of:"
   echo "  cargo install dprint"
