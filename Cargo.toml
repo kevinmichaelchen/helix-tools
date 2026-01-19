@@ -2,8 +2,6 @@
 resolver = "2"
 members = [
     "apps/demo-got",
-    "apps/hbd",
-    "apps/hbd-ui/src-tauri",
     "apps/ix-cli",
     "apps/ix-daemon",
     "apps/ix-mcp",
