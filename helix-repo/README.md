@@ -164,6 +164,18 @@ helix-repo takes git-grab's simplicity and adds library APIs for tool integratio
 
 MIT
 
+## Kiro Specs
+
+- [Requirements][requirements]
+- [Design][design]
+- [Tasks][tasks]
+
+<!-- Links -->
+
+[requirements]: specs/requirements.md
+[design]: specs/design.md
+[tasks]: specs/tasks.md
+
 <!-- Links -->
 
 [requirements]: ./specs/requirements.md

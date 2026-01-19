@@ -150,6 +150,18 @@ Inspired by [librarian][librarian] - a TypeScript-based documentation tool. heli
 
 MIT
 
+## Kiro Specs
+
+- [Requirements][requirements]
+- [Design][design]
+- [Tasks][tasks]
+
+<!-- Links -->
+
+[requirements]: specs/requirements.md
+[design]: specs/design.md
+[tasks]: specs/tasks.md
+
 <!-- Links -->
 
 [requirements]: ./specs/requirements.md

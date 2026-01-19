@@ -172,3 +172,15 @@ Semantic search uses:
 ## License
 
 MIT
+
+## Kiro Specs
+
+- [Requirements][requirements]
+- [Design][design]
+- [Tasks][tasks]
+
+<!-- Links -->
+
+[requirements]: specs/requirements.md
+[design]: specs/design.md
+[tasks]: specs/tasks.md
