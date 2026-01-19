@@ -433,6 +433,11 @@ fn extract_relationships(frontmatter: &serde_yaml::Mapping) -> Vec<(String, Vec<
             _ => Vec::new(),
         };
 
+        let targets = targets
+            .into_iter()
+            .filter(|t| ix_core::entity::kind_from_id(t).is_some())
+            .collect::<Vec<_>>();
+
         if targets.is_empty() {
             continue;
         }
