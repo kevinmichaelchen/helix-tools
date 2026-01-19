@@ -74,13 +74,13 @@ pub enum DiscoveryError {
 
 ## Usage Examples
 
-### helix-decisions
+### ixchel
 
 ```rust
 use helix_discovery::find_marker_from_cwd;
 
-fn find_decisions_dir() -> Result<PathBuf, DiscoveryError> {
-    find_marker_from_cwd(".decisions")
+fn find_ixchel_dir() -> Result<PathBuf, DiscoveryError> {
+    find_marker_from_cwd(".ixchel")
 }
 ```
 
@@ -163,11 +163,11 @@ pub fn find_marker(git_root: &Path, marker: &str) -> Result<PathBuf, DiscoveryEr
 
 ## Consumers
 
-| Tool            | Marker        |
-| --------------- | ------------- |
-| helix-decisions | `.decisions/` |
-| hbd             | `.tickets/`   |
-| helix-config    | `.helix/`     |
+| Tool         | Marker      |
+| ------------ | ----------- |
+| ixchel       | `.ixchel/`  |
+| hbd          | `.tickets/` |
+| helix-config | `.helix/`   |
 
 ## See Also
 

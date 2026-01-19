@@ -5,7 +5,6 @@ members = [
     "helix-graph-ops",
     "hbd",
     "hbd-ui/src-tauri",
-    "helix-decisions",
     "helix-docs",
     "helix-map",
     "helix-repo",

@@ -23,8 +23,8 @@ This document defines the technical architecture, data model, and query implemen
 > **Note:** Markdown files remain the source of truth. HelixDB acts as a fast query cache
 > that can be rebuilt from `.tickets/` at any time.
 >
-> **HelixDB API Patterns:** When implementing HelixDB integration, follow the corrected patterns
-> documented in `helix-decisions/docs/phase3/PHASE_3_CORRECTIONS.md`. Key requirements:
+> **HelixDB API Patterns:** When implementing HelixDB integration, follow the patterns used in
+> `demo-got/src/storage.rs` and `helix-graph-ops/src/lib.rs`. Key requirements:
 >
 > - Edges must write to 3 databases (edges_db, out_edges_db, in_edges_db)
 > - Nodes must use arena allocation + ImmutablePropertiesMap

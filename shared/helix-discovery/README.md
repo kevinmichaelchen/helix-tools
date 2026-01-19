@@ -6,7 +6,7 @@ Project and git root discovery for helix-tools.
 
 Multiple helix-tools need to find project markers:
 
-- **helix-decisions** — Find `.decisions/` directory
+- **ixchel** — Find `.ixchel/` directory
 - **hbd** — Find `.tickets/` directory
 - **helix-config** — Find `.helix/` config directory
 
@@ -24,10 +24,10 @@ let git_root = find_git_root_from_cwd()?;
 let git_root = find_git_root("/path/to/subdirectory")?;
 
 // Find marker directory at git root
-let decisions_dir = find_marker(&git_root, ".decisions")?;
+let ixchel_dir = find_marker(&git_root, ".ixchel")?;
 
 // Convenience: find marker from cwd in one call
-let decisions_dir = find_marker_from_cwd(".decisions")?;
+let ixchel_dir = find_marker_from_cwd(".ixchel")?;
 ```
 
 ## Discovery Algorithm
@@ -42,7 +42,7 @@ let decisions_dir = find_marker_from_cwd(".decisions")?;
 ```rust
 use helix_discovery::{DiscoveryError, find_marker_from_cwd};
 
-match find_marker_from_cwd(".decisions") {
+match find_marker_from_cwd(".ixchel") {
     Ok(path) => println!("Found: {}", path.display()),
     Err(DiscoveryError::NotInGitRepo) => {
         eprintln!("Error: Not in a git repository");
@@ -54,13 +54,14 @@ match find_marker_from_cwd(".decisions") {
 }
 ```
 
-## Consumers
+## Common Markers
 
-| Crate           | Marker        |
-| --------------- | ------------- |
-| helix-decisions | `.decisions/` |
-| hbd             | `.tickets/`   |
-| helix-config    | `.helix/`     |
+| Marker        | Meaning                         |
+| ------------- | ------------------------------- |
+| `.ixchel/`    | Ixchel project knowledge        |
+| `.tickets/`   | hbd issues                      |
+| `.helix/`     | Legacy helix-tools project cfg  |
+| `.decisions/` | Legacy ADRs (Ixchel-migratable) |
 
 ## License
 

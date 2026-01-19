@@ -512,7 +512,7 @@ For tools that store data within the project:
 └── lock.mdb                 # LMDB lock file
 ```
 
-**Example:** helix-decisions stores decision graph + vectors in `.helix/data/decisions/`
+Tools may store rebuildable caches under `.helix/data/{tool}/` when project-local storage is appropriate.
 
 ### Global Storage
 
@@ -536,8 +536,8 @@ let global_data = helix_data_dir().join("docs");
 // → ~/.helix/data/docs/
 
 // Project-local data path (requires git root discovery)
-let project_data = project_data_dir("decisions")?;
-// → {project}/.helix/data/decisions/
+let project_data = project_data_dir("my-tool")?;
+// → {project}/.helix/data/my-tool/
 ```
 
 ### Storage Config Options

@@ -44,7 +44,7 @@
 > This phase adds actual sync execution.
 
 - [ ] Implement sync worker thread/task pool
-- [ ] Call tool-specific sync logic (e.g., helix-decisions embeddings)
+- [ ] Call tool-specific sync logic (e.g., ixchel indexing)
 - [ ] Handle sync errors gracefully (retry, backoff)
 - [ ] Emit progress updates for long-running syncs
 

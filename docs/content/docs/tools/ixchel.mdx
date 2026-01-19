@@ -1,0 +1,69 @@
+---
+title: Ixchel
+description: Git-first knowledge weaving system (Markdown-canonical)
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+# Ixchel
+
+**A git-first knowledge weaving system where Markdown is the source of truth.**
+
+Ixchel stores durable knowledge artifacts (decisions, issues, sources, reports) as Markdown files under `.ixchel/`, then builds a **rebuildable** graph + vector index for fast traversal and semantic search.
+
+<Callout type="info">
+  Ixchel is currently an MVP. The on-disk format is intentionally simple and
+  designed to evolve.
+</Callout>
+
+## How It Works
+
+- **Canonical data:** `.ixchel/**/*.md` (git-tracked)
+- **Rebuildable cache:** `.ixchel/data/` (gitignored)
+- **CLI:** `ixchel` (crate: `ix-cli`)
+- **MCP server:** `ixchel-mcp` (crate: `ix-mcp`)
+
+## Quick Start
+
+```bash
+cargo install --path ix-cli
+cd your-project
+
+ixchel init
+ixchel create decision "Use PostgreSQL for primary storage"
+ixchel sync
+ixchel search "database performance"
+```
+
+## Common Commands
+
+### Create and Link
+
+```bash
+ixchel create issue "Implement connection pooling"
+ixchel link iss-xxxx implements dec-xxxx
+```
+
+### Validate
+
+```bash
+ixchel check
+```
+
+### Graph + Context
+
+```bash
+ixchel graph dec-xxxx
+ixchel context dec-xxxx
+```
+
+## Migration
+
+If you have legacy ADRs in a `.decisions/` directory, Ixchel can migrate them into `.ixchel/decisions/`:
+
+```bash
+ixchel migrate decisions
+```
+
+Use `--dry-run` to preview and `--force` to overwrite existing migrated files.
+

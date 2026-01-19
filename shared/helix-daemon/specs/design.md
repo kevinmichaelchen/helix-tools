@@ -15,7 +15,7 @@ Requests are namespaced by `{repo_root, tool}` to keep data scoped to a repo.
 ## Architecture
 
 ```
-CLI (helix-decisions, hbd, helix-docs, helix-map, ...)
+CLI (ixchel, hbd, helix-docs, helix-map, ...)
     │
     ├─ JSON line IPC over local socket
     │
@@ -43,7 +43,7 @@ responds once per request. Requests and responses are correlated by `id`.
   "version": 1,
   "id": "uuid",
   "repo_root": "/abs/path/to/repo",
-  "tool": "decisions",
+  "tool": "ixchel",
   "command": "enqueue_sync",
   "payload": {}
 }

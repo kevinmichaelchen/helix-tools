@@ -6,7 +6,7 @@ Shared embedding infrastructure for helix-tools with pluggable providers.
 
 Multiple helix-tools need semantic embeddings:
 
-- **helix-decisions** — Embed decisions for semantic search
+- **ixchel** — Embed knowledge artifacts for semantic search
 - **hbd** — Embed issues for similarity search (planned)
 - **helix-docs** — Embed documentation chunks
 
@@ -97,13 +97,14 @@ provider = "candle"
 model = "BAAI/bge-large-en-v1.5"
 ```
 
-## Consumers
+## Consumers (planned)
 
-| Crate           | Use Case                           |
-| --------------- | ---------------------------------- |
-| helix-decisions | Semantic search over decisions     |
-| hbd             | Semantic search over issues        |
-| helix-docs      | Semantic search over documentation |
+| Tool       | Use Case                           |
+| ---------- | ---------------------------------- |
+| Ixchel     | Semantic search over knowledge     |
+| hbd        | Semantic search over issues        |
+| helix-docs | Semantic search over documentation |
+| demo-got   | Example usage + benchmarking       |
 
 ## License
 

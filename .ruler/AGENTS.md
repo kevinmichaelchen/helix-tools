@@ -5,7 +5,7 @@ Workspace guide for the helix-tools Rust monorepo. Each crate now has its own
 
 ## Overview
 
-- Tools: `hbd`, `helix-decisions`, `helix-docs`, `helix-map`, `helix-repo`, `hbd-ui`, `ixchel`
+- Tools: `hbd`, `helix-docs`, `helix-map`, `helix-repo`, `hbd-ui`, `ixchel`
 - Shared HelixDB helpers: `helix-graph-ops`
 - Shared crates live under `shared/`
 - Docs site (Next.js/Fumadocs) lives in `docs/`
@@ -18,7 +18,6 @@ helix-tools/
 ├── hbd-ui/                 # Svelte UI for hbd (frontend)
 │   └── src-tauri/           # Tauri shell (Rust)
 ├── helix-graph-ops/         # HelixDB graph helper crate
-├── helix-decisions/         # Decision graph CLI + library
 ├── helix-docs/              # Global docs cache CLI + library
 ├── helix-map/               # Codebase indexer CLI + library
 ├── helix-repo/              # Repo clone manager CLI + library

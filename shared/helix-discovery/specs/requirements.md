@@ -34,7 +34,7 @@ So that I don't have to specify paths manually.
 
 **Acceptance Criteria:**
 
-- `helix-decisions search` finds `.decisions/` automatically
+- `ixchel search` finds `.ixchel/` automatically
 - `hbd list` finds `.tickets/` automatically
 - Works from any subdirectory within the repo
 
@@ -50,7 +50,7 @@ So that I don't have to specify paths manually.
 ### FR-2: Marker Discovery
 
 - **EARS:** The system SHALL find a named marker directory at the git root.
-- **Input:** Git root path + marker name (e.g., ".decisions")
+- **Input:** Git root path + marker name (e.g., ".ixchel")
 - **Output:** Absolute path to marker directory
 - **Error:** `MarkerNotFound` if marker doesn't exist at git root
 
@@ -76,11 +76,11 @@ So that I don't have to specify paths manually.
 
 ## Markers by Tool
 
-| Tool            | Marker        | Purpose               |
-| --------------- | ------------- | --------------------- |
-| helix-decisions | `.decisions/` | Decision documents    |
-| hbd             | `.tickets/`   | Issue tracking        |
-| helix-config    | `.helix/`     | Project configuration |
+| Tool         | Marker      | Purpose               |
+| ------------ | ----------- | --------------------- |
+| ixchel       | `.ixchel/`  | Knowledge documents   |
+| hbd          | `.tickets/` | Issue tracking        |
+| helix-config | `.helix/`   | Project configuration |
 
 ## Out of Scope
 
