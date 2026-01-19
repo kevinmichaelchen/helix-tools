@@ -4,7 +4,7 @@
 
 ## Background
 
-On 2024-11-14, the helix-graph service experienced write failures across three production nodes after deploying release v2.8.3. The service uses LMDB for local graph storage with a preconfigured map size of 10GB. The incident lasted 47 minutes and affected approximately 12,000 graph mutation requests.
+On 2024-11-14, the ixchel-graph service experienced write failures across three production nodes after deploying release v2.8.3. The service uses LMDB for local graph storage with a preconfigured map size of 10GB. The incident lasted 47 minutes and affected approximately 12,000 graph mutation requests.
 
 The root cause was identified as map size exhaustion caused by increased write amplification from a new graph traversal feature, combined with stale reader transactions preventing page reclamation.
 
