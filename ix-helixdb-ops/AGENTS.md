@@ -1,4 +1,4 @@
-# HELIX-GRAPH-OPS AGENTS
+# IX-HELIXDB-OPS AGENTS
 
 **Parent:** See `../AGENTS.md` for workspace context.
 

@@ -1,6 +1,6 @@
 # Design
 
-**Crate:** `helix-graph-ops`\
+**Crate:** `ix-helixdb-ops`\
 **Purpose:** Shared HelixDB graph storage helpers
 
 ## Overview

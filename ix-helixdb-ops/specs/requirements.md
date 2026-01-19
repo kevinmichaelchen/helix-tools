@@ -1,9 +1,9 @@
 # Requirements
 
-This document defines requirements for `helix-graph-ops`.
+This document defines requirements for `ix-helixdb-ops`.
 
-`helix-graph-ops` provides small, reusable helpers for common HelixDB graph
-storage patterns used across helix-tools.
+`ix-helixdb-ops` provides small, reusable helpers for common HelixDB graph
+storage patterns used across Ixchel.
 
 ## 1. Storage Writes
 

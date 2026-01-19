@@ -1,4 +1,4 @@
-# helix-graph-ops Tasks
+# ix-helixdb-ops Tasks
 
 ## Phase 0: Baseline Helpers (Done)
 

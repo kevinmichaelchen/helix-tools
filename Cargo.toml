@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     "demo-got",
-    "helix-graph-ops",
     "hbd",
     "hbd-ui/src-tauri",
     "ix-cli",
@@ -10,6 +9,7 @@ members = [
     "ix-core",
     "ix-daemon",
     "ix-embeddings",
+    "ix-helixdb-ops",
     "ix-id",
     "ix-mcp",
     "ix-storage-helixdb",

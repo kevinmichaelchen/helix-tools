@@ -19,7 +19,7 @@ uuid = { version = "1", features = ["v4"] }
 bumpalo = { version = "3", features = ["collections"] }
 heed3 = "0.22.0"
 helix-db = { git = "https://github.com/HelixDB/helix-db.git", features = ["vectors"] }
-helix-graph-ops = { path = "../helix-graph-ops" }
+ix-helixdb-ops = { path = "../ix-helixdb-ops" }
 ix-embeddings = { path = "../ix-embeddings", features = ["candle"] }
 
 [features]

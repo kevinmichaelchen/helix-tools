@@ -1,4 +1,4 @@
-# helix-graph-ops
+# ix-helixdb-ops
 
 HelixDB graph storage helper functions shared across this workspace.
 

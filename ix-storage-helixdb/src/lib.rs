@@ -14,11 +14,11 @@ use helix_db::helix_engine::vector_core::hnsw::HNSW;
 use helix_db::protocol::value::Value;
 use helix_db::utils::items::{Edge, Node};
 use helix_db::utils::properties::ImmutablePropertiesMap;
-use helix_graph_ops as graph_ops;
 use ix_core::entity::{EntityKind, kind_from_id};
 use ix_core::index::{IndexBackend, SearchHit, SyncStats};
 use ix_core::markdown::{get_string, get_string_list, parse_markdown};
 use ix_core::repo::IxchelRepo;
+use ix_helixdb_ops as graph_ops;
 use serde_yaml::Value as YamlValue;
 use uuid::Uuid;
 

@@ -18,7 +18,7 @@ bumpalo = { version = "3", features = ["collections"] }
 fastembed.workspace = true
 heed3 = "0.22.0"
 helix-db.workspace = true
-helix-graph-ops = { path = "../helix-graph-ops" }
+ix-helixdb-ops = { path = "../ix-helixdb-ops" }
 ix-core = { path = "../ix-core" }
 serde_json.workspace = true
 serde_yaml.workspace = true

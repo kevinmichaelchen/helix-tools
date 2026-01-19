@@ -182,7 +182,7 @@ cargo run -p demo-got -- stats
 Key crates from workspace:
 
 - `helix-db` - Graph database with vector support
-- `helix-graph-ops` - Shared HelixDB graph helpers
+- `ix-helixdb-ops` - Shared HelixDB graph helpers
 - `ix-embeddings` - Local embedding model (BGE-small-en-v1.5)
 - `clap` - CLI parsing
 - `serde` / `serde_yaml` - YAML deserialization

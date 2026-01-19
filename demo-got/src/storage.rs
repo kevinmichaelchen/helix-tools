@@ -14,7 +14,7 @@ use helix_db::{
     protocol::value::Value,
     utils::{items::Edge, label_hash::hash_label, properties::ImmutablePropertiesMap},
 };
-use helix_graph_ops as graph_ops;
+use ix_helixdb_ops as graph_ops;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;

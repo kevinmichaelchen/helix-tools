@@ -24,7 +24,7 @@ This document defines the technical architecture, data model, and query implemen
 > that can be rebuilt from `.ixchel/issues/` at any time.
 >
 > **HelixDB API Patterns:** When implementing HelixDB integration, follow the patterns used in
-> `demo-got/src/storage.rs` and `helix-graph-ops/src/lib.rs`. Key requirements:
+> `demo-got/src/storage.rs` and `ix-helixdb-ops/src/lib.rs`. Key requirements:
 >
 > - Edges must write to 3 databases (edges_db, out_edges_db, in_edges_db)
 > - Nodes must use arena allocation + ImmutablePropertiesMap
