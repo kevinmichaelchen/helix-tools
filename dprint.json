@@ -5,4 +5,3 @@
   "excludes": ["**/node_modules/**", "**/target/**", "docs/out/**"],
   "plugins": ["https://plugins.dprint.dev/markdown-0.17.8.wasm"]
 }
-
