@@ -28,21 +28,29 @@ fn e2e_sync_then_search_returns_expected_source() {
     let repo = IxchelRepo::init_at(temp.path(), false).expect("init ixchel repo");
 
     let primary = repo
-        .create_entity(EntityKind::Source, "Primary source", None)
+        .create_entity(EntityKind::Source, "LMDB internals report", None)
         .expect("create source");
-    replace_entity_body(&repo, &primary.id, &read_fixture("source-alpha.md"));
+    replace_entity_body(
+        &repo,
+        &primary.id,
+        &read_fixture("lmdb-internals-report.md"),
+    );
 
     let secondary = repo
-        .create_entity(EntityKind::Source, "Secondary source", None)
+        .create_entity(EntityKind::Source, "HNSW tuning report", None)
         .expect("create source");
-    replace_entity_body(&repo, &secondary.id, &read_fixture("source-beta.md"));
+    replace_entity_body(
+        &repo,
+        &secondary.id,
+        &read_fixture("hnsw-parameter-tuning-report.md"),
+    );
 
     let mut index = ix_storage_helixdb::HelixDbIndex::open(&repo).expect("open index");
     let stats = index.sync(&repo).expect("sync");
     assert_eq!(stats.scanned, 2);
     assert_eq!(stats.added, 2);
 
-    let hits = index.search("sealed archive", 5).expect("search");
+    let hits = index.search("reader lock table", 5).expect("search");
     assert!(!hits.is_empty(), "expected search hits");
     assert_eq!(hits[0].id, primary.id, "{hits:#?}");
 }
