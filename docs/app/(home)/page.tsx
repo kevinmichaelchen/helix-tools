@@ -699,26 +699,26 @@ Regenerated 5 embeddings`,
       {/* Tab content */}
       <div className="grid md:grid-cols-2 gap-8">
         <div>
-          <h3 className="text-xl font-bold text-slate-100 mb-3">{current.title}</h3>
-          <p className="text-slate-400 mb-6">{current.description}</p>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">{current.title}</h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">{current.description}</p>
           <ul className="space-y-3">
             {current.features.map((feature, i) => (
-              <li key={i} className="flex items-center gap-3 text-slate-300">
+              <li key={i} className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
                 <div className="p-1.5 bg-sky-500/10 rounded">
-                  <feature.icon className="h-4 w-4 text-sky-400" />
+                  <feature.icon className="h-4 w-4 text-sky-500 dark:text-sky-400" />
                 </div>
                 {feature.text}
               </li>
             ))}
           </ul>
         </div>
-        <div className="bg-slate-950 rounded-lg border border-white/10 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border-b border-white/10">
+        <div className="bg-slate-100 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-white/10 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-200/50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
             <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
           </div>
-          <pre className="p-4 text-xs font-mono text-slate-300 overflow-x-auto">
+          <pre className="p-4 text-xs font-mono text-slate-700 dark:text-slate-300 overflow-x-auto">
             {current.code}
           </pre>
         </div>
@@ -734,51 +734,51 @@ function ArchitectureDiagram() {
         {/* Source */}
         <div className="flex-1 text-center">
           <div className="inline-flex p-4 bg-emerald-500/10 rounded-2xl mb-4 border border-emerald-500/20">
-            <FileText className="h-10 w-10 text-emerald-400" />
+            <FileText className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-2">Markdown Files</h3>
-          <p className="text-sm text-slate-400">Human-readable, git-tracked</p>
-          <code className="text-xs text-emerald-400 mt-2 block">.ixchel/issues/*.md</code>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Markdown Files</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Human-readable, git-tracked</p>
+          <code className="text-xs text-emerald-600 dark:text-emerald-400 mt-2 block">.ixchel/issues/*.md</code>
         </div>
 
         {/* Arrow */}
         <div className="flex items-center text-slate-600">
           <div className="hidden lg:block w-16 h-px bg-gradient-to-r from-emerald-500/50 to-sky-500/50"></div>
-          <ArrowRight className="h-6 w-6 text-slate-500 mx-2" />
+          <ArrowRight className="h-6 w-6 text-slate-400 dark:text-slate-500 mx-2" />
           <div className="hidden lg:block w-16 h-px bg-gradient-to-r from-sky-500/50 to-purple-500/50"></div>
         </div>
 
         {/* Index */}
         <div className="flex-1 text-center">
           <div className="inline-flex p-4 bg-sky-500/10 rounded-2xl mb-4 border border-sky-500/20">
-            <Cpu className="h-10 w-10 text-sky-400" />
+            <Cpu className="h-10 w-10 text-sky-600 dark:text-sky-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-2">HelixDB Index</h3>
-          <p className="text-sm text-slate-400">Graph + Vector + BM25</p>
-          <code className="text-xs text-sky-400 mt-2 block">Rebuilds from source</code>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">HelixDB Index</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Graph + Vector + BM25</p>
+          <code className="text-xs text-sky-600 dark:text-sky-400 mt-2 block">Rebuilds from source</code>
         </div>
 
         {/* Arrow */}
         <div className="flex items-center text-slate-600">
           <div className="hidden lg:block w-16 h-px bg-gradient-to-r from-sky-500/50 to-purple-500/50"></div>
-          <ArrowRight className="h-6 w-6 text-slate-500 mx-2" />
+          <ArrowRight className="h-6 w-6 text-slate-400 dark:text-slate-500 mx-2" />
           <div className="hidden lg:block w-16 h-px bg-gradient-to-r from-purple-500/50 to-amber-500/50"></div>
         </div>
 
         {/* Query */}
         <div className="flex-1 text-center">
           <div className="inline-flex p-4 bg-purple-500/10 rounded-2xl mb-4 border border-purple-500/20">
-            <Search className="h-10 w-10 text-purple-400" />
+            <Search className="h-10 w-10 text-purple-600 dark:text-purple-400" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-2">Smart Queries</h3>
-          <p className="text-sm text-slate-400">Semantic + keyword search</p>
-          <code className="text-xs text-purple-400 mt-2 block">ixchel search "..."</code>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Smart Queries</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Semantic + keyword search</p>
+          <code className="text-xs text-purple-600 dark:text-purple-400 mt-2 block">ixchel search "..."</code>
         </div>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-white/10 text-center">
-        <p className="text-sm text-slate-500">
-          <span className="text-sky-400">Delete the database?</span> No problem. Run <code className="text-emerald-400">ixchel sync</code> and it rebuilds from your Markdown files.
+      <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10 text-center">
+        <p className="text-sm text-slate-600 dark:text-slate-500">
+          <span className="text-sky-600 dark:text-sky-400">Delete the database?</span> No problem. Run <code className="text-emerald-600 dark:text-emerald-400">ixchel sync</code> and it rebuilds from your Markdown files.
         </p>
       </div>
     </div>
@@ -788,11 +788,11 @@ function ArchitectureDiagram() {
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
     <div className="glow-card h-full flex flex-col">
-      <div className="mb-4 p-3 bg-white/5 rounded-lg w-fit border border-white/5">
+      <div className="mb-4 p-3 bg-slate-100 dark:bg-white/5 rounded-lg w-fit border border-slate-200 dark:border-white/5">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-slate-100 mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm leading-relaxed">{description}</p>
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
+      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -801,15 +801,15 @@ function ToolCard({ icon, name, description, tag, tagColor, href }: { icon: Reac
   const content = (
     <>
       <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-sky-500/10 text-sky-400 rounded-lg group-hover:bg-sky-500 group-hover:text-white transition-colors duration-300">
+        <div className="p-3 bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-lg group-hover:bg-sky-500 group-hover:text-white transition-colors duration-300">
           {icon}
         </div>
         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${tagColor}`}>
           {tag}
         </span>
       </div>
-      <h3 className="text-xl font-bold text-slate-100 mb-2 group-hover:text-sky-400 transition-colors">{name}</h3>
-      <p className="text-slate-400">{description}</p>
+      <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-sky-500 dark:group-hover:text-sky-400 transition-colors">{name}</h3>
+      <p className="text-slate-600 dark:text-slate-400">{description}</p>
     </>
   );
 
@@ -831,14 +831,14 @@ function ToolCard({ icon, name, description, tag, tagColor, href }: { icon: Reac
 function InspirationCard({ name, author, color }: { name: string, author: string, color: string }) {
   return (
     <div
-      className="p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all hover:border-opacity-50 group"
+      className="p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all hover:border-slate-300 dark:hover:border-opacity-50 group"
       style={{ '--accent': color } as React.CSSProperties}
     >
       <div
         className="w-2 h-2 rounded-full mb-3 group-hover:scale-125 transition-transform"
         style={{ backgroundColor: color }}
       />
-      <p className="font-mono text-sm text-slate-200 mb-1">{name}</p>
+      <p className="font-mono text-sm text-slate-800 dark:text-slate-200 mb-1">{name}</p>
       <p className="text-xs text-slate-500">{author}</p>
     </div>
   );
