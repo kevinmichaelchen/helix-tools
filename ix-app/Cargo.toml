@@ -1,0 +1,20 @@
+[package]
+name = "ix-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Ixchel wiring layer for apps (backend selection + orchestration)"
+readme = "README.md"
+keywords = ["ixchel", "orchestration", "wiring"]
+categories = ["development-tools"]
+
+[dependencies]
+anyhow.workspace = true
+ix-core = { path = "../ix-core" }
+ix-storage-helixdb = { path = "../ix-storage-helixdb" }
+
+[lints]
+workspace = true
+

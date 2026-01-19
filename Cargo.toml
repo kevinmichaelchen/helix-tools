@@ -4,6 +4,7 @@ members = [
     "demo-got",
     "hbd",
     "hbd-ui/src-tauri",
+    "ix-app",
     "ix-cli",
     "ix-config",
     "ix-core",

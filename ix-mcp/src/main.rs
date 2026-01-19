@@ -220,8 +220,7 @@ fn resolve_repo_path(args: &Value) -> Result<PathBuf> {
 fn tool_sync(args: &Value) -> Result<Value> {
     let repo_path = resolve_repo_path(args)?;
     let repo = ix_core::repo::IxchelRepo::open_from(&repo_path)?;
-    let mut index = ix_storage_helixdb::HelixDbIndex::open(&repo)?;
-    let stats = ix_core::index::IndexBackend::sync(&mut index, &repo)?;
+    let stats = ix_app::sync(&repo)?;
 
     tool_text(&json!({
         "scanned": stats.scanned,
@@ -245,8 +244,7 @@ fn tool_search(args: &Value) -> Result<Value> {
         .unwrap_or(10);
 
     let repo = ix_core::repo::IxchelRepo::open_from(&repo_path)?;
-    let index = ix_storage_helixdb::HelixDbIndex::open(&repo)?;
-    let hits = ix_core::index::IndexBackend::search(&index, query, limit)?;
+    let hits = ix_app::search(&repo, query, limit)?;
 
     let hits = hits
         .into_iter()

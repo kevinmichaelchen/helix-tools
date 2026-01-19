@@ -1,10 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 
 use anyhow::{Context, Result};
 use bumpalo::Bump;
-use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
 use heed3::{RoTxn, RwTxn};
 use helix_db::helix_engine::storage_core::storage_methods::StorageMethods;
 use helix_db::helix_engine::storage_core::{HelixGraphStorage, version_info::VersionInfo};
@@ -13,11 +11,13 @@ use helix_db::helix_engine::types::SecondaryIndex;
 use helix_db::helix_engine::vector_core::hnsw::HNSW;
 use helix_db::protocol::value::Value;
 use helix_db::utils::items::{Edge, Node};
+use helix_db::utils::label_hash::hash_label;
 use helix_db::utils::properties::ImmutablePropertiesMap;
 use ix_core::entity::{EntityKind, kind_from_id};
 use ix_core::index::{IndexBackend, SearchHit, SyncStats};
 use ix_core::markdown::{get_string, get_string_list, parse_markdown};
 use ix_core::repo::IxchelRepo;
+use ix_embeddings::Embedder;
 use ix_helixdb_ops as graph_ops;
 use serde_yaml::Value as YamlValue;
 use uuid::Uuid;
@@ -39,11 +39,17 @@ pub struct HelixDbIndex {
     repo_root: PathBuf,
     db_path: PathBuf,
     storage: Option<HelixGraphStorage>,
-    embedder: Mutex<TextEmbedding>,
+    embedder: Embedder,
 }
 
 impl HelixDbIndex {
     pub fn open(repo: &IxchelRepo) -> Result<Self> {
+        let embedder = Embedder::with_config(&repo.config.embedding)
+            .map_err(|e| anyhow::anyhow!("Failed to initialize embedder: {e}"))?;
+        Self::open_with_embedder(repo, embedder)
+    }
+
+    pub fn open_with_embedder(repo: &IxchelRepo, embedder: Embedder) -> Result<Self> {
         let repo_root = repo.paths.repo_root().to_path_buf();
         let db_path = repo
             .paths
@@ -54,7 +60,6 @@ impl HelixDbIndex {
             .with_context(|| format!("Failed to create {}", db_path.display()))?;
 
         let storage = Some(open_storage(&db_path)?);
-        let embedder = Mutex::new(open_embedder(&repo.config.embedding)?);
 
         Ok(Self {
             repo_root,
@@ -62,6 +67,76 @@ impl HelixDbIndex {
             storage,
             embedder,
         })
+    }
+
+    pub fn outgoing(&self, from_id: &str, rel: &str) -> Result<Vec<String>> {
+        let storage = self
+            .storage
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Storage not initialized"))?;
+
+        let rtxn = storage
+            .graph_env
+            .read_txn()
+            .map_err(|e| anyhow::anyhow!("Failed to start read transaction: {e}"))?;
+
+        let Some(from_node) = lookup_node_by_entity_id(storage, &rtxn, from_id)? else {
+            return Ok(Vec::new());
+        };
+
+        let label = rel.trim().to_ascii_uppercase();
+        if label.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let label_hash = hash_label(&label, None);
+        let neighbors = graph_ops::outgoing_neighbors(storage, &rtxn, from_node, &label_hash)
+            .map_err(|e| anyhow::anyhow!("Failed to read outgoing neighbors: {e}"))?;
+
+        let arena = Bump::new();
+        let mut out = neighbors
+            .into_iter()
+            .filter_map(|node_id| node_entity_id(storage, &rtxn, node_id, &arena).transpose())
+            .collect::<Result<Vec<_>>>()?;
+
+        out.sort();
+        out.dedup();
+        Ok(out)
+    }
+
+    pub fn incoming(&self, to_id: &str, rel: &str) -> Result<Vec<String>> {
+        let storage = self
+            .storage
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Storage not initialized"))?;
+
+        let rtxn = storage
+            .graph_env
+            .read_txn()
+            .map_err(|e| anyhow::anyhow!("Failed to start read transaction: {e}"))?;
+
+        let Some(to_node) = lookup_node_by_entity_id(storage, &rtxn, to_id)? else {
+            return Ok(Vec::new());
+        };
+
+        let label = rel.trim().to_ascii_uppercase();
+        if label.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let label_hash = hash_label(&label, None);
+        let neighbors = graph_ops::incoming_neighbors(storage, &rtxn, to_node, &label_hash)
+            .map_err(|e| anyhow::anyhow!("Failed to read incoming neighbors: {e}"))?;
+
+        let arena = Bump::new();
+        let mut out = neighbors
+            .into_iter()
+            .filter_map(|node_id| node_entity_id(storage, &rtxn, node_id, &arena).transpose())
+            .collect::<Result<Vec<_>>>()?;
+
+        out.sort();
+        out.dedup();
+        Ok(out)
     }
 
     fn rebuild_storage(&mut self) -> Result<()> {
@@ -92,18 +167,9 @@ impl HelixDbIndex {
     }
 
     fn embed(&self, text: &str) -> Result<Vec<f32>> {
-        let mut embeddings = {
-            let model = self
-                .embedder
-                .lock()
-                .map_err(|_| anyhow::anyhow!("Embedding model lock poisoned"))?;
-            model
-                .embed(vec![text], None)
-                .map_err(|e| anyhow::anyhow!("Embedding failed: {e}"))?
-        };
-        embeddings
-            .pop()
-            .ok_or_else(|| anyhow::anyhow!("No embedding returned"))
+        self.embedder
+            .embed(text)
+            .map_err(|e| anyhow::anyhow!("Embedding failed: {e}"))
     }
 
     fn insert_edges(
@@ -361,66 +427,6 @@ fn open_storage(db_path: &Path) -> Result<HelixGraphStorage> {
         .map_err(|e| anyhow::anyhow!("Failed to create storage: {e:?}"))
 }
 
-fn open_embedder(config: &ix_core::config::EmbeddingConfig) -> Result<TextEmbedding> {
-    if config.provider.trim() != "fastembed" {
-        anyhow::bail!("Unsupported embedding provider: {}", config.provider);
-    }
-
-    let model = fastembed_model_from_string(&config.model)?;
-
-    TextEmbedding::try_new(InitOptions::new(model))
-        .map_err(|e| anyhow::anyhow!("Failed to initialize embedding model: {e}"))
-}
-
-fn fastembed_model_from_string(model_name: &str) -> Result<EmbeddingModel> {
-    let trimmed = model_name.trim();
-    if trimmed.is_empty() {
-        anyhow::bail!("Unsupported embedding model: {model_name}");
-    }
-
-    if let Ok(model) = trimmed.parse() {
-        return Ok(model);
-    }
-
-    let needle = normalize_model_token(trimmed);
-    let needle_suffix = normalize_model_token(trimmed.rsplit('/').next().unwrap_or(trimmed));
-
-    for info in TextEmbedding::list_supported_models() {
-        for candidate in model_identifiers(&info.model_code) {
-            if candidate == needle || candidate == needle_suffix {
-                return Ok(info.model);
-            }
-        }
-    }
-
-    anyhow::bail!("Unsupported embedding model: {model_name}")
-}
-
-fn model_identifiers(model_code: &str) -> Vec<String> {
-    let normalized = normalize_model_token(model_code);
-    let suffix = model_code.rsplit('/').next().unwrap_or(model_code);
-    let suffix_normalized = normalize_model_token(suffix);
-
-    let mut identifiers = vec![normalized, suffix_normalized];
-
-    for value in [suffix.strip_suffix("-onnx"), suffix.strip_suffix("-onnx-q")]
-        .into_iter()
-        .flatten()
-    {
-        identifiers.push(normalize_model_token(value));
-    }
-
-    identifiers
-}
-
-fn normalize_model_token(value: &str) -> String {
-    value
-        .chars()
-        .filter(char::is_ascii_alphanumeric)
-        .map(|c| c.to_ascii_lowercase())
-        .collect()
-}
-
 fn normalize_path(repo_root: &Path, file_path: &Path) -> String {
     file_path
         .strip_prefix(repo_root)
@@ -492,6 +498,32 @@ fn lookup_node_by_vector_id(
     let key = Value::String(vector_id.to_string());
     graph_ops::lookup_secondary_index(storage, rtxn, "vector_id", &key)
         .map_err(|e| anyhow::anyhow!("Failed to lookup vector_id: {e}"))
+}
+
+fn lookup_node_by_entity_id(
+    storage: &HelixGraphStorage,
+    rtxn: &RoTxn<'_>,
+    entity_id: &str,
+) -> Result<Option<u128>> {
+    let key = Value::String(entity_id.to_string());
+    graph_ops::lookup_secondary_index(storage, rtxn, "id", &key)
+        .map_err(|e| anyhow::anyhow!("Failed to lookup id: {e}"))
+}
+
+fn node_entity_id(
+    storage: &HelixGraphStorage,
+    rtxn: &RoTxn<'_>,
+    node_id: u128,
+    arena: &Bump,
+) -> Result<Option<String>> {
+    let node = storage
+        .get_node(rtxn, &node_id, arena)
+        .map_err(|e| anyhow::anyhow!("Failed to get node: {e:?}"))?;
+
+    Ok(node.get_property("id").and_then(|v| match v {
+        Value::String(s) => Some(s.clone()),
+        _ => None,
+    }))
 }
 
 fn build_embedding_text(title: &str, body: &str, tags: &[String], kind: EntityKind) -> String {

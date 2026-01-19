@@ -230,8 +230,7 @@ fn cmd_check(start: &Path, json_output: bool) -> Result<()> {
 
 fn cmd_sync(start: &Path, json_output: bool) -> Result<()> {
     let repo = ix_core::repo::IxchelRepo::open_from(start)?;
-    let mut index = ix_storage_helixdb::HelixDbIndex::open(&repo)?;
-    let stats = ix_core::index::IndexBackend::sync(&mut index, &repo)?;
+    let stats = ix_app::sync(&repo)?;
     if json_output {
         print_json(&json!({
             "scanned": stats.scanned,
@@ -251,8 +250,7 @@ fn cmd_sync(start: &Path, json_output: bool) -> Result<()> {
 
 fn cmd_search(start: &Path, query: &str, limit: usize, json_output: bool) -> Result<()> {
     let repo = ix_core::repo::IxchelRepo::open_from(start)?;
-    let index = ix_storage_helixdb::HelixDbIndex::open(&repo)?;
-    let hits = ix_core::index::IndexBackend::search(&index, query, limit)?;
+    let hits = ix_app::search(&repo, query, limit)?;
 
     if json_output {
         let hits = hits

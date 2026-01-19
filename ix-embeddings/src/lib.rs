@@ -176,10 +176,12 @@ impl EmbeddingProvider for FastEmbedProvider {
                 .map_err(|e| EmbeddingError::EmbedError(e.to_string()))?
         };
 
-        embeddings
+        let mut embedding = embeddings
             .into_iter()
             .next()
-            .ok_or(EmbeddingError::EmptyResult)
+            .ok_or(EmbeddingError::EmptyResult)?;
+        l2_normalize(&mut embedding);
+        Ok(embedding)
     }
 
     fn embed_batch(&self, texts: &[&str]) -> Result<Vec<Vec<f32>>> {
@@ -200,6 +202,10 @@ impl EmbeddingProvider for FastEmbedProvider {
                     .map_err(|e| EmbeddingError::EmbedError(e.to_string()))?
             };
             all_embeddings.extend(embeddings);
+        }
+
+        for embedding in &mut all_embeddings {
+            l2_normalize(embedding);
         }
 
         Ok(all_embeddings)
@@ -271,6 +277,17 @@ fn normalize_model_token(value: &str) -> String {
         .filter(char::is_ascii_alphanumeric)
         .map(|c| c.to_ascii_lowercase())
         .collect()
+}
+
+fn l2_normalize(embedding: &mut [f32]) {
+    let norm = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+    if norm <= 0.0 {
+        return;
+    }
+
+    for x in embedding {
+        *x /= norm;
+    }
 }
 
 // =============================================================================

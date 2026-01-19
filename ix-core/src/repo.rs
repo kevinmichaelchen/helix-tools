@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use chrono::{SecondsFormat, Utc};
+use ix_config::{ConfigLoader, IxchelConfig};
 use serde_yaml::{Mapping, Value};
 
-use crate::config::IxchelConfig;
 use crate::entity::{EntityKind, kind_from_id, looks_like_entity_id};
 use crate::markdown::{
     MarkdownDocument, get_string, get_string_list, parse_markdown, render_markdown, set_string,
@@ -68,7 +68,7 @@ impl IxchelRepo {
             );
         }
 
-        let config = IxchelConfig::load(&paths.config_path())?;
+        let config: IxchelConfig = ConfigLoader::new("").with_project_dir(ixchel_dir).load()?;
 
         Ok(Self { paths, config })
     }
@@ -105,7 +105,7 @@ impl IxchelRepo {
             IxchelConfig::default().save(&config_path)?;
         }
 
-        let config = IxchelConfig::load(&config_path)?;
+        let config: IxchelConfig = ConfigLoader::new("").with_project_dir(ixchel_dir).load()?;
         Ok(Self { paths, config })
     }
 

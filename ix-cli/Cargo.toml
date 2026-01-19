@@ -13,8 +13,8 @@ categories = ["command-line-utilities", "development-tools"]
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+ix-app = { path = "../ix-app" }
 ix-core = { path = "../ix-core" }
-ix-storage-helixdb = { path = "../ix-storage-helixdb" }
 serde_yaml.workspace = true
 serde_json.workspace = true
 

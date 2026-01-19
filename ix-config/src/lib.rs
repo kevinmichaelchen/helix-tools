@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use thiserror::Error;
 
 /// Get the Ixchel home directory (`~/.ixchel` or `$IXCHEL_HOME`).
@@ -57,8 +57,8 @@ pub fn ixchel_log_dir() -> PathBuf {
 /// Shared configuration used by multiple Ixchel tools.
 ///
 /// Loaded from `~/.ixchel/config/config.toml` and `.ixchel/config.toml`.
-#[derive(Debug, Clone, Default, Deserialize)]
-pub struct SharedConfig {
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct IxchelConfig {
     #[serde(default)]
     pub github: GitHubConfig,
     #[serde(default)]
@@ -67,15 +67,17 @@ pub struct SharedConfig {
     pub storage: StorageConfig,
 }
 
+pub type SharedConfig = IxchelConfig;
+
 /// GitHub-related configuration.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct GitHubConfig {
     /// GitHub personal access token. Can also be set via `GITHUB_TOKEN` or `GH_TOKEN`.
     pub token: Option<String>,
 }
 
 /// Embedding model configuration.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EmbeddingConfig {
     /// Provider implementation to use (e.g. "fastembed").
     #[serde(default = "default_embedding_provider")]
@@ -115,18 +117,45 @@ const fn default_batch_size() -> usize {
 }
 
 /// Storage configuration.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StorageConfig {
-    /// Base directory for data storage. Defaults to `~/.ixchel/data`.
-    #[serde(default = "ixchel_data_dir")]
-    pub base: PathBuf,
+    /// Storage backend to use (e.g. "helixdb").
+    #[serde(default = "default_storage_backend")]
+    pub backend: String,
+
+    /// Path relative to `.ixchel/` for rebuildable storage.
+    #[serde(default = "default_storage_path")]
+    pub path: String,
 }
 
 impl Default for StorageConfig {
     fn default() -> Self {
         Self {
-            base: ixchel_data_dir(),
+            backend: default_storage_backend(),
+            path: default_storage_path(),
         }
+    }
+}
+
+fn default_storage_backend() -> String {
+    "helixdb".to_string()
+}
+
+fn default_storage_path() -> String {
+    "data/ixchel".to_string()
+}
+
+impl IxchelConfig {
+    pub fn save(&self, path: &Path) -> Result<(), ConfigError> {
+        let raw = toml::to_string_pretty(self).map_err(|source| ConfigError::SerializeError {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        std::fs::write(path, raw).map_err(|source| ConfigError::WriteError {
+            path: path.to_path_buf(),
+            source,
+        })?;
+        Ok(())
     }
 }
 
@@ -152,6 +181,20 @@ pub enum ConfigError {
         path: PathBuf,
         #[source]
         source: toml::de::Error,
+    },
+
+    #[error("Failed to write config file {}: {source}", path.display())]
+    WriteError {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("Failed to serialize config file {}: {source}", path.display())]
+    SerializeError {
+        path: PathBuf,
+        #[source]
+        source: toml::ser::Error,
     },
 }
 
@@ -199,17 +242,6 @@ impl ConfigLoader {
 
         let global_dir = self.global_dir.unwrap_or_else(ixchel_config_dir);
 
-        if let Some(table) = load_toml_file(&global_dir.join("config.toml"))? {
-            merge_tables(&mut merged, table);
-        }
-
-        if !self.tool_name.is_empty() {
-            let tool_config = global_dir.join(format!("{}.toml", self.tool_name));
-            if let Some(table) = load_toml_file(&tool_config)? {
-                merge_tables(&mut merged, table);
-            }
-        }
-
         let project_dir = self.project_dir.or_else(find_project_config_dir);
         if let Some(dir) = project_dir {
             if let Some(table) = load_toml_file(&dir.join("config.toml"))? {
@@ -221,6 +253,17 @@ impl ConfigLoader {
                 if let Some(table) = load_toml_file(&tool_config)? {
                     merge_tables(&mut merged, table);
                 }
+            }
+        }
+
+        if let Some(table) = load_toml_file(&global_dir.join("config.toml"))? {
+            merge_tables(&mut merged, table);
+        }
+
+        if !self.tool_name.is_empty() {
+            let tool_config = global_dir.join(format!("{}.toml", self.tool_name));
+            if let Some(table) = load_toml_file(&tool_config)? {
+                merge_tables(&mut merged, table);
             }
         }
 
