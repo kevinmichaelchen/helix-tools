@@ -1,11 +1,11 @@
 ---
 title: Architecture
-description: How Helix Tools are structured
+description: How Ixchel Tools are structured
 ---
 
 # Architecture
 
-Helix Tools share a common architecture that balances simplicity with power.
+Ixchel Tools share a common architecture that balances simplicity with power.
 
 ## Overview
 
@@ -13,8 +13,8 @@ Helix Tools share a common architecture that balances simplicity with power.
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         CLI Tools Layer                              │
 │                                                                      │
-│   hbd                  ixchel                demo-got              │
-│   (issues)             (knowledge weaving)   (example project)     │
+│   ixchel                demo-got                                  │
+│   (knowledge weaving)   (example project)                         │
 │                                                                      │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │
@@ -77,9 +77,6 @@ When you `git pull` new changes:
 ```
 ixchel-tools/
 ├── apps/
-│   ├── hbd/                 # Issue tracker CLI
-│   ├── hbd-ui/              # Svelte UI for hbd (frontend)
-│   │   └── src-tauri/       # Tauri shell (Rust)
 │   ├── demo-got/            # Demo project (HelixDB + ix-embeddings)
 │   ├── ix-cli/              # ixchel CLI (binary)
 │   ├── ix-daemon/           # Background daemon + IPC (binary: ixcheld)

@@ -13,7 +13,7 @@ Ixchel tools use a unified `~/.ixchel/` directory for global configuration and s
 ~/.ixchel/
 ├── config/                   # Configuration (user-editable TOML)
 │   ├── config.toml           # Shared settings
-│   ├── hbd.toml              # hbd settings
+│   └── ixchel.toml           # ixchel settings
 │
 ├── data/                     # Caches & databases (auto-generated)
 │
@@ -62,10 +62,9 @@ path = "data/ixchel" # relative to .ixchel/
 Each tool has its own config file:
 
 ```toml
-# ~/.ixchel/config/hbd.toml
-[issue]
-default_type = "task"
-default_priority = "medium"
+# ~/.ixchel/config/ixchel.toml
+[issues]
+default_status = "open"
 ```
 
 ## Project Config
@@ -75,7 +74,7 @@ Project-local settings live in `.ixchel/` at the repo root:
 ```
 your-project/.ixchel/
 ├── config.toml           # Project shared config
-├── hbd.toml              # hbd config (optional)
+├── ixchel.toml           # ixchel config (optional)
 └── issues/               # Canonical artifacts (Markdown, git-tracked)
 ```
 
