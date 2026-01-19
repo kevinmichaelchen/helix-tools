@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use ix_core::entity::EntityKind;
 use ix_core::markdown::{parse_markdown, render_markdown};
 use ix_core::repo::IxchelRepo;
@@ -81,10 +79,7 @@ fn check_reports_broken_and_unknown_links() {
         .create_entity(EntityKind::Issue, "Issue A", Some("open"))
         .expect("create issue");
 
-    let path = repo
-        .paths
-        .entity_path(&issue.id)
-        .expect("issue path");
+    let path = repo.paths.entity_path(&issue.id).expect("issue path");
     let raw = std::fs::read_to_string(&path).expect("read issue");
     let mut doc = parse_markdown(&path, &raw).expect("parse markdown");
 
@@ -109,7 +104,9 @@ fn check_reports_broken_and_unknown_links() {
         .map(|e| e.message)
         .collect::<Vec<_>>();
     assert!(
-        messages.iter().any(|m| m.contains("broken link depends_on -> dec-deadbe")),
+        messages
+            .iter()
+            .any(|m| m.contains("broken link depends_on -> dec-deadbe")),
         "{messages:#?}"
     );
     assert!(
@@ -119,39 +116,3 @@ fn check_reports_broken_and_unknown_links() {
         "{messages:#?}"
     );
 }
-
-#[test]
-fn migrate_decisions_supports_dry_run() {
-    let temp = TempDir::new().expect("create tempdir");
-    std::fs::create_dir_all(temp.path().join(".git")).expect("create .git marker");
-
-    let repo = IxchelRepo::init_from(temp.path(), false).expect("init ixchel repo");
-
-    let source_dir = temp.path().join(".decisions");
-    std::fs::create_dir_all(&source_dir).expect("create .decisions");
-
-    std::fs::write(
-        source_dir.join("001-example.md"),
-        "# ADR-001: Example\n\n**Status:** Accepted\\\n**Date:** 2026-01-01\\\n**Deciders:** Someone\\\n**Tags:** one, two\n",
-    )
-    .expect("write decision");
-
-    let options = ix_core::migrate::MigrateDecisionsOptions {
-        source_dir: Path::new(".decisions").to_path_buf(),
-        force: false,
-        dry_run: true,
-    };
-    let report = ix_core::migrate::migrate_decisions(&repo, &options).expect("migrate");
-    assert_eq!(report.scanned, 1);
-    assert_eq!(report.created, 1);
-
-    let decisions_dir = temp.path().join(".ixchel/decisions");
-    let created_files = std::fs::read_dir(&decisions_dir)
-        .expect("read decisions dir")
-        .count();
-    assert_eq!(
-        created_files, 0,
-        "dry_run should not write target files"
-    );
-}
-

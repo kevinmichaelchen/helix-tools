@@ -5,7 +5,6 @@ use clap::Parser;
 use clap::Subcommand;
 use serde_json::json;
 use serde_yaml::Value as YamlValue;
-use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[command(name = "ixchel", version)]
@@ -79,23 +78,6 @@ enum Command {
 
     Edit {
         id: String,
-    },
-
-    Migrate {
-        #[command(subcommand)]
-        command: MigrateCommand,
-    },
-}
-
-#[derive(Subcommand, Debug)]
-enum MigrateCommand {
-    Decisions {
-        #[arg(long)]
-        source: Option<PathBuf>,
-        #[arg(long)]
-        force: bool,
-        #[arg(long)]
-        dry_run: bool,
     },
 }
 
@@ -299,41 +281,6 @@ fn main() -> Result<()> {
                 std::process::exit(status.code().unwrap_or(1));
             }
         }
-
-        Command::Migrate { command } => match command {
-            MigrateCommand::Decisions {
-                source,
-                force,
-                dry_run,
-            } => {
-                let repo = open_or_init(&start, false)?;
-                let options = ix_core::migrate::MigrateDecisionsOptions {
-                    source_dir: source.unwrap_or_else(|| PathBuf::from(".decisions")),
-                    force,
-                    dry_run,
-                };
-                let report = ix_core::migrate::migrate_decisions(&repo, &options)?;
-
-                if json_output {
-                    print_json(json!({
-                        "scanned": report.scanned,
-                        "created": report.created,
-                        "skipped": report.skipped,
-                        "dry_run": dry_run,
-                    }))?;
-                } else if dry_run {
-                    println!(
-                        "Dry run: scanned={} would_create={} skipped={}",
-                        report.scanned, report.created, report.skipped
-                    );
-                } else {
-                    println!(
-                        "Migrated: scanned={} created={} skipped={}",
-                        report.scanned, report.created, report.skipped
-                    );
-                }
-            }
-        },
     }
 
     Ok(())
@@ -342,22 +289,6 @@ fn main() -> Result<()> {
 fn print_json(value: serde_json::Value) -> Result<()> {
     println!("{}", serde_json::to_string_pretty(&value)?);
     Ok(())
-}
-
-fn open_or_init(start: &Path, force: bool) -> Result<ix_core::repo::IxchelRepo> {
-    let Some(repo_root) = ix_core::paths::find_git_root(start) else {
-        anyhow::bail!(
-            "Not inside a git repository (no .git found above {})",
-            start.display()
-        );
-    };
-
-    let paths = ix_core::paths::IxchelPaths::new(repo_root.clone());
-    if paths.ixchel_dir().exists() {
-        ix_core::repo::IxchelRepo::open_from(&repo_root)
-    } else {
-        ix_core::repo::IxchelRepo::init_at(&repo_root, force)
-    }
 }
 
 const METADATA_KEYS: &[&str] = &[
