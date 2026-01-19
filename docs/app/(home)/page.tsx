@@ -261,163 +261,355 @@ function useTypewriter(text: string, speed: number = 40, startDelay: number = 0,
   return { displayedText, isComplete };
 }
 
+type TerminalScenario = 'search' | 'create' | 'context';
+
+const scenarioTabs: { id: TerminalScenario; label: string; icon: typeof Search }[] = [
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'create', label: 'Create', icon: FileText },
+  { id: 'context', label: 'Context', icon: Bot },
+];
+
 function TerminalPreview() {
+  const [scenario, setScenario] = useState<TerminalScenario>('search');
   const [step, setStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [animationKey, setAnimationKey] = useState(0);
 
-  const command1 = 'ixchel search "authentication flow"';
-  const command2 = 'ixchel graph iss-a1b2c3';
-
-  const { displayedText: typed1, isComplete: cmd1Done } = useTypewriter(
-    command1, 35, 500, isPlaying && step >= 0
-  );
-  const { displayedText: typed2, isComplete: cmd2Done } = useTypewriter(
-    command2, 35, 0, step >= 2
-  );
-
-  // Progress through steps
-  useEffect(() => {
-    if (cmd1Done && step === 0) {
-      const timer = setTimeout(() => setStep(1), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [cmd1Done, step]);
-
-  useEffect(() => {
-    if (step === 1) {
-      const timer = setTimeout(() => setStep(2), 1800);
-      return () => clearTimeout(timer);
-    }
-  }, [step]);
-
-  useEffect(() => {
-    if (cmd2Done && step === 2) {
-      const timer = setTimeout(() => setStep(3), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [cmd2Done, step]);
-
-  useEffect(() => {
-    if (step === 3) {
-      const timer = setTimeout(() => setStep(4), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [step]);
+  // Reset animation when scenario changes
+  const switchScenario = useCallback((newScenario: TerminalScenario) => {
+    setScenario(newScenario);
+    setStep(0);
+    setAnimationKey(k => k + 1);
+  }, []);
 
   const restart = useCallback(() => {
     setStep(0);
-    setIsPlaying(true);
+    setAnimationKey(k => k + 1);
   }, []);
 
   return (
     <div className="bg-slate-950/80 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl shadow-sky-500/10 overflow-hidden">
-      {/* Terminal header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-        </div>
-        <span className="text-xs text-slate-500 font-mono">~/my-project</span>
+      {/* Scenario tabs */}
+      <div className="flex items-center gap-1 px-4 py-2 bg-white/5 border-b border-white/10">
+        {scenarioTabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => switchScenario(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              scenario === tab.id
+                ? 'bg-sky-500/20 text-sky-400'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            <tab.icon className="h-3 w-3" />
+            {tab.label}
+          </button>
+        ))}
+        <div className="flex-1" />
         <button
           onClick={restart}
-          className="p-1 rounded hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-300"
+          className="p-1.5 rounded hover:bg-white/10 transition-colors text-slate-500 hover:text-slate-300"
           title="Replay"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      {/* Terminal content */}
-      <div className="p-4 font-mono text-sm space-y-3 min-h-[280px]">
-        {/* Command 1 */}
-        <div className="flex items-start gap-2">
-          <span className="text-sky-400">$</span>
-          <span className="text-slate-300">
-            {typed1.includes('"') ? (
-              <>
-                {typed1.split('"')[0]}
-                {typed1.includes('"') && <span className="text-amber-300">"{typed1.split('"')[1]}{typed1.split('"').length > 2 ? '"' : ''}</span>}
-              </>
-            ) : typed1}
-            {!cmd1Done && <span className="animate-pulse text-slate-400">▊</span>}
-          </span>
+      {/* Terminal header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-black/20 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
         </div>
+        <span className="text-xs text-slate-600 font-mono">~/my-project</span>
+        <div className="w-12" />
+      </div>
 
-        {/* Output 1 - Search results */}
-        {step >= 1 && (
-          <div className="pl-4 text-slate-400 text-xs space-y-2 border-l-2 border-sky-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center gap-2">
-              <Search className="h-3 w-3 text-sky-400" />
-              <span>Searching with hybrid (vector + BM25)...</span>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-slate-300 animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '100ms' }}>
-                <FileText className="h-3 w-3 text-emerald-400" />
-                <span className="text-emerald-400">iss-a1b2c3</span>
-                <span className="text-slate-500">•</span>
-                <span>Add OAuth2 authentication</span>
-                <span className="text-sky-400 ml-auto">0.94</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300 animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '200ms' }}>
-                <FileText className="h-3 w-3 text-emerald-400" />
-                <span className="text-emerald-400">iss-d4e5f6</span>
-                <span className="text-slate-500">•</span>
-                <span>Implement JWT refresh tokens</span>
-                <span className="text-sky-400 ml-auto">0.87</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300 animate-in fade-in slide-in-from-left-2 duration-300" style={{ animationDelay: '300ms' }}>
-                <FileText className="h-3 w-3 text-emerald-400" />
-                <span className="text-emerald-400">iss-g7h8i9</span>
-                <span className="text-slate-500">•</span>
-                <span>Session management refactor</span>
-                <span className="text-sky-400 ml-auto">0.82</span>
-              </div>
-            </div>
-          </div>
+      {/* Terminal content */}
+      <div className="p-4 font-mono text-sm min-h-[260px]">
+        {scenario === 'search' && (
+          <SearchScenario key={`search-${animationKey}`} step={step} setStep={setStep} />
         )}
-
-        {/* Command 2 */}
-        {step >= 2 && (
-          <div className="flex items-start gap-2 pt-2 animate-in fade-in duration-200">
-            <span className="text-sky-400">$</span>
-            <span className="text-slate-300">
-              {typed2.split(' ').map((word, i) => (
-                <span key={i}>
-                  {i > 0 && ' '}
-                  {word === 'iss-a1b2c3' ? (
-                    <span className="text-emerald-400">{word}</span>
-                  ) : word}
-                </span>
-              ))}
-              {!cmd2Done && <span className="animate-pulse text-slate-400">▊</span>}
-            </span>
-          </div>
+        {scenario === 'create' && (
+          <CreateScenario key={`create-${animationKey}`} step={step} setStep={setStep} />
         )}
+        {scenario === 'context' && (
+          <ContextScenario key={`context-${animationKey}`} step={step} setStep={setStep} />
+        )}
+      </div>
+    </div>
+  );
+}
 
-        {/* Output 2 - Graph */}
-        {step >= 3 && (
-          <div className="pl-4 text-slate-400 text-xs border-l-2 border-purple-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center gap-2 mb-1">
-              <Share2 className="h-3 w-3 text-purple-400" />
-              <span>Dependency graph for iss-a1b2c3</span>
-            </div>
-            <pre className="text-[10px] leading-relaxed text-slate-500">
+function SearchScenario({ step, setStep }: { step: number; setStep: (s: number) => void }) {
+  const command1 = 'ixchel search "authentication flow"';
+  const command2 = 'ixchel graph iss-a1b2c3';
+
+  const { displayedText: typed1, isComplete: cmd1Done } = useTypewriter(command1, 35, 400, step >= 0);
+  const { displayedText: typed2, isComplete: cmd2Done } = useTypewriter(command2, 35, 0, step >= 2);
+
+  useEffect(() => {
+    if (cmd1Done && step === 0) {
+      const timer = setTimeout(() => setStep(1), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [cmd1Done, step, setStep]);
+
+  useEffect(() => {
+    if (step === 1) {
+      const timer = setTimeout(() => setStep(2), 1600);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setStep]);
+
+  useEffect(() => {
+    if (cmd2Done && step === 2) {
+      const timer = setTimeout(() => setStep(3), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [cmd2Done, step, setStep]);
+
+  useEffect(() => {
+    if (step === 3) {
+      const timer = setTimeout(() => setStep(4), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setStep]);
+
+  return (
+    <div className="space-y-3">
+      <TerminalCommand text={typed1} isComplete={cmd1Done} highlightQuotes />
+
+      {step >= 1 && (
+        <div className="pl-4 text-slate-400 text-xs space-y-2 border-l-2 border-sky-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2">
+            <Search className="h-3 w-3 text-sky-400" />
+            <span>Searching with hybrid (vector + BM25)...</span>
+          </div>
+          <div className="space-y-1">
+            {[
+              { id: 'iss-a1b2c3', title: 'Add OAuth2 authentication', score: '0.94' },
+              { id: 'iss-d4e5f6', title: 'Implement JWT refresh tokens', score: '0.87' },
+              { id: 'iss-g7h8i9', title: 'Session management refactor', score: '0.82' },
+            ].map((result, i) => (
+              <div
+                key={result.id}
+                className="flex items-center gap-2 text-slate-300 animate-in fade-in slide-in-from-left-2 duration-300"
+                style={{ animationDelay: `${(i + 1) * 100}ms` }}
+              >
+                <FileText className="h-3 w-3 text-emerald-400" />
+                <span className="text-emerald-400">{result.id}</span>
+                <span className="text-slate-500">•</span>
+                <span>{result.title}</span>
+                <span className="text-sky-400 ml-auto">{result.score}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step >= 2 && (
+        <div className="pt-2 animate-in fade-in duration-200">
+          <TerminalCommand text={typed2} isComplete={cmd2Done} highlightIds={['iss-a1b2c3']} />
+        </div>
+      )}
+
+      {step >= 3 && (
+        <div className="pl-4 text-slate-400 text-xs border-l-2 border-purple-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2 mb-1">
+            <Share2 className="h-3 w-3 text-purple-400" />
+            <span>Dependency graph for iss-a1b2c3</span>
+          </div>
+          <pre className="text-[10px] leading-relaxed text-slate-500">
 {`  iss-a1b2c3 (Add OAuth2 authentication)
   ├── blocks → iss-d4e5f6 (JWT refresh tokens)
   └── related → iss-g7h8i9 (Session management)`}
-            </pre>
-          </div>
-        )}
+          </pre>
+        </div>
+      )}
 
-        {/* Final prompt */}
-        {step >= 4 && (
-          <div className="flex items-start gap-2 pt-2 animate-in fade-in duration-200">
-            <span className="text-sky-400">$</span>
-            <span className="text-slate-400 animate-pulse">▊</span>
+      {step >= 4 && <TerminalPrompt />}
+    </div>
+  );
+}
+
+function CreateScenario({ step, setStep }: { step: number; setStep: (s: number) => void }) {
+  const command1 = 'ixchel create issue "Add caching layer"';
+  const command2 = 'ixchel link iss-x1y2z3 blocks iss-a1b2c3';
+
+  const { displayedText: typed1, isComplete: cmd1Done } = useTypewriter(command1, 35, 400, step >= 0);
+  const { displayedText: typed2, isComplete: cmd2Done } = useTypewriter(command2, 35, 0, step >= 2);
+
+  useEffect(() => {
+    if (cmd1Done && step === 0) {
+      const timer = setTimeout(() => setStep(1), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [cmd1Done, step, setStep]);
+
+  useEffect(() => {
+    if (step === 1) {
+      const timer = setTimeout(() => setStep(2), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setStep]);
+
+  useEffect(() => {
+    if (cmd2Done && step === 2) {
+      const timer = setTimeout(() => setStep(3), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [cmd2Done, step, setStep]);
+
+  useEffect(() => {
+    if (step === 3) {
+      const timer = setTimeout(() => setStep(4), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setStep]);
+
+  return (
+    <div className="space-y-3">
+      <TerminalCommand text={typed1} isComplete={cmd1Done} highlightQuotes />
+
+      {step >= 1 && (
+        <div className="pl-4 text-xs border-l-2 border-emerald-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-1">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <span>✓</span>
+            <span>Created issue</span>
+            <span className="text-slate-400 font-semibold">iss-x1y2z3</span>
           </div>
-        )}
-      </div>
+          <div className="text-slate-500">
+            → .ixchel/issues/iss-x1y2z3.md
+          </div>
+        </div>
+      )}
+
+      {step >= 2 && (
+        <div className="pt-2 animate-in fade-in duration-200">
+          <TerminalCommand text={typed2} isComplete={cmd2Done} highlightIds={['iss-x1y2z3', 'iss-a1b2c3']} />
+        </div>
+      )}
+
+      {step >= 3 && (
+        <div className="pl-4 text-xs border-l-2 border-purple-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-1">
+          <div className="flex items-center gap-2 text-purple-400">
+            <Share2 className="h-3 w-3" />
+            <span>Linked</span>
+            <span className="text-emerald-400">iss-x1y2z3</span>
+            <span className="text-slate-500">blocks</span>
+            <span className="text-emerald-400">iss-a1b2c3</span>
+          </div>
+        </div>
+      )}
+
+      {step >= 4 && <TerminalPrompt />}
+    </div>
+  );
+}
+
+function ContextScenario({ step, setStep }: { step: number; setStep: (s: number) => void }) {
+  const command1 = 'ixchel context iss-a1b2c3 --json';
+
+  const { displayedText: typed1, isComplete: cmd1Done } = useTypewriter(command1, 35, 400, step >= 0);
+
+  useEffect(() => {
+    if (cmd1Done && step === 0) {
+      const timer = setTimeout(() => setStep(1), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [cmd1Done, step, setStep]);
+
+  useEffect(() => {
+    if (step === 1) {
+      const timer = setTimeout(() => setStep(2), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [step, setStep]);
+
+  return (
+    <div className="space-y-3">
+      <TerminalCommand text={typed1} isComplete={cmd1Done} highlightIds={['iss-a1b2c3']} highlightFlags={['--json']} />
+
+      {step >= 1 && (
+        <div className="pl-4 text-xs border-l-2 border-amber-500/30 ml-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <pre className="text-[11px] leading-relaxed">
+            <span className="text-slate-500">{'{'}</span>{'\n'}
+            <span className="text-sky-400">  "id"</span><span className="text-slate-500">:</span> <span className="text-emerald-400">"iss-a1b2c3"</span><span className="text-slate-500">,</span>{'\n'}
+            <span className="text-sky-400">  "title"</span><span className="text-slate-500">:</span> <span className="text-amber-300">"Add OAuth2 authentication"</span><span className="text-slate-500">,</span>{'\n'}
+            <span className="text-sky-400">  "status"</span><span className="text-slate-500">:</span> <span className="text-amber-300">"in_progress"</span><span className="text-slate-500">,</span>{'\n'}
+            <span className="text-sky-400">  "blocks"</span><span className="text-slate-500">:</span> <span className="text-slate-400">[</span><span className="text-emerald-400">"iss-d4e5f6"</span><span className="text-slate-400">]</span><span className="text-slate-500">,</span>{'\n'}
+            <span className="text-sky-400">  "related"</span><span className="text-slate-500">:</span> <span className="text-slate-400">[</span><span className="text-emerald-400">"iss-g7h8i9"</span><span className="text-slate-400">]</span><span className="text-slate-500">,</span>{'\n'}
+            <span className="text-sky-400">  "similarity"</span><span className="text-slate-500">:</span> <span className="text-purple-400">0.94</span>{'\n'}
+            <span className="text-slate-500">{'}'}</span>
+          </pre>
+        </div>
+      )}
+
+      {step >= 2 && <TerminalPrompt />}
+    </div>
+  );
+}
+
+function TerminalCommand({
+  text,
+  isComplete,
+  highlightQuotes = false,
+  highlightIds = [],
+  highlightFlags = [],
+}: {
+  text: string;
+  isComplete: boolean;
+  highlightQuotes?: boolean;
+  highlightIds?: string[];
+  highlightFlags?: string[];
+}) {
+  const renderText = () => {
+    if (highlightQuotes && text.includes('"')) {
+      const parts = text.split('"');
+      return (
+        <>
+          {parts[0]}
+          {parts.length > 1 && <span className="text-amber-300">"{parts[1]}{parts.length > 2 ? '"' : ''}</span>}
+          {parts.slice(2).join('"')}
+        </>
+      );
+    }
+
+    return text.split(' ').map((word, i) => {
+      const isId = highlightIds.includes(word);
+      const isFlag = highlightFlags.includes(word);
+      return (
+        <span key={i}>
+          {i > 0 && ' '}
+          {isId ? (
+            <span className="text-emerald-400">{word}</span>
+          ) : isFlag ? (
+            <span className="text-purple-400">{word}</span>
+          ) : (
+            word
+          )}
+        </span>
+      );
+    });
+  };
+
+  return (
+    <div className="flex items-start gap-2">
+      <span className="text-sky-400">$</span>
+      <span className="text-slate-300">
+        {renderText()}
+        {!isComplete && <span className="animate-pulse text-slate-400">▊</span>}
+      </span>
+    </div>
+  );
+}
+
+function TerminalPrompt() {
+  return (
+    <div className="flex items-start gap-2 pt-2 animate-in fade-in duration-200">
+      <span className="text-sky-400">$</span>
+      <span className="text-slate-400 animate-pulse">▊</span>
     </div>
   );
 }
