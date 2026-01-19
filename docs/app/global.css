@@ -4,19 +4,39 @@
 
 /*
  * Custom theme extending fumadocs-ui neutral theme
- * Light mode: clean, bright with subtle depth
+ * Light mode: clean slate with strong contrast and cyan accents
  * Dark mode: deep blue-black with cyan accents
  */
 
 @theme {
-  /* Light mode - extend fumadocs neutral with custom accents */
+  /* Primary accent colors */
   --color-primary: hsl(199 89% 48%);
   --color-primary-foreground: hsl(0 0% 100%);
   --color-ring: hsl(199 89% 48%);
 
-  /* Custom semantic colors for light mode */
+  /* Custom semantic colors */
   --color-surface: hsl(0 0% 98%);
   --color-surface-elevated: hsl(0 0% 100%);
+}
+
+/* Light mode - explicit overrides for visibility */
+:root {
+  --color-fd-background: hsl(0 0% 100%);
+  --color-fd-foreground: hsl(222.2 47% 11%);
+  --color-fd-card: hsl(0 0% 100%);
+  --color-fd-card-foreground: hsl(222.2 47% 11%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(222.2 47% 11%);
+  --color-fd-muted: hsl(210 40% 96%);
+  --color-fd-muted-foreground: hsl(215 16% 47%);
+  --color-fd-border: hsl(214 32% 91%);
+  --color-fd-accent: hsl(210 40% 96%);
+  --color-fd-accent-foreground: hsl(222.2 47% 11%);
+  --color-fd-secondary: hsl(210 40% 96%);
+  --color-fd-secondary-foreground: hsl(222.2 47% 11%);
+  --color-fd-primary: hsl(199 89% 48%);
+  --color-fd-primary-foreground: hsl(0 0% 100%);
+  --color-fd-ring: hsl(199 89% 48%);
 }
 
 /* Dark mode overrides */
@@ -103,4 +123,94 @@ html.dark ::-webkit-scrollbar-track {
 html.dark ::-webkit-scrollbar-thumb {
   background: hsl(217.2 32.6% 20%);
   border: 2px solid hsl(222.2 84% 4.9%);
+}
+
+/* Typography - ensure strong contrast for headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-fd-foreground);
+  font-weight: 700;
+}
+
+/* MDX prose content - light mode improvements */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--color-fd-foreground);
+}
+
+.prose p,
+.prose li {
+  color: var(--color-fd-foreground);
+}
+
+.prose strong {
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--color-fd-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose a:hover {
+  color: hsl(199 89% 38%);
+}
+
+html.dark .prose a:hover {
+  color: hsl(199 89% 58%);
+}
+
+/* Code blocks - light mode */
+.prose code {
+  background: hsl(210 40% 96%);
+  color: hsl(222.2 47% 20%);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+html.dark .prose code {
+  background: hsl(217.2 32.6% 17.5%);
+  color: hsl(199 89% 70%);
+}
+
+/* Table styling - light mode visibility */
+.prose table th {
+  color: var(--color-fd-foreground);
+  font-weight: 600;
+  background: hsl(210 40% 98%);
+}
+
+html.dark .prose table th {
+  background: hsl(217.2 32.6% 12%);
+}
+
+.prose table td {
+  color: var(--color-fd-foreground);
+}
+
+/* Sidebar and navigation - light mode */
+[data-fd-sidebar] a,
+[data-fd-toc] a {
+  color: var(--color-fd-muted-foreground);
+}
+
+[data-fd-sidebar] a:hover,
+[data-fd-toc] a:hover,
+[data-fd-sidebar] a[data-active="true"],
+[data-fd-toc] a[data-active="true"] {
+  color: var(--color-fd-foreground);
+}
+
+/* Card components in light mode */
+[data-fd-card] {
+  background: var(--color-fd-card);
+  border-color: var(--color-fd-border);
+}
+
+[data-fd-card]:hover {
+  border-color: var(--color-fd-primary);
 }

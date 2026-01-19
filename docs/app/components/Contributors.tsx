@@ -22,7 +22,7 @@ export function Contributors({ contributors }: ContributorsProps) {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Standing on Giants' Shoulders</h2>
-        <p>The thinkers and builders who shaped Ixchel Tools</p>
+        <p>The thinkers and builders who shaped Ixchel</p>
       </div>
 
       <div className={styles.grid}>
