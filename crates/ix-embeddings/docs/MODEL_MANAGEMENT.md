@@ -179,7 +179,7 @@ We considered building a Rust CLI for model management, but:
 1. **`huggingface-cli` is well-maintained** - Official tool, regular updates
 2. **Shared cache** - Works seamlessly with our `hf-hub` Rust dependency
 3. **Feature-rich** - Auth, transfers, revisions, deduplication
-4. **Not our core mission** - ixchel-tools is about developer productivity, not
+4. **Not our core mission** - ixchel is about developer productivity, not
    model distribution
 
 The Python dependency is minimal (just the CLI, not runtime).

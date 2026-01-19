@@ -7,7 +7,7 @@
 
 ## Context and Problem Statement
 
-helix-tools produces CLI binaries (primarily `hbd`) that users need to install. Currently, installation requires cloning the repo and running `cargo build`. We need a frictionless installation experience that:
+ixchel produces CLI binaries (primarily `hbd`) that users need to install. Currently, installation requires cloning the repo and running `cargo build`. We need a frictionless installation experience that:
 
 1. Works for Rust developers (primary audience)
 2. Optionally supports non-Rust users
@@ -149,7 +149,7 @@ cargo binstall hbd
 
 ```bash
 # Quick install (downloads pre-built binary)
-curl -fsSL https://helix-tools.dev/install.sh | bash
+curl -fsSL https://ixchel.dev/install.sh | bash
 
 # Rust developers
 cargo binstall hbd
@@ -200,7 +200,7 @@ cargo binstall hbd
 
 ```bash
 # Nix users
-nix run github:kevinmichaelchen/helix-tools#hbd
+nix run github:kevinmichaelchen/ixchel#hbd
 
 # Rust developers
 cargo binstall hbd

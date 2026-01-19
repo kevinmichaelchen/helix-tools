@@ -6,7 +6,7 @@ const withMDX = createMDX();
 const config = {
   reactStrictMode: true,
   output: 'export',
-  basePath: process.env.GITHUB_ACTIONS ? '/ixchel-tools' : '',
+  basePath: process.env.GITHUB_ACTIONS ? '/ixchel' : '',
 };
 
 export default withMDX(config);

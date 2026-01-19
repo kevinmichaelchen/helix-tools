@@ -1,6 +1,6 @@
 # Ideas
 
-Future tools and features for the ixchel-tools ecosystem.
+Future tools and features for the ixchel ecosystem.
 
 ---
 
@@ -141,7 +141,7 @@ recall --semantic "bug fixes" --since=week
 
 # Filtering
 recall --repo=fire-dept
-recall --repo=ixchel-tools --verbose
+recall --repo=ixchel --verbose
 
 # Formats
 recall --format=greeting    # Shell startup (compact)
@@ -170,7 +170,7 @@ Output on shell startup:
 ```
 ╭─ RECALL ──────────────────────────────────────────────────╮
 │ TODAY: 3 repos, 8 commits                                 │
-│ • ixchel-tools: "add recall daemon", "fix embeddings"      │
+│ • ixchel: "add recall daemon", "fix embeddings"      │
 │ • dotfiles: "docs: AGENTS.md files"                       │
 │ • fire-dept: "feat: scheduling API"                       │
 │                                                           │

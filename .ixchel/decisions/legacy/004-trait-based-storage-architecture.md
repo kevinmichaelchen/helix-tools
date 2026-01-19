@@ -7,7 +7,7 @@
 
 ## Context and Problem Statement
 
-helix-tools uses HelixDB for persistent graph and vector storage. The question is: how should tools integrate with HelixDB?
+ixchel uses HelixDB for persistent graph and vector storage. The question is: how should tools integrate with HelixDB?
 
 **Option A (rejected):** Every tool directly depends on HelixDB
 
