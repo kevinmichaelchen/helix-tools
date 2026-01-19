@@ -451,13 +451,13 @@ pub fn load<T: DeserializeOwned + Default>(self) -> Result<T, ConfigError> {
 
 ## Consumers
 
-| Crate        | Tool Name    | Config Path                       | Data Path                |
-| ------------ | ------------ | --------------------------------- | ------------------------ |
-| `hbd`        | `hbd`        | `~/.helix/config/hbd.toml`        | `.tickets/` (project)    |
-| `helix-docs` | `helix-docs` | `~/.helix/config/helix-docs.toml` | `~/.helix/data/docs/`    |
-| `helix-map`  | `helix-map`  | `~/.helix/config/helix-map.toml`  | `~/.helix/data/index/`   |
-| `helix-repo` | `helix-repo` | `~/.helix/config/helix-repo.toml` | `~/.helix/data/repos/`   |
-| `helix-mail` | `helix-mail` | `~/.helix/config/helix-mail.toml` | `~/.helix/state/agents/` |
+| Crate        | Tool Name    | Config Path                       | Data Path                   |
+| ------------ | ------------ | --------------------------------- | --------------------------- |
+| `hbd`        | `hbd`        | `~/.helix/config/hbd.toml`        | `.ixchel/issues/` (project) |
+| `helix-docs` | `helix-docs` | `~/.helix/config/helix-docs.toml` | `~/.helix/data/docs/`       |
+| `helix-map`  | `helix-map`  | `~/.helix/config/helix-map.toml`  | `~/.helix/data/index/`      |
+| `helix-repo` | `helix-repo` | `~/.helix/config/helix-repo.toml` | `~/.helix/data/repos/`      |
+| `helix-mail` | `helix-mail` | `~/.helix/config/helix-mail.toml` | `~/.helix/state/agents/`    |
 
 ---
 

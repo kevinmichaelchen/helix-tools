@@ -35,7 +35,7 @@ So that I don't have to specify paths manually.
 **Acceptance Criteria:**
 
 - `ixchel search` finds `.ixchel/` automatically
-- `hbd list` finds `.tickets/` automatically
+- `hbd list` finds `.ixchel/issues/` automatically
 - Works from any subdirectory within the repo
 
 ## Functional Requirements
@@ -76,11 +76,11 @@ So that I don't have to specify paths manually.
 
 ## Markers by Tool
 
-| Tool         | Marker      | Purpose               |
-| ------------ | ----------- | --------------------- |
-| ixchel       | `.ixchel/`  | Knowledge documents   |
-| hbd          | `.tickets/` | Issue tracking        |
-| helix-config | `.helix/`   | Project configuration |
+| Tool         | Marker            | Purpose               |
+| ------------ | ----------------- | --------------------- |
+| ixchel       | `.ixchel/`        | Knowledge documents   |
+| hbd          | `.ixchel/issues/` | Issue tracking        |
+| helix-config | `.helix/`         | Project configuration |
 
 ## Out of Scope
 

@@ -39,9 +39,10 @@ hbd init
 ```
 
 This creates:
-- `.tickets/` — Where issue files are stored (git-tracked)
-- `.helix/config.toml` — Configuration file
-- `helix.toml` — HelixDB schema
+- `.ixchel/` — Canonical Ixchel directory (git-tracked except rebuildable cache)
+  - `.ixchel/issues/` — Where issue files are stored
+  - `.ixchel/config.toml` — Embeddings + storage configuration
+- `.gitignore` entries for `.ixchel/data/` and `.ixchel/models/`
 
 ### Create Your First Issue
 

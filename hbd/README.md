@@ -37,7 +37,7 @@ hbd comment bd-a1b2 "Started investigating"
 ### Currently Implemented
 
 - **Issue CRUD** - Create, show, list, update, close, reopen
-- **Markdown storage** - Issues stored as `.tickets/*.md` with YAML frontmatter
+- **Markdown storage** - Issues stored as `.ixchel/issues/*.md` with YAML frontmatter
 - **Dependencies** - Track blocking relationships with cycle detection
 - **Labels** - Add, remove, list labels on issues
 - **Comments** - Add comments with human/agent attribution
@@ -74,6 +74,7 @@ Issues are stored as Markdown files with YAML frontmatter:
 ---
 id: bd-a1b2c3
 title: Fix memory leak in parser
+type: issue
 status: open
 priority: 1
 issue_type: bug
@@ -84,7 +85,7 @@ labels:
   - parser
 depends_on:
   - id: bd-x7y8z9
-    dep_type: blocks
+    type: blocks
 ---
 
 ## Description
@@ -102,13 +103,14 @@ Started investigating, appears to be in the tokenizer.
 
 ```
 your-project/
-├── .tickets/
-│   ├── bd-a1b2c3.md    # Issue files
-│   ├── bd-d4e5f6.md
-│   └── ...
-├── .helix/
-│   └── config.toml     # hbd configuration
-└── .gitignore          # .helix/helix.db/ auto-added
+├── .ixchel/
+│   ├── config.toml     # project config (embeddings + storage)
+│   ├── issues/
+│   │   ├── bd-a1b2c3.md # Issue files
+│   │   ├── bd-d4e5f6.md
+│   │   └── ...
+│   └── data/           # rebuildable cache (gitignored)
+└── .gitignore          # .ixchel/data/ + .ixchel/models/ auto-added
 ```
 
 ## CLI Reference
@@ -177,7 +179,7 @@ hbd builds on excellent prior art in the git-backed issue tracking space:
 
 **[Beads](https://github.com/steveyegge/beads)** (Steve Yegge) pioneered the vision of git-backed, AI-native issue tracking. Beads introduced hash-based IDs for conflict-free merging, dependency graphs with blocking semantics, AI compaction for context management, and agent coordination via gates. If you're happy with Beads, keep using it—it's battle-tested and feature-rich.
 
-**[wedow/ticket](https://github.com/wedow/ticket)** took a radically minimal approach: a single shell script, no database, just Markdown files with YAML frontmatter in `.tickets/`. No daemon, no SQLite sync headaches. We adopted this Markdown-first storage approach directly.
+**[wedow/ticket](https://github.com/wedow/ticket)** took a radically minimal approach: a single shell script, no database, just Markdown files with YAML frontmatter in `.tickets/`. No daemon, no SQLite sync headaches. We adopted this Markdown-first storage approach, but store issues under `.ixchel/issues/` so decisions, issues, and other knowledge artifacts share one canonical directory.
 
 ### What hbd Adds
 

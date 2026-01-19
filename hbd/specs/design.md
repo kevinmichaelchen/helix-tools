@@ -4,12 +4,12 @@ This document defines the technical architecture, data model, and query implemen
 
 > **Implementation Status (2026-01-06)**
 >
-> The current implementation uses **file-based storage only** (Markdown files in `.tickets/`).
+> The current implementation uses **file-based storage only** (Markdown files in `.ixchel/issues/`).
 > HelixDB integration, vector embeddings, and graph queries are **planned but not yet implemented**.
 >
 > What's working today:
 >
-> - File-based CRUD via `.tickets/*.md`
+> - File-based CRUD via `.ixchel/issues/*.md`
 > - In-memory dependency traversal and cycle detection
 > - YAML frontmatter parsing and serialization
 >
@@ -21,7 +21,7 @@ This document defines the technical architecture, data model, and query implemen
 > - helixd daemon for file watching and background sync
 >
 > **Note:** Markdown files remain the source of truth. HelixDB acts as a fast query cache
-> that can be rebuilt from `.tickets/` at any time.
+> that can be rebuilt from `.ixchel/issues/` at any time.
 >
 > **HelixDB API Patterns:** When implementing HelixDB integration, follow the patterns used in
 > `demo-got/src/storage.rs` and `helix-graph-ops/src/lib.rs`. Key requirements:
@@ -61,7 +61,7 @@ This document defines the technical architecture, data model, and query implemen
                v                       v                   v
 ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐
 │    Git Layer        │ │      HelixDB        │ │   Embedding Layer   │
-│  .tickets/*.md      │ │      (LMDB)         │ │                     │
+│  .ixchel/issues/*.md      │ │      (LMDB)         │ │                     │
 │                     │ │                     │ │  fastembed (local)  │
 │  - Source of truth  │ │  - Fast queries     │ │  BGE-small-en-v1.5  │
 │  - YAML frontmatter │ │  - Graph traversal  │ │                     │
@@ -101,7 +101,7 @@ in `shared/helix-daemon/specs/design.md`.
                                        v
                          ┌─────────────────────┐
                          │    Git Layer        │
-                         │  .tickets/*.md      │
+                         │  .ixchel/issues/*.md      │
                          │                     │
                          │  - Source of truth  │
                          │  - YAML frontmatter │
@@ -123,7 +123,7 @@ in `shared/helix-daemon/specs/design.md`.
 v v v
 ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────────────┐
 │ Git Layer │ │ HelixDB │ │ Embedding Layer │
-│ .tickets/*.md │ │ (LMDB) │ │ │
+│ .ixchel/issues/*.md │ │ (LMDB) │ │ │
 │ │ │ │ │ fastembed (local) │
 │ - Source of truth │ │ - Fast queries │ │ BGE-small-en-v1.5 │
 │ - YAML frontmatter │ │ - Graph traversal │ │ │
@@ -162,7 +162,7 @@ hbd create "Title"
 │
 ├──▶ Generate hash-based ID (bd-xxxxxx)
 │
-├──▶ Write .tickets/bd-xxxxxx.md
+├──▶ Write .ixchel/issues/bd-xxxxxx.md
 │
 ├──▶ Insert Issue node in HelixDB
 │
@@ -173,7 +173,7 @@ hbd create "Title"
 **Read Path (after git pull):**
 ```
 
-git pull (new .tickets/ files)
+git pull (new .ixchel/issues/ files)
 │
 ├──▶ Daemon detects file changes
 │
@@ -1112,7 +1112,7 @@ QUERY systemInfo() =>
 ### Model Configuration
 
 ```toml
-# .helix/config.toml
+# .ixchel/config.toml
 [embeddings]
 # Backend: fastembed (local) | ollama | openai | gemini
 backend = "fastembed"
@@ -1121,7 +1121,7 @@ backend = "fastembed"
 model = "BGESmallENV15"  # 384 dimensions, ~130MB
 
 # Cache directory for model weights
-cache_dir = ".helix/models"
+cache_dir = ".ixchel/models"
 
 # Offline mode: never attempt cloud APIs
 offline_only = true
@@ -1234,18 +1234,15 @@ Issue Created
 
 ```
 your-project/
-├── .tickets/
-│   ├── bd-a1b2c3.md          # Issue files
-│   ├── bd-d4e5f6.md
-│   └── .labels.yaml          # Label definitions
-│
-├── .helix/
-│   ├── config.toml           # hbd configuration
-│   ├── helix.db/             # HelixDB data (gitignored)
+├── .ixchel/
+│   ├── config.toml           # project config (embeddings + storage)
+│   ├── issues/
+│   │   ├── bd-a1b2c3.md      # Issue files
+│   │   ├── bd-d4e5f6.md
+│   │   └── .labels.yaml      # Label definitions
+│   ├── data/                 # HelixDB data (gitignored)
 │   └── models/               # Embedding models (gitignored)
-│
-├── helix.toml                # HelixDB schema
-└── .gitignore                # Includes .helix/helix.db/, .helix/models/
+└── .gitignore                # Includes .ixchel/data/, .ixchel/models/
 ```
 
 ### Sync Algorithm
@@ -1254,7 +1251,7 @@ your-project/
 pub fn sync() -> Result<SyncResult, SyncError> {
     let mut result = SyncResult::default();
     
-    // 1. Export: HelixDB → .tickets/
+    // 1. Export: HelixDB → .ixchel/issues/
     for issue in db.query::<Issue>("dirty = true")? {
         let path = tickets_dir.join(format!("{}.md", issue.id));
         let content = issue.to_markdown();
@@ -1276,7 +1273,7 @@ pub fn sync() -> Result<SyncResult, SyncError> {
         db.mark_clean(&issue.id)?;
     }
     
-    // 2. Import: .tickets/ → HelixDB
+    // 2. Import: .ixchel/issues/ → HelixDB
     for entry in fs::read_dir(tickets_dir)? {
         let path = entry?.path();
         if path.extension() != Some("md") { continue; }
@@ -1387,7 +1384,7 @@ Memory usage grows linearly with each parsed file and is never freed.
 ### Label Definitions
 
 ```yaml
-# .tickets/.labels.yaml
+# .ixchel/issues/.labels.yaml
 labels:
   - name: bug
     color: "#d73a4a"
@@ -1409,7 +1406,7 @@ labels:
 ### Configuration
 
 ```toml
-# .helix/config.toml
+# .ixchel/config.toml
 
 [project]
 name = "helix-tools"
@@ -1424,7 +1421,7 @@ commit_message_template = "chore(issues): sync {action} {count} issue(s)"
 [embeddings]
 backend = "fastembed"
 model = "BGESmallENV15"
-cache_dir = ".helix/models"
+cache_dir = ".ixchel/models"
 offline_only = true
 
 [search]

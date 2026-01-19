@@ -5,7 +5,7 @@
 ## Overview
 
 Git-first issue tracker. Issues are stored as Markdown with YAML frontmatter in
-`.tickets/` and manipulated via the `hbd` CLI.
+`.ixchel/issues/` and manipulated via the `hbd` CLI.
 
 ## Structure
 

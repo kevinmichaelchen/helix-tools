@@ -6,7 +6,7 @@
 
 ## Overview
 
-helix-discovery provides project and git root discovery for helix-tools. It locates project markers (like `.decisions/`, `.tickets/`, `.helix/`) by walking up the directory tree from the current working directory.
+helix-discovery provides project and git root discovery for helix-tools. It locates project markers (like `.decisions/`, `.ixchel/issues/`, `.helix/`) by walking up the directory tree from the current working directory.
 
 ## Design Goals
 
@@ -90,7 +90,7 @@ fn find_ixchel_dir() -> Result<PathBuf, DiscoveryError> {
 use helix_discovery::find_marker_from_cwd;
 
 fn find_tickets_dir() -> Result<PathBuf, DiscoveryError> {
-    find_marker_from_cwd(".tickets")
+    find_marker_from_cwd(".ixchel/issues")
 }
 ```
 
@@ -163,11 +163,11 @@ pub fn find_marker(git_root: &Path, marker: &str) -> Result<PathBuf, DiscoveryEr
 
 ## Consumers
 
-| Tool         | Marker      |
-| ------------ | ----------- |
-| ixchel       | `.ixchel/`  |
-| hbd          | `.tickets/` |
-| helix-config | `.helix/`   |
+| Tool         | Marker            |
+| ------------ | ----------------- |
+| ixchel       | `.ixchel/`        |
+| hbd          | `.ixchel/issues/` |
+| helix-config | `.helix/`         |
 
 ## See Also
 

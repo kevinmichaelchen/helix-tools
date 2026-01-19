@@ -13,10 +13,10 @@ All tools store their data in git-friendly formats — Markdown, YAML, JSONL. Th
 
 **HelixDB acts as a fast query cache, not the source of truth.** 
 
-If you delete the database, you lose nothing. Run `hbd sync` and it rebuilds from your `.tickets/` files. Your issues live in git, travel with your code, and merge like any other file.
+If you delete the database, you lose nothing. Run `hbd sync` and it rebuilds from your `.ixchel/issues/` files. Your issues live in git, travel with your code, and merge like any other file.
 
 ```
-.tickets/
+.ixchel/issues/
 ├── bd-a1b2c3.md   ← Human-readable Markdown
 ├── bd-d4e5f6.md   ← YAML frontmatter + content
 └── bd-g7h8i9.md   ← Version controlled in git

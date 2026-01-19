@@ -37,13 +37,13 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 **I want to** create an issue with title, description, and metadata\
 **So that** I can track work items in my project
 
-| ID       | Acceptance Criterion                                                                                                                                                              |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AC-001.1 | WHEN a user runs `hbd create "Title" --description "..." --type bug` THE SYSTEM SHALL create a Markdown file in `.tickets/` with YAML frontmatter containing all specified fields |
-| AC-001.2 | WHEN the issue is created THE SYSTEM SHALL generate a unique hash-based ID (e.g., `bd-a1b2c3`) using the first 6 characters of a UUID v4 hash                                     |
-| AC-001.3 | WHEN the issue is created THE SYSTEM SHALL insert an Issue node into HelixDB with all properties indexed                                                                          |
-| AC-001.4 | WHEN the issue is created THE SYSTEM SHALL asynchronously generate an embedding vector and store it as an IssueEmbedding node                                                     |
-| AC-001.5 | WHEN `--json` flag is provided THE SYSTEM SHALL output the created issue as JSON to stdout                                                                                        |
+| ID       | Acceptance Criterion                                                                                                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-001.1 | WHEN a user runs `hbd create "Title" --description "..." --type bug` THE SYSTEM SHALL create a Markdown file in `.ixchel/issues/` with YAML frontmatter containing all specified fields |
+| AC-001.2 | WHEN the issue is created THE SYSTEM SHALL generate a unique hash-based ID (e.g., `bd-a1b2c3`) using the first 6 characters of a UUID v4 hash                                           |
+| AC-001.3 | WHEN the issue is created THE SYSTEM SHALL insert an Issue node into HelixDB with all properties indexed                                                                                |
+| AC-001.4 | WHEN the issue is created THE SYSTEM SHALL asynchronously generate an embedding vector and store it as an IssueEmbedding node                                                           |
+| AC-001.5 | WHEN `--json` flag is provided THE SYSTEM SHALL output the created issue as JSON to stdout                                                                                              |
 
 ---
 
@@ -394,12 +394,12 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 **I want** issues to sync automatically via git\
 **So that** team members see the same issues
 
-| ID       | Acceptance Criterion                                                                                        |
-| -------- | ----------------------------------------------------------------------------------------------------------- |
-| AC-016.1 | WHEN a user runs `hbd sync` THE SYSTEM SHALL export any dirty HelixDB changes to `.tickets/` Markdown files |
-| AC-016.2 | WHEN a user runs `hbd sync` THE SYSTEM SHALL import any `.tickets/` changes not in HelixDB                  |
-| AC-016.3 | THE SYSTEM SHALL use content hashing to detect changes (not timestamps)                                     |
-| AC-016.4 | WHEN helixd is running THE SYSTEM SHALL auto-sync every 5 seconds (debounced)                               |
+| ID       | Acceptance Criterion                                                                                              |
+| -------- | ----------------------------------------------------------------------------------------------------------------- |
+| AC-016.1 | WHEN a user runs `hbd sync` THE SYSTEM SHALL export any dirty HelixDB changes to `.ixchel/issues/` Markdown files |
+| AC-016.2 | WHEN a user runs `hbd sync` THE SYSTEM SHALL import any `.ixchel/issues/` changes not in HelixDB                  |
+| AC-016.3 | THE SYSTEM SHALL use content hashing to detect changes (not timestamps)                                           |
+| AC-016.4 | WHEN helixd is running THE SYSTEM SHALL auto-sync every 5 seconds (debounced)                                     |
 
 ---
 
@@ -413,7 +413,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 | -------- | ------------------------------------------------------------------------------------------------------------- |
 | AC-017.1 | THE SYSTEM SHALL use hash-based IDs (e.g., `bd-a1b2c3`) to prevent ID collisions across branches              |
 | AC-017.2 | WHEN the same issue is modified on two branches THE SYSTEM SHALL keep the version with the later `updated_at` |
-| AC-017.3 | WHEN git merge conflicts occur in `.tickets/` files THE SYSTEM SHALL require manual resolution                |
+| AC-017.3 | WHEN git merge conflicts occur in `.ixchel/issues/` files THE SYSTEM SHALL require manual resolution          |
 | AC-017.4 | WHEN importing after manual conflict resolution THE SYSTEM SHALL validate YAML frontmatter syntax             |
 
 ---
@@ -459,7 +459,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 | ID       | Acceptance Criterion                                                                               |
 | -------- | -------------------------------------------------------------------------------------------------- |
 | AC-020.1 | WHEN a user runs `hbd create --ephemeral "Temp task"` THE SYSTEM SHALL set `ephemeral=true`        |
-| AC-020.2 | THE SYSTEM SHALL store ephemeral issues in HelixDB but NOT export them to `.tickets/`              |
+| AC-020.2 | THE SYSTEM SHALL store ephemeral issues in HelixDB but NOT export them to `.ixchel/issues/`        |
 | AC-020.3 | THE SYSTEM SHALL exclude ephemeral issues from `hbd list` unless `--include-ephemeral` is provided |
 | AC-020.4 | WHEN `hbd sync` runs THE SYSTEM SHALL delete closed ephemeral issues older than 24 hours           |
 
@@ -650,10 +650,10 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 
 | ID       | Acceptance Criterion                                                                   |
 | -------- | -------------------------------------------------------------------------------------- |
-| AC-027.1 | WHEN a user runs `hbd init` THE SYSTEM SHALL create `.tickets/` directory              |
-| AC-027.2 | THE SYSTEM SHALL create `.helix/config.toml` with default settings                     |
+| AC-027.1 | WHEN a user runs `hbd init` THE SYSTEM SHALL create `.ixchel/issues/` directory        |
+| AC-027.2 | THE SYSTEM SHALL create `.ixchel/config.toml` with default settings                    |
 | AC-027.3 | THE SYSTEM SHALL create `helix.toml` with the issue tracker schema                     |
-| AC-027.4 | THE SYSTEM SHALL add `.helix/helix.db/` to `.gitignore`                                |
+| AC-027.4 | THE SYSTEM SHALL add `.ixchel/data/` to `.gitignore`                                   |
 | AC-027.5 | WHEN `hbd init` is run in an existing hbd project THE SYSTEM SHALL abort with an error |
 
 ---
@@ -666,7 +666,7 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 
 | ID       | Acceptance Criterion                                                                                    |
 | -------- | ------------------------------------------------------------------------------------------------------- |
-| AC-028.1 | THE SYSTEM SHALL read configuration from `.helix/config.toml`                                           |
+| AC-028.1 | THE SYSTEM SHALL read configuration from `.ixchel/config.toml`                                          |
 | AC-028.2 | THE SYSTEM SHALL support configuring: embedding backend, cloud API keys, sync interval, default project |
 | AC-028.3 | THE SYSTEM SHALL support environment variable overrides with `HBD_` prefix                              |
 | AC-028.4 | WHEN a user runs `hbd config show` THE SYSTEM SHALL display current configuration                       |
@@ -689,11 +689,11 @@ This document defines user stories and acceptance criteria for `hbd` using [EARS
 
 ### NFR-002: Reliability
 
-| ID        | Requirement                                                                            |
-| --------- | -------------------------------------------------------------------------------------- |
-| NFR-002.1 | THE SYSTEM SHALL NOT corrupt data on unexpected termination (use atomic writes)        |
-| NFR-002.2 | THE SYSTEM SHALL maintain consistency between `.tickets/` and HelixDB after `hbd sync` |
-| NFR-002.3 | THE SYSTEM SHALL log all errors with sufficient context for debugging                  |
+| ID        | Requirement                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------- |
+| NFR-002.1 | THE SYSTEM SHALL NOT corrupt data on unexpected termination (use atomic writes)              |
+| NFR-002.2 | THE SYSTEM SHALL maintain consistency between `.ixchel/issues/` and HelixDB after `hbd sync` |
+| NFR-002.3 | THE SYSTEM SHALL log all errors with sufficient context for debugging                        |
 
 ---
 

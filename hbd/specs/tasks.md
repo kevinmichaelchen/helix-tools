@@ -129,16 +129,16 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 ### 1.4 Basic CRUD Commands
 
 - [x] **T1.4.1** Implement `hbd init`
-  - Create `.tickets/` directory
-  - Create `.helix/config.toml` with defaults
+  - Create `.ixchel/issues/` directory
+  - Create `.ixchel/config.toml` with defaults
   - ~~Create `helix.toml` with schema~~ (helix.toml exists but not auto-created by init)
-  - Add `.helix/helix.db/` to `.gitignore`
+  - Add `.ixchel/data/` to `.gitignore`
   - Abort if already initialized
 
 - [x] **T1.4.2** Implement `hbd create`
   - Parse arguments: title, --description, --type, --priority, --labels, --assignee
   - Generate hash-based ID
-  - Write `.tickets/bd-xxxx.md`
+  - Write `.ixchel/issues/bd-xxxx.md`
   - ~~Insert Issue node in HelixDB~~ (deferred - file-only for now)
   - Support --json output
   - Support --agent flag
@@ -362,7 +362,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 ### 4.1 File Watcher
 
 - [ ] **T4.1.1** Implement file watcher with notify
-  - Watch `.tickets/` directory
+  - Watch `.ixchel/issues/` directory
   - Debounce events (5 seconds)
   - Queue sync on change
 
@@ -386,7 +386,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 
 - [ ] **T4.3.1** Implement auto-commit on sync
   - Check config.sync.auto_commit
-  - Stage `.tickets/` changes
+  - Stage `.ixchel/issues/` changes
   - Commit with template message
 
 ### 4.4 Daemon Mode
@@ -406,7 +406,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
   - Display uptime and sync stats
 
 - [ ] **T4.4.4** Implement RPC socket for CLI→daemon
-  - Unix socket at `.helix/hbd.sock`
+  - Unix socket at `.ixchel/hbd.sock`
   - Commands route through daemon if available
   - Fall back to direct DB if daemon unavailable
 
@@ -445,7 +445,7 @@ This document breaks down the `hbd` implementation into phases with specific, tr
 
 - [ ] **T5.2.1** Implement `hbd create --ephemeral`
   - Set ephemeral=true
-  - Store in HelixDB only (not exported to .tickets/)
+  - Store in HelixDB only (not exported to .ixchel/issues/)
   - Requires: HelixDB integration
 
 - [ ] **T5.2.2** Exclude ephemeral from list by default

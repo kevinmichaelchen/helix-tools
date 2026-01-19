@@ -25,19 +25,19 @@ Open http://localhost:5173 in your browser.
 
 ### With an hbd Repository
 
-Run from any directory containing a `.tickets/` folder (or a parent of one):
+Run from any directory containing a `.ixchel/issues/` folder (or a parent of one):
 
 ```bash
-cd your-project  # Must have .tickets/ from `hbd init`
+cd your-project  # Must have .ixchel/ from `hbd init`
 cd path/to/hbd-ui
 bun run dev
 ```
 
-The UI will auto-detect the nearest `.tickets/` directory and load issues via `hbd list --json`.
+The UI will auto-detect the nearest `.ixchel/issues/` directory and load issues via `hbd list --json`.
 
 ### Demo Mode
 
-If no `.tickets/` directory is found, or to force demo mode:
+If no `.ixchel/issues/` directory is found, or to force demo mode:
 
 ```
 http://localhost:5173?demo=true

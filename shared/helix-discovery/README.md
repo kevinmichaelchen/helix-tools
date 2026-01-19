@@ -7,7 +7,7 @@ Project and git root discovery for helix-tools.
 Multiple helix-tools need to find project markers:
 
 - **ixchel** — Find `.ixchel/` directory
-- **hbd** — Find `.tickets/` directory
+- **hbd** — Find `.ixchel/issues/` directory
 - **helix-config** — Find `.helix/` config directory
 
 This crate provides unified discovery logic with consistent behavior.
@@ -56,12 +56,12 @@ match find_marker_from_cwd(".ixchel") {
 
 ## Common Markers
 
-| Marker        | Meaning                         |
-| ------------- | ------------------------------- |
-| `.ixchel/`    | Ixchel project knowledge        |
-| `.tickets/`   | hbd issues                      |
-| `.helix/`     | Legacy helix-tools project cfg  |
-| `.decisions/` | Legacy ADRs (Ixchel-migratable) |
+| Marker            | Meaning                         |
+| ----------------- | ------------------------------- |
+| `.ixchel/`        | Ixchel project knowledge        |
+| `.ixchel/issues/` | hbd issues                      |
+| `.helix/`         | Legacy helix-tools project cfg  |
+| `.decisions/`     | Legacy ADRs (Ixchel-migratable) |
 
 ## License
 

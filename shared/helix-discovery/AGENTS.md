@@ -4,7 +4,7 @@
 
 ## Overview
 
-Finds git roots and project markers (e.g. `.decisions/`, `.tickets/`, `.helix/`).
+Finds git roots and project markers (e.g. `.decisions/`, `.ixchel/issues/`, `.helix/`).
 
 ## Structure
 
