@@ -66,7 +66,7 @@ export default function HomePage() {
             href="https://github.com/kevinmichaelchen/ixchel"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-slate-300 transition-all bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white active:scale-95"
+            className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-slate-700 dark:text-slate-300 transition-all bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white active:scale-95"
           >
             <Github className="mr-2 h-4 w-4" />
             View on GitHub
