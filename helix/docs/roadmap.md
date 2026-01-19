@@ -1,6 +1,11 @@
 # Implementation Roadmap
 
-This document outlines the phased implementation plan for the unified Helix knowledge system.
+This document outlines the phased implementation plan for the unified Helix
+knowledge system.
+
+Note: this roadmap is a historical blueprint. The implemented system is now
+**Ixchel** (crates `ix-*`, canonical dir `.ixchel/`). For the current backlog,
+prefer each crate’s `specs/tasks.md`.
 
 ## Current State
 

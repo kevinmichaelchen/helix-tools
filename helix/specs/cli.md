@@ -1,6 +1,13 @@
 # CLI Design Specification
 
-The `helix` command-line interface provides unified access to all entity types and operations.
+The `helix` command-line interface provides unified access to all entity types
+and operations.
+
+Note: this spec was drafted under the working name “Helix”. The implemented tool
+is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `helix` → `ixchel`
+and `.helix/` → `.ixchel/` when reading. Some commands/flags described here are
+planned and not implemented yet; use `ix-cli/` and `ix-*/specs/` as the current
+source of truth.
 
 ## Design Principles
 

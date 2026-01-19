@@ -1,6 +1,11 @@
 # AI Agent Integration Guide
 
-This document describes how AI agents (Claude, GPT, Copilot, etc.) can interact with the Helix knowledge graph to provide better assistance.
+This document describes how AI agents (Claude, GPT, Copilot, etc.) can interact
+with the Helix knowledge graph to provide better assistance.
+
+Note: this document is a blueprint and may describe planned behavior. The
+implemented system is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`) with
+an MCP server in `ix-mcp/` (binary `ixchel-mcp`).
 
 ## Philosophy
 

@@ -1,8 +1,11 @@
-# Helix: A Unified Knowledge Graph System
+# Ixchel: A Unified Knowledge Weaving System
 
 ## Vision Statement
 
-Helix is a **local-first, git-native knowledge operating system for agent swarms**. It unifies human knowledge with lightweight agent attribution into a single semantically searchable graph so multiple agents can coordinate safely and retain long-horizon memory.
+Ixchel (ik‑SHEL) is a **local-first, git-native knowledge weaving system for
+agent swarms**. It weaves decisions, issues, sources, and reports into a single
+semantically searchable graph so humans and AI agents can coordinate safely and
+retain long-horizon memory.
 
 ## The Problem
 
@@ -15,51 +18,54 @@ Knowledge is scattered and loses context:
 
 We need a **graph that keeps knowledge coherent and attributable** so agents can:
 
-1. Coordinate safely (leases on work items)
+1. Coordinate safely
 2. Recover prior rationale and evidence
 3. Answer “why/what/how” across many hops
-4. Generate precise, debiased context for other agents and humans
+4. Generate precise, grounded context for other agents and humans
 
 ## The Solution
 
-Helix provides:
+Ixchel provides:
 
 ### 1. Unified Entity Model (Knowledge + Attribution)
 
 - **Knowledge**: decisions, issues, ideas, reports, sources, citations
 - **Attribution**: agents, sessions (light grouping)
 
-All share YAML frontmatter, IDs, timestamps, attribution, and embeddings (chunked per section).
+All share YAML frontmatter, IDs, timestamps, attribution, and embeddings
+(chunked per section).
 
-### 2. Graph-Vector Storage
+### 2. Graph-Vector Storage (Cache)
 
 HelixDB provides:
 
-- **Graph layer**: Typed nodes and edges for relationship traversal
+- **Graph layer**: typed nodes and edges for relationship traversal
 - **Vector layer**: HNSW index for semantic similarity search
-- **Secondary indices**: Fast lookups by ID, status, tags, dates
+- **Secondary indices**: fast lookups by ID, status, tags, dates
 
-### 3. Git-Native Persistence
+### 3. Git-Native Persistence (Canonical)
 
-- Source of truth: Markdown files in `.helix/` directories
+- Source of truth: Markdown files in `.ixchel/`
 - HelixDB is a cache/index, rebuildable from files
 - Full version history via git
 - Branch/merge workflow for knowledge
 - Pre-commit hooks for integrity enforcement
 
-### 4. Unified CLI
+### 4. Unified CLI (MVP)
 
 One command for all entity types:
 
 ```bash
-helix create decision "Use PostgreSQL for primary storage"
-helix create issue "Implement connection pooling" --relates-to dec-42
-helix search "database performance" --types decision,issue,source
-helix graph dec-42 --depth 3
-helix context iss-17 --for-agent
+ixchel create decision "Use PostgreSQL for primary storage" --status proposed
+ixchel create issue "Implement connection pooling" --status open
+ixchel link iss-xxxx implements dec-xxxx
+ixchel sync
+ixchel search "database performance"
+ixchel graph dec-xxxx
+ixchel context iss-xxxx
 ```
 
-### 5. Interactive TUI
+### 5. Interactive TUI (Future)
 
 - Entity browser with type filtering
 - Graph visualization
@@ -69,7 +75,7 @@ helix context iss-17 --for-agent
 
 ### 6. AI-Native by Default
 
-- Agent/session attribution on every artifact
+- Agent/session attribution on every artifact (where available)
 - Chunked embeddings and centroid reranking for small-context agents
 - Deferred: run logs, patches, code-surface indexing (future extensions)
 
@@ -104,7 +110,8 @@ Graph queries answer real questions:
 
 Every entity gets embedded. Search by meaning:
 
-- "memory optimization" finds issues about allocation, decisions about pooling, papers about GC
+- "memory optimization" finds issues about allocation, decisions about pooling,
+  papers about GC
 - "authentication" finds OAuth decisions, login bugs, security RFCs
 
 ### 4. Knowledge Has Lifecycle
@@ -116,7 +123,7 @@ Entities age, evolve, and die:
 - Issues → open/closed
 - Sources → cited/forgotten
 
-Helix tracks and surfaces this.
+Ixchel tracks and surfaces this.
 
 ### 5. AI Is a Collaborator
 
@@ -136,16 +143,22 @@ Attribution matters. Track who (or what) created each artifact.
 | Attribution | agent (`agt-`), session (`ses-`)                                                                                | Provenance and grouping          |
 | Deferred    | run (`run-`), plan (`pln-`), patch (`pch-`), snapshot (`snap-`), file (`file-`), symbol (`sym-`), test (`tst-`) | Future execution/code extensions |
 
-## Relationship Types (high level)
+Note: `hbd` issues use the legacy `bd-` prefix and store files under
+`.ixchel/issues/` as well.
 
-`relates_to`, `blocks`, `depends_on`, `supersedes`, `amends`, `evolves_into`, `spawns`, `implements`, `addresses`, `summarizes`, `cites`, `quotes`, `supports`, `contradicts`, `used_in`, `recommends`, `observes`, `duplicate_of`, `derives_from`, `claims` (issues). Deferred types will add more later.
+## Relationship Types (High Level)
+
+`relates_to`, `blocks`, `depends_on`, `supersedes`, `amends`, `evolves_into`,
+`spawns`, `implements`, `addresses`, `summarizes`, `cites`, `quotes`, `supports`,
+`contradicts`, `used_in`, `recommends`, `observes`, `duplicate_of`,
+`derives_from`, `claims` (issues). Deferred types will add more later.
 
 ## Success Metrics
 
 1. **Discoverability**: Find relevant knowledge in <1s semantic search
 2. **Traceability**: Answer "why?" by traversing 3+ hops in the graph
 3. **Freshness**: Surface stale/orphaned knowledge automatically
-4. **Adoption**: Replace bespoke run logs, ADR tools, and code notebooks with Helix
+4. **Adoption**: Replace bespoke ADR tools and notebooks with Ixchel
 5. **AI Utility**: Generate useful, grounded context for agent swarms and humans
 
 ## Non-Goals
@@ -165,7 +178,7 @@ Attribution matters. Track who (or what) created each artifact.
 - **Steve Yegge's Beads**: Inspiration for hbd (but theoretical)
 - **ADR Tools**: Decision records (but no search, no relationships)
 
-Helix synthesizes the best of these with:
+Ixchel synthesizes the best of these with:
 
 - Typed entities (not just pages)
 - Graph + vector search (not just links)
@@ -175,11 +188,9 @@ Helix synthesizes the best of these with:
 
 ## The Name
 
-**Helix** evokes:
+Ixchel is the Mayan goddess associated with weaving (and also the moon,
+fertility, and medicine). Weaving is the right metaphor: the system exists to
+**weave intergenerational knowledge** — decisions, evidence, implementation
+work, and learnings — into a durable, queryable structure.
 
-- **DNA double helix**: Intertwined strands of knowledge
-- **Spiral growth**: Ideas evolving through iterations
-- **Graph structure**: Nodes connected in complex patterns
-- **The Helix editor**: Terminal-native, modern, Rust-based
-
-The CLI is simply `helix`. Crates follow `helix-*` naming.
+The CLI is `ixchel`. Crates follow `ix-*` naming.

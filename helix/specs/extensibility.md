@@ -1,6 +1,11 @@
 # Extensibility Specification
 
-This document describes how users can extend Helix with custom entity types, relationships, and validation rules.
+This document describes how users can extend Helix with custom entity types,
+relationships, and validation rules.
+
+Note: this spec was drafted under the working name “Helix”. The implemented tool
+is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `helix` → `ixchel`
+and `.helix/` → `.ixchel/` when reading.
 
 ## Design Philosophy
 

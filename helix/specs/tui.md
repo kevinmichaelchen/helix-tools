@@ -1,6 +1,11 @@
 # TUI Design Specification
 
-The `helix ui` terminal user interface provides an interactive dashboard for browsing, searching, and managing the knowledge graph.
+The `helix ui` terminal user interface provides an interactive dashboard for
+browsing, searching, and managing the knowledge graph.
+
+Note: this spec was drafted under the working name “Helix”. The implemented tool
+is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `helix` → `ixchel`
+and `.helix/` → `.ixchel/` when reading. The TUI is not implemented yet.
 
 ## Design Principles
 

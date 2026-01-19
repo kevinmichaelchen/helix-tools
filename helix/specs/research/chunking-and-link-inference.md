@@ -6,7 +6,7 @@ pipelines for knowledge graphs.
 
 ## Executive Summary
 
-The Helix architecture's approach to chunking and link inference aligns with
+The Ixchel architecture's approach to chunking and link inference aligns with
 current best practices in the RAG and knowledge graph domains. Key validations:
 
 - **Chunk-level indexing** with centroid vectors addresses the precision vs
@@ -25,7 +25,7 @@ enable precise semantic matching but fragment context, while large chunks
 preserve coherence but dilute semantic focus[ragflow]. This tension directly
 impacts retrieval quality for complex queries requiring multi-hop reasoning.
 
-### Helix's Approach
+### Ixchel's Approach
 
 The architecture addresses this with:
 
@@ -67,7 +67,7 @@ Current best practices (2025-2026)[arxiv-hnsw][mariadb-vector]:
 
 ## 2. Relationship Inference Pipeline
 
-### Helix's Four-Stage Pipeline
+### Ixchel's Four-Stage Pipeline
 
 1. **Chunk retrieval**: Vector search for top-k candidate pairs across entity
    types

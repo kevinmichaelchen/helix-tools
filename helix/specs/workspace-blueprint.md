@@ -30,7 +30,7 @@ should not live under `./helix`.
 ## Responsibilities (target end-state)
 
 - `ix-types`: ID newtypes, enums, DTOs; serde only, no I/O.
-- `ix-config`: Load/validate `.helix/config.toml` + dynamic entities/relationships.
+- `ix-config`: Load/validate `.ixchel/config.toml` + dynamic entities/relationships.
 - `ix-core`: Facade/orchestrator for registry, validation, context build, sync; depends on traits, not adapters.
 - `ix-storage` (traits): `FileStorage`, `GraphStorage`, `VectorStorage`, `ChunkStore`.
 - `ix-storage-file`: Markdown/frontmatter I/O, directory helpers, content hashing + TTL checks.
@@ -42,7 +42,7 @@ should not live under `./helix`.
 - `ix-cli`: Clap front-end; thin wrappers around `ix-core`.
 - `ix-tui`: UI over `ix-core`; no storage specifics.
 - `ix-mcp`: MCP tool surface returning typed responses via `ix-core`.
-- `ix-testkit`: Sample `.helix` trees, golden files, labeled pair evals; harness to gate retrieval/rerank/calibration changes.
+- `ix-testkit`: Sample `.ixchel` trees, golden files, labeled pair evals; harness to gate retrieval/rerank/calibration changes.
 - `ix-obs` (optional): Shared logging/metrics/tracing setup.
 
 ## Refactor Sequence (short)
