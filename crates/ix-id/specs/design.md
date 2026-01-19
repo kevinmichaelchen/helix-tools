@@ -130,7 +130,7 @@ For 6 hex characters (3 bytes = 24 bits):
 - Birthday problem: 50% collision at ~4,096 IDs
 - 1% collision at ~580 IDs
 
-For typical ixchel-tools usage:
+For typical ixchel usage:
 
 - Issues per repo: 100-10,000 → Very low collision risk
 - Docs per library: 10-1,000 → Very low collision risk

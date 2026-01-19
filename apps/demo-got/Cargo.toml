@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Game of Thrones family tree graph demo with HelixDB"
 license = "MIT"
-repository = "https://github.com/kevinmichaelchen/ixchel-tools"
+repository = "https://github.com/kevinmichaelchen/ixchel"
 keywords = ["demo", "graph", "helixdb", "game-of-thrones"]
 categories = ["command-line-utilities"]
 

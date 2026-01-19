@@ -1,6 +1,6 @@
 # HELIX-TOOLS AGENTS
 
-Workspace guide for the helix-tools Rust monorepo. Each crate now has its own
+Workspace guide for the ixchel Rust monorepo. Each crate now has its own
 `AGENTS.md` next to its `Cargo.toml` for crate-specific guidance.
 
 ## Overview
@@ -13,7 +13,7 @@ Workspace guide for the helix-tools Rust monorepo. Each crate now has its own
 ## Workspace Layout
 
 ```
-helix-tools/
+ixchel/
 ├── hbd/                    # Git-first issue tracker CLI
 ├── hbd-ui/                 # Svelte UI for hbd (frontend)
 │   └── src-tauri/           # Tauri shell (Rust)

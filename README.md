@@ -1,4 +1,6 @@
-# Ixchel Tools
+# Ixchel
+
+![Ixchel](https://live.staticflickr.com/65535/55049015772_351f0dda11_z.jpg)
 
 AI-native developer tools powered by [HelixDB][helixdb]. Git-first, offline-first, agent-friendly.
 
@@ -16,8 +18,8 @@ Future tools and experiments are tracked as Ixchel ideas under `.ixchel/ideas/`.
 
 ```bash
 # Clone and build
-git clone https://github.com/kevinmichaelchen/ixchel-tools.git
-cd ixchel-tools
+git clone https://github.com/kevinmichaelchen/ixchel.git
+cd ixchel
 cargo build --release
 ```
 
@@ -56,10 +58,10 @@ ixchel search "database performance"
 
 <!-- Docs -->
 
-[docs]: https://kevinmichaelchen.github.io/ixchel-tools
-[getting-started]: https://kevinmichaelchen.github.io/ixchel-tools/docs/getting-started
-[architecture]: https://kevinmichaelchen.github.io/ixchel-tools/docs/architecture
-[config]: https://kevinmichaelchen.github.io/ixchel-tools/docs/configuration
+[docs]: https://kevinmichaelchen.github.io/ixchel
+[getting-started]: https://kevinmichaelchen.github.io/ixchel/docs/getting-started
+[architecture]: https://kevinmichaelchen.github.io/ixchel/docs/architecture
+[config]: https://kevinmichaelchen.github.io/ixchel/docs/configuration
 
 <!-- Tools -->
 

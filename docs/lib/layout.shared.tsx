@@ -13,9 +13,9 @@ export function baseOptions(): BaseLayoutProps {
       },
       {
         text: 'GitHub',
-        url: 'https://github.com/kevinmichaelchen/ixchel-tools',
+        url: 'https://github.com/kevinmichaelchen/ixchel',
       },
     ],
-    githubUrl: 'https://github.com/kevinmichaelchen/ixchel-tools',
+    githubUrl: 'https://github.com/kevinmichaelchen/ixchel',
   };
 }

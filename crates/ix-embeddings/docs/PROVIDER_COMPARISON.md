@@ -310,7 +310,7 @@ output = llm.encode("text")
 
 ## Implementation Priority
 
-Based on ixchel-tools requirements (offline-first, Rust-native, Apple Silicon support):
+Based on ixchel requirements (offline-first, Rust-native, Apple Silicon support):
 
 ### Phase 1: Complete
 
@@ -331,7 +331,7 @@ Based on ixchel-tools requirements (offline-first, Rust-native, Apple Silicon su
 
 ## Recommendation
 
-**For ixchel-tools specifically:**
+**For ixchel specifically:**
 
 1. **Keep fastembed as default** — Works everywhere, no GPU required
 2. **Add Candle next** — Pure Rust, Metal support, aligns with project philosophy
