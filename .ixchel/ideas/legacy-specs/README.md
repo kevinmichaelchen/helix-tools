@@ -1,14 +1,14 @@
 # Ixchel (Blueprints)
 
-Note: `./helix` is a brainstorming/specs directory. Many docs here started under
-the working name “Helix”; the implemented tool is now **Ixchel** (`ix-cli/`,
+Note: `./ixchel` is a brainstorming/specs directory. Many docs here started under
+the working name “Ixchel”; the implemented tool is now **Ixchel** (`ix-cli/`,
 `ix-core/`, `ix-mcp/`, `ix-storage-helixdb/`) and the canonical on-disk directory
 is `.ixchel/`.
 
 Mapping (when you see older terminology in these docs):
 
-- `helix` CLI → `ixchel`
-- `.helix/` dir → `.ixchel/`
+- `ixchel` CLI → `ixchel`
+- `.ixchel/` dir → `.ixchel/`
 - HelixDB stays HelixDB
 
 Ixchel is a git-first knowledge weaving system: Markdown is canonical; HelixDB

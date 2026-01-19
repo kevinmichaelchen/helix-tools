@@ -1,11 +1,11 @@
 # Extensibility Specification
 
-This document describes how users can extend Helix with custom entity types,
+This document describes how users can extend Ixchel with custom entity types,
 relationships, and validation rules.
 
-Note: this spec was drafted under the working name “Helix”. The implemented tool
-is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `helix` → `ixchel`
-and `.helix/` → `.ixchel/` when reading.
+Note: this spec was drafted under the working name “Ixchel”. The implemented tool
+is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `ixchel` → `ixchel`
+and `.ixchel/` → `.ixchel/` when reading.
 
 ## Design Philosophy
 
@@ -55,7 +55,7 @@ Defined in `graph-schema.md`. Strict mode enforces the baseline; permissive/cust
 
 ### Configuration
 
-`.helix/entities/meeting.toml`:
+`.ixchel/entities/meeting.toml`:
 
 ```toml
 [entity]
@@ -103,11 +103,11 @@ incoming = [
 
 ### Runtime Behavior
 
-1. **Discovery**: On `helix init` or `helix sync`, scan `.helix/entities/*.toml`
+1. **Discovery**: On `ixchel init` or `ixchel sync`, scan `.ixchel/entities/*.toml`
 2. **Registration**: Add to entity type registry
 3. **Validation**: Enforce required fields and status values
-4. **Storage**: Create directory `.helix/meetings/` if needed
-5. **CLI**: `helix create meeting "Weekly sync"` just works
+4. **Storage**: Create directory `.ixchel/meetings/` if needed
+5. **CLI**: `ixchel create meeting "Weekly sync"` just works
 
 ### File Format
 
@@ -166,7 +166,7 @@ The `Type: meeting` helps semantic search distinguish between entity types.
 
 ### Configuration
 
-`.helix/relationships/discusses.toml`:
+`.ixchel/relationships/discusses.toml`:
 
 ```toml
 [relationship]
@@ -211,7 +211,7 @@ We want to learn from real usage before exposing this.
 
 ### Configuration
 
-`.helix/config.toml`:
+`.ixchel/config.toml`:
 
 ```toml
 [validation]
@@ -387,23 +387,23 @@ impl DynamicEntity {
 
 ### Adding Custom Type to Existing Project
 
-1. Create `.helix/entities/meeting.toml`
-2. Run `helix sync` — registers new type
-3. `helix create meeting "Weekly sync"` — just works
+1. Create `.ixchel/entities/meeting.toml`
+2. Run `ixchel sync` — registers new type
+3. `ixchel create meeting "Weekly sync"` — just works
 4. Existing entities unaffected
 
 ### Removing Custom Type
 
-1. Delete `.helix/entities/meeting.toml`
-2. Run `helix check` — warns about orphaned entities
+1. Delete `.ixchel/entities/meeting.toml`
+2. Run `ixchel check` — warns about orphaned entities
 3. Options:
-   - Delete meeting entities: `helix delete --type meeting --all`
+   - Delete meeting entities: `ixchel delete --type meeting --all`
    - Keep files (become untyped, excluded from search)
 
 ### Changing Validity Rules
 
-1. Update `.helix/config.toml` with new rules
-2. Run `helix check` — validates existing relationships
+1. Update `.ixchel/config.toml` with new rules
+2. Run `ixchel check` — validates existing relationships
 3. Invalid relationships flagged as warnings
 4. Fix or remove invalid relationships
 
@@ -416,8 +416,8 @@ impl DynamicEntity {
 No. Unknown prefixes in file names are errors. This prevents typos from creating invalid entities.
 
 ```bash
-$ helix create foo "Test"
-Error: Unknown entity type 'foo'. Define it in .helix/entities/foo.toml
+$ ixchel create foo "Test"
+Error: Unknown entity type 'foo'. Define it in .ixchel/entities/foo.toml
 ```
 
 ### Q: Can custom types have their own CLI subcommands?
@@ -425,7 +425,7 @@ Error: Unknown entity type 'foo'. Define it in .helix/entities/foo.toml
 Not in v1.x. Use the generic syntax:
 
 ```bash
-helix create meeting "Title" --property date=2026-01-20
+ixchel create meeting "Title" --property date=2026-01-20
 ```
 
 Future versions might support generated CLI extensions.
@@ -442,9 +442,9 @@ Future consideration. Options:
 
 Not built-in, but you can:
 
-- Copy `.helix/entities/*.toml` files
+- Copy `.ixchel/entities/*.toml` files
 - Create a shared git submodule
-- Future: `helix plugin install company/entity-definitions`
+- Future: `ixchel plugin install company/entity-definitions`
 
 ---
 

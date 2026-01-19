@@ -1,11 +1,11 @@
 # CLI Design Specification
 
-The `helix` command-line interface provides unified access to all entity types
+The `ixchel` command-line interface provides unified access to all entity types
 and operations.
 
-Note: this spec was drafted under the working name “Helix”. The implemented tool
-is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `helix` → `ixchel`
-and `.helix/` → `.ixchel/` when reading. Some commands/flags described here are
+Note: this spec was drafted under the working name “Ixchel”. The implemented tool
+is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`). Treat `ixchel` → `ixchel`
+and `.ixchel/` → `.ixchel/` when reading. Some commands/flags described here are
 planned and not implemented yet; use `ix-cli/` and `ix-*/specs/` as the current
 source of truth.
 
@@ -20,28 +20,28 @@ source of truth.
 ## Command Structure
 
 ```
-helix <verb> [entity-type] [id] [options]
+ixchel <verb> [entity-type] [id] [options]
 ```
 
 ### Verbs
 
-| Verb      | Description                   | Example                               |
-| --------- | ----------------------------- | ------------------------------------- |
-| `create`  | Create new entity             | `helix create decision "Use Redis"`   |
-| `show`    | Display single entity         | `helix show dec-42`                   |
-| `list`    | List entities with filters    | `helix list issues --status open`     |
-| `update`  | Modify entity                 | `helix update iss-17 --status closed` |
-| `delete`  | Remove entity                 | `helix delete idea-9`                 |
-| `search`  | Semantic search               | `helix search "caching strategy"`     |
-| `graph`   | Traverse relationships        | `helix graph dec-42 --depth 3`        |
-| `link`    | Add relationship              | `helix link dec-42 spawns iss-17`     |
-| `unlink`  | Remove relationship           | `helix unlink dec-42 spawns iss-17`   |
-| `context` | Generate AI context           | `helix context iss-17`                |
-| `sync`    | Synchronize files ↔ DB        | `helix sync`                          |
-| `init`    | Initialize .helix/            | `helix init`                          |
-| `check`   | Validate all entities         | `helix check`                         |
-| `health`  | Knowledge/graph health report | `helix health`                        |
-| `config`  | Manage configuration          | `helix config show`                   |
+| Verb      | Description                   | Example                                |
+| --------- | ----------------------------- | -------------------------------------- |
+| `create`  | Create new entity             | `ixchel create decision "Use Redis"`   |
+| `show`    | Display single entity         | `ixchel show dec-42`                   |
+| `list`    | List entities with filters    | `ixchel list issues --status open`     |
+| `update`  | Modify entity                 | `ixchel update iss-17 --status closed` |
+| `delete`  | Remove entity                 | `ixchel delete idea-9`                 |
+| `search`  | Semantic search               | `ixchel search "caching strategy"`     |
+| `graph`   | Traverse relationships        | `ixchel graph dec-42 --depth 3`        |
+| `link`    | Add relationship              | `ixchel link dec-42 spawns iss-17`     |
+| `unlink`  | Remove relationship           | `ixchel unlink dec-42 spawns iss-17`   |
+| `context` | Generate AI context           | `ixchel context iss-17`                |
+| `sync`    | Synchronize files ↔ DB        | `ixchel sync`                          |
+| `init`    | Initialize .ixchel/           | `ixchel init`                          |
+| `check`   | Validate all entities         | `ixchel check`                         |
+| `health`  | Knowledge/graph health report | `ixchel health`                        |
+| `config`  | Manage configuration          | `ixchel config show`                   |
 
 ## Global Options
 
@@ -49,7 +49,7 @@ helix <verb> [entity-type] [id] [options]
 --json              Output as JSON
 --quiet, -q         Suppress non-essential output
 --verbose, -v       Increase verbosity
---directory, -d     Override .helix/ location
+--directory, -d     Override .ixchel/ location
 --agent <id>        Mark operation as agent-initiated
 --session <id>      Group agent operations
 --no-sync           Skip database synchronization
@@ -65,13 +65,13 @@ helix <verb> [entity-type] [id] [options]
 ### Generic Create
 
 ```bash
-helix create <entity-type> "<title>" [options]
+ixchel create <entity-type> "<title>" [options]
 ```
 
 ### Decision
 
 ```bash
-helix create decision "Use PostgreSQL for primary storage" \
+ixchel create decision "Use PostgreSQL for primary storage" \
   --status proposed \
   --deciders kevin,alice \
   --tags database,infrastructure \
@@ -98,7 +98,7 @@ helix create decision "Use PostgreSQL for primary storage" \
 ### Issue
 
 ```bash
-helix create issue "Implement connection pooling" \
+ixchel create issue "Implement connection pooling" \
   --type feature \
   --priority 1 \
   --assignee alice \
@@ -125,7 +125,7 @@ helix create issue "Implement connection pooling" \
 ### Idea
 
 ```bash
-helix create idea "What if we used WebAssembly for plugins?" \
+ixchel create idea "What if we used WebAssembly for plugins?" \
   --champion bob \
   --effort high \
   --impact high \
@@ -147,7 +147,7 @@ helix create idea "What if we used WebAssembly for plugins?" \
 ### Report
 
 ```bash
-helix create report "Q4 Performance Retrospective" \
+ixchel create report "Q4 Performance Retrospective" \
   --type retrospective \
   --period-start 2025-10-01 \
   --period-end 2025-12-31 \
@@ -171,7 +171,7 @@ helix create report "Q4 Performance Retrospective" \
 ### Source
 
 ```bash
-helix create source "Redis: An In-Memory Data Structure Store" \
+ixchel create source "Redis: An In-Memory Data Structure Store" \
   --type paper \
   --url https://example.com/redis.pdf \
   --authors "Salvatore Sanfilippo" \
@@ -197,7 +197,7 @@ helix create source "Redis: An In-Memory Data Structure Store" \
 ### Citation
 
 ```bash
-helix create citation "Redis single-threaded design rationale" \
+ixchel create citation "Redis single-threaded design rationale" \
   --from src-e5f6g7 \
   --page "Section 3.2" \
   --quote "The single-threaded nature of Redis is not a limitation..." \
@@ -224,9 +224,9 @@ helix create citation "Redis single-threaded design rationale" \
 ### Show Single Entity
 
 ```bash
-helix show <id>
-helix show dec-a1b2c3
-helix show dec-a1       # Partial ID matching
+ixchel show <id>
+ixchel show dec-a1b2c3
+ixchel show dec-a1       # Partial ID matching
 ```
 
 **Options:**
@@ -273,13 +273,13 @@ helix show dec-a1       # Partial ID matching
 ### List All of a Type
 
 ```bash
-helix list decisions
-helix list issues
-helix list ideas
-helix list reports
-helix list sources
-helix list citations
-helix list                # All types
+ixchel list decisions
+ixchel list issues
+ixchel list ideas
+ixchel list reports
+ixchel list sources
+ixchel list citations
+ixchel list                # All types
 ```
 
 ### Common Filters
@@ -321,10 +321,10 @@ helix list                # All types
 ### Output Formats
 
 ```bash
-helix list issues                      # Table (default)
-helix list issues --json               # JSON array
-helix list issues --format oneline     # One line per entity
-helix list issues --format ids         # IDs only
+ixchel list issues                      # Table (default)
+ixchel list issues --json               # JSON array
+ixchel list issues --format oneline     # One line per entity
+ixchel list issues --format ids         # IDs only
 ```
 
 **Table Output:**
@@ -346,13 +346,13 @@ helix list issues --format ids         # IDs only
 ### Basic Search
 
 ```bash
-helix search "database performance optimization"
+ixchel search "database performance optimization"
 ```
 
 ### Filtered Search
 
 ```bash
-helix search "caching" \
+ixchel search "caching" \
   --types decision,issue \
   --status accepted,open \
   --tags infrastructure \
@@ -396,10 +396,10 @@ Found 5 results (0.12s)
 ### View Relationships
 
 ```bash
-helix graph dec-42
-helix graph dec-42 --depth 3
-helix graph dec-42 --direction incoming
-helix graph dec-42 --types spawns,implements
+ixchel graph dec-42
+ixchel graph dec-42 --depth 3
+ixchel graph dec-42 --direction incoming
+ixchel graph dec-42 --types spawns,implements
 ```
 
 **Options:**
@@ -430,7 +430,7 @@ dec-a1b2c3: Use PostgreSQL for Primary Storage
 **DOT Output (for Graphviz):**
 
 ```bash
-helix graph dec-42 --format dot | dot -Tpng -o graph.png
+ixchel graph dec-42 --format dot | dot -Tpng -o graph.png
 ```
 
 ---
@@ -440,17 +440,17 @@ helix graph dec-42 --format dot | dot -Tpng -o graph.png
 ### Add Relationship
 
 ```bash
-helix link <from-id> <relationship> <to-id>
-helix link dec-42 spawns iss-17
-helix link iss-17 implements dec-42
-helix link rpt-99 summarizes iss-1,iss-2,iss-3
+ixchel link <from-id> <relationship> <to-id>
+ixchel link dec-42 spawns iss-17
+ixchel link iss-17 implements dec-42
+ixchel link rpt-99 summarizes iss-1,iss-2,iss-3
 ```
 
 ### Remove Relationship
 
 ```bash
-helix unlink <from-id> <relationship> <to-id>
-helix unlink dec-42 spawns iss-17
+ixchel unlink <from-id> <relationship> <to-id>
+ixchel unlink dec-42 spawns iss-17
 ```
 
 ### Valid Relationships by Entity Type
@@ -481,10 +481,10 @@ helix unlink dec-42 spawns iss-17
 ### Update Properties
 
 ```bash
-helix update <id> [options]
-helix update iss-17 --status closed --closed-reason "Completed"
-helix update dec-42 --status accepted
-helix update idea-9 --status evolved --evolves-into dec-99
+ixchel update <id> [options]
+ixchel update iss-17 --status closed --closed-reason "Completed"
+ixchel update dec-42 --status accepted
+ixchel update idea-9 --status evolved --evolves-into dec-99
 ```
 
 **Common Options:**
@@ -516,7 +516,7 @@ helix update idea-9 --status evolved --evolves-into dec-99
 ### Immutability Enforcement
 
 ```bash
-$ helix update dec-42 --title "New title"
+$ ixchel update dec-42 --title "New title"
 Error: Cannot modify 'title' of accepted decision dec-42.
 Hint: Accepted decisions are immutable. Create a new decision that supersedes this one.
 ```
@@ -528,8 +528,8 @@ Hint: Accepted decisions are immutable. Create a new decision that supersedes th
 ### Generate Context for AI Assistant
 
 ```bash
-helix context <id>
-helix context iss-17 --depth 2 --max-tokens 8000
+ixchel context <id>
+ixchel context iss-17 --depth 2 --max-tokens 8000
 ```
 
 **Options:**
@@ -583,27 +583,27 @@ Official documentation on connection management...
 ### Initialize
 
 ```bash
-helix init
-helix init --with-hooks      # Also install git hooks
+ixchel init
+ixchel init --with-hooks      # Also install git hooks
 ```
 
 Creates:
 
-- `.helix/config.toml`
-- `.helix/decisions/`
-- `.helix/issues/`
-- `.helix/ideas/`
-- `.helix/reports/`
-- `.helix/sources/`
-- `.helix/citations/`
-- Updates `.gitignore` with `.helix/data/`
+- `.ixchel/config.toml`
+- `.ixchel/decisions/`
+- `.ixchel/issues/`
+- `.ixchel/ideas/`
+- `.ixchel/reports/`
+- `.ixchel/sources/`
+- `.ixchel/citations/`
+- Updates `.gitignore` with `.ixchel/data/`
 
 ### Validate
 
 ```bash
-helix check
-helix check --fix            # Auto-fix where possible
-helix check decisions        # Only decisions
+ixchel check
+ixchel check --fix            # Auto-fix where possible
+ixchel check decisions        # Only decisions
 ```
 
 Checks:
@@ -618,15 +618,15 @@ Checks:
 ### Sync
 
 ```bash
-helix sync
-helix sync --full            # Rebuild entire index
-helix sync --dry-run         # Show what would change
+ixchel sync
+ixchel sync --full            # Rebuild entire index
+ixchel sync --dry-run         # Show what would change
 ```
 
 ### Health Report
 
 ```bash
-helix health
+ixchel health
 ```
 
 **Output:**
@@ -668,10 +668,10 @@ Relationship Statistics
 ### Configuration
 
 ```bash
-helix config show
-helix config get embedding.model
-helix config set embedding.model "BAAI/bge-base-en-v1.5"
-helix config edit              # Open in $EDITOR
+ixchel config show
+ixchel config get embedding.model
+ixchel config set embedding.model "BAAI/bge-base-en-v1.5"
+ixchel config edit              # Open in $EDITOR
 ```
 
 ---
@@ -681,7 +681,7 @@ helix config edit              # Open in $EDITOR
 ### Install Hooks
 
 ```bash
-helix hooks install
+ixchel hooks install
 ```
 
 Installs pre-commit hook that:
@@ -693,14 +693,14 @@ Installs pre-commit hook that:
 ### Remove Hooks
 
 ```bash
-helix hooks remove
+ixchel hooks remove
 ```
 
 ### Bypass Hooks
 
 ```bash
 git commit --no-verify
-HELIX_SKIP_HOOKS=1 git commit
+IXCHEL_SKIP_HOOKS=1 git commit
 ```
 
 ---
@@ -708,9 +708,9 @@ HELIX_SKIP_HOOKS=1 git commit
 ## Shell Completions
 
 ```bash
-helix completions bash > ~/.local/share/bash-completion/completions/helix
-helix completions zsh > ~/.zfunc/_helix
-helix completions fish > ~/.config/fish/completions/helix.fish
+ixchel completions bash > ~/.local/share/bash-completion/completions/ixchel
+ixchel completions zsh > ~/.zfunc/_ixchel
+ixchel completions fish > ~/.config/fish/completions/ixchel.fish
 ```
 
 ---

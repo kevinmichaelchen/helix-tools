@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-This document outlines the phased implementation plan for the unified Helix
+This document outlines the phased implementation plan for the unified Ixchel
 knowledge system.
 
 Note: this roadmap is a historical blueprint. The implemented system is now
@@ -11,13 +11,13 @@ prefer each crate’s `specs/tasks.md`.
 
 ### Existing Assets
 
-| Crate             | Status      | Capabilities                                                 |
-| ----------------- | ----------- | ------------------------------------------------------------ |
-| `hbd`             | ✅ Complete | Git-backed issue tracker, dependency graphs, cycle detection |
-| `helix-decisions` | Removed     | Replaced by `.ixchel/decisions/` (git-first Markdown)        |
-| `ix-embeddings`   | ✅ Complete | Pluggable embedding providers (fastembed, candle)            |
-| `helix-db`        | ✅ Complete | Graph-vector database with HNSW                              |
-| `ix-config`       | ✅ Complete | Configuration management                                     |
+| Crate              | Status      | Capabilities                                                 |
+| ------------------ | ----------- | ------------------------------------------------------------ |
+| `hbd`              | ✅ Complete | Git-backed issue tracker, dependency graphs, cycle detection |
+| `ixchel-decisions` | Removed     | Replaced by `.ixchel/decisions/` (git-first Markdown)        |
+| `ix-embeddings`    | ✅ Complete | Pluggable embedding providers (fastembed, candle)            |
+| `helix-db`         | ✅ Complete | Graph-vector database with HNSW                              |
+| `ix-config`        | ✅ Complete | Configuration management                                     |
 
 ### What We Can Reuse
 
@@ -29,7 +29,7 @@ From `hbd`:
 - CLI structure (clap)
 - File-based storage patterns
 
-From `helix-decisions`:
+From `ixchel-decisions`:
 
 - Semantic search implementation
 - Delta detection for incremental sync
@@ -43,19 +43,19 @@ From `helix-decisions`:
 
 ### Goal
 
-Set up the `helix-core` crate with the unified entity abstraction.
+Set up the `ixchel-core` crate with the unified entity abstraction.
 
 ### Tasks
 
 #### 0.1 Create Crate Structure
 
 ```
-helix/
+ixchel/
 ├── Cargo.toml
 └── src/
     └── main.rs          # Placeholder
 
-helix-core/
+ixchel-core/
 ├── Cargo.toml
 └── src/
     ├── lib.rs
@@ -94,7 +94,7 @@ pub enum EntityType { Decision, Issue, Idea, Report, Source, Citation }
 
 #### 0.4 Port Decision Entity
 
-Copy and adapt from `helix-decisions`:
+Copy and adapt from `ixchel-decisions`:
 
 - `Decision` struct
 - `DecisionMetadata`
@@ -103,7 +103,7 @@ Copy and adapt from `helix-decisions`:
 
 ### Deliverable
 
-`helix-core` crate that can represent Decision entities.
+`ixchel-core` crate that can represent Decision entities.
 
 ---
 
@@ -261,7 +261,7 @@ Working storage layer that maintains file ↔ graph ↔ vector consistency.
 
 ### Goal
 
-Implement the unified `helix` CLI.
+Implement the unified `ixchel` CLI.
 
 ### Tasks
 
@@ -287,52 +287,52 @@ struct Cli {
 #### 3.2 Create Commands
 
 ```bash
-helix create decision "Title"
-helix create issue "Title"
+ixchel create decision "Title"
+ixchel create issue "Title"
 # ... all entity types
 ```
 
 #### 3.3 CRUD Commands
 
 ```bash
-helix show <id>
-helix list <type>
-helix update <id>
-helix delete <id>
+ixchel show <id>
+ixchel list <type>
+ixchel update <id>
+ixchel delete <id>
 ```
 
 #### 3.4 Search Command
 
 ```bash
-helix search "query" --types decision,issue --limit 10
+ixchel search "query" --types decision,issue --limit 10
 ```
 
 #### 3.5 Graph Command
 
 ```bash
-helix graph <id> --depth 3 --format tree
+ixchel graph <id> --depth 3 --format tree
 ```
 
 #### 3.6 Link/Unlink Commands
 
 ```bash
-helix link dec-42 spawns iss-17
-helix unlink dec-42 spawns iss-17
+ixchel link dec-42 spawns iss-17
+ixchel unlink dec-42 spawns iss-17
 ```
 
 #### 3.7 Context Command
 
 ```bash
-helix context <id> --depth 2 --format markdown
+ixchel context <id> --depth 2 --format markdown
 ```
 
 #### 3.8 Maintenance Commands
 
 ```bash
-helix init
-helix sync
-helix check
-helix health
+ixchel init
+ixchel sync
+ixchel check
+ixchel health
 ```
 
 ### Deliverable
@@ -372,7 +372,7 @@ pub struct ManifestEntry {
 
 #### 4.2 Delta Detection
 
-Port from `helix-decisions`:
+Port from `ixchel-decisions`:
 
 ```rust
 pub struct Delta {
@@ -415,7 +415,7 @@ pub async fn sync(storage: &UnifiedStorage) -> Result<SyncReport> {
 pub async fn watch(storage: &UnifiedStorage) -> Result<()> {
     let (tx, rx) = mpsc::channel();
     let watcher = notify::recommended_watcher(tx)?;
-    watcher.watch(".helix/", RecursiveMode::Recursive)?;
+    watcher.watch(".ixchel/", RecursiveMode::Recursive)?;
 
     while let Ok(event) = rx.recv() {
         if let Some(delta) = process_event(event) {
@@ -631,7 +631,7 @@ fn render_markdown(&self, entity: &Entity, graph: &Graph) -> String {
 
 ### Deliverable
 
-Working `helix context` command with multiple output formats.
+Working `ixchel context` command with multiple output formats.
 
 ---
 
@@ -649,9 +649,9 @@ Implement git hooks and entity validation.
 #!/bin/bash
 # .git/hooks/pre-commit
 
-helix check --staged
+ixchel check --staged
 if [ $? -ne 0 ]; then
-    echo "Helix validation failed. Commit aborted."
+    echo "Ixchel validation failed. Commit aborted."
     exit 1
 fi
 ```
@@ -799,7 +799,7 @@ Implement MCP server for AI tool integration.
 ```rust
 #[tokio::main]
 async fn main() {
-    let storage = UnifiedStorage::open(".helix")?;
+    let storage = UnifiedStorage::open(".ixchel")?;
     let server = McpServer::new(storage);
     server.serve().await?;
 }
@@ -807,13 +807,13 @@ async fn main() {
 
 #### 9.2 Tool Implementations
 
-- `helix_search` — Semantic search
-- `helix_show` — Entity details
-- `helix_list` — List with filters
-- `helix_graph` — Relationship traversal
-- `helix_create` — Create entity
-- `helix_link` — Add relationship
-- `helix_context` — Generate context
+- `ixchel_search` — Semantic search
+- `ixchel_show` — Entity details
+- `ixchel_list` — List with filters
+- `ixchel_graph` — Relationship traversal
+- `ixchel_create` — Create entity
+- `ixchel_link` — Add relationship
+- `ixchel_context` — Generate context
 
 #### 9.3 Claude Code Integration
 
@@ -836,20 +836,20 @@ Migration tools and final polish.
 #### 10.1 hbd Migration
 
 ```bash
-helix migrate hbd --source .tickets --target .helix/issues
+ixchel migrate hbd --source .tickets --target .ixchel/issues
 ```
 
-- Convert `.tickets/*.md` to `.helix/issues/*.md`
+- Convert `.tickets/*.md` to `.ixchel/issues/*.md`
 - Preserve IDs (or remap with prefix)
 - Convert relationships
 
-#### 10.2 helix-decisions Migration
+#### 10.2 ixchel-decisions Migration
 
 ```bash
-helix migrate helix-decisions --source .decisions --target .helix/decisions
+ixchel migrate ixchel-decisions --source .decisions --target .ixchel/decisions
 ```
 
-- Convert `.decisions/*.md` to `.helix/decisions/*.md`
+- Convert `.decisions/*.md` to `.ixchel/decisions/*.md`
 - Preserve IDs
 - Update relationship references
 
@@ -869,8 +869,8 @@ helix migrate helix-decisions --source .decisions --target .helix/decisions
 
 #### 10.5 Release
 
-- Cargo publish `helix-core`
-- Cargo publish `helix-cli`
+- Cargo publish `ixchel-core`
+- Cargo publish `ixchel-cli`
 - GitHub releases
 - Homebrew formula
 

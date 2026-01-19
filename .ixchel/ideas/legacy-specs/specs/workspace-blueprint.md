@@ -3,8 +3,8 @@
 Lightweight proposal for how the **Ixchel** system could be structured as
 first-class crates/apps in the **root workspace**.
 
-Note: `./helix` currently exists for brainstorming/specs. The real crates/apps
-should not live under `./helix`.
+Note: `./ixchel` currently exists for brainstorming/specs. The real crates/apps
+should not live under `./ixchel`.
 
 ## Layout (concise)
 

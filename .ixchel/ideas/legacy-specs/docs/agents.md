@@ -1,7 +1,7 @@
 # AI Agent Integration Guide
 
 This document describes how AI agents (Claude, GPT, Copilot, etc.) can interact
-with the Helix knowledge graph to provide better assistance.
+with the Ixchel knowledge graph to provide better assistance.
 
 Note: this document is a blueprint and may describe planned behavior. The
 implemented system is **Ixchel** (binary `ixchel`, canonical dir `.ixchel/`) with
@@ -9,7 +9,7 @@ an MCP server in `ix-mcp/` (binary `ixchel-mcp`).
 
 ## Philosophy
 
-Helix treats AI agents as **first-class collaborators**, not just consumers. Agents can:
+Ixchel treats AI agents as **first-class collaborators**, not just consumers. Agents can:
 
 1. **Read** the knowledge graph to understand context
 2. **Create** entities when discovering work items or insights
@@ -52,7 +52,7 @@ Agents should attribute creations and acquire leases before taking work; run log
 Marks the operation as agent-initiated:
 
 ```bash
-helix create issue "Memory leak in parser" --agent claude-opus-4
+ixchel create issue "Memory leak in parser" --agent claude-opus-4
 ```
 
 ### `--session <id>`
@@ -61,9 +61,9 @@ Groups related agent operations:
 
 ```bash
 # All commands in a session are linked
-helix create issue "Fix parser" --agent claude --session sess-123
-helix create issue "Add tests" --agent claude --session sess-123
-helix link iss-a1 blocks iss-b2 --agent claude --session sess-123
+ixchel create issue "Fix parser" --agent claude --session sess-123
+ixchel create issue "Add tests" --agent claude --session sess-123
+ixchel link iss-a1 blocks iss-b2 --agent claude --session sess-123
 ```
 
 ### `--json`
@@ -71,15 +71,15 @@ helix link iss-a1 blocks iss-b2 --agent claude --session sess-123
 Machine-readable output for programmatic parsing:
 
 ```bash
-helix show dec-42 --json | jq '.relationships'
+ixchel show dec-42 --json | jq '.relationships'
 ```
 
 ## Context Generation
 
-The `helix context` command generates AI-ready summaries:
+The `ixchel context` command generates AI-ready summaries:
 
 ```bash
-helix context iss-17 --depth 2 --max-tokens 8000 --format markdown
+ixchel context iss-17 --depth 2 --max-tokens 8000 --format markdown
 ```
 
 ### Output Structure
@@ -168,23 +168,23 @@ Key sections:
 
 ## MCP Server Integration
 
-Helix can run as an MCP (Model Context Protocol) server, exposing tools to AI assistants:
+Ixchel can run as an MCP (Model Context Protocol) server, exposing tools to AI assistants:
 
 ### Starting the Server
 
 ```bash
-helix mcp serve
+ixchel mcp serve
 ```
 
 ### Available Tools
 
-#### `helix_search`
+#### `ixchel_search`
 
 Semantic search across the knowledge graph.
 
 ```json
 {
-  "name": "helix_search",
+  "name": "ixchel_search",
   "arguments": {
     "query": "database performance optimization",
     "types": ["decision", "issue", "source"],
@@ -193,26 +193,26 @@ Semantic search across the knowledge graph.
 }
 ```
 
-#### `helix_show`
+#### `ixchel_show`
 
 Get full details of an entity.
 
 ```json
 {
-  "name": "helix_show",
+  "name": "ixchel_show",
   "arguments": {
     "id": "dec-a1b2c3"
   }
 }
 ```
 
-#### `helix_list`
+#### `ixchel_list`
 
 List entities with filters.
 
 ```json
 {
-  "name": "helix_list",
+  "name": "ixchel_list",
   "arguments": {
     "type": "issue",
     "status": ["open", "in_progress"],
@@ -221,13 +221,13 @@ List entities with filters.
 }
 ```
 
-#### `helix_graph`
+#### `ixchel_graph`
 
 Traverse relationships.
 
 ```json
 {
-  "name": "helix_graph",
+  "name": "ixchel_graph",
   "arguments": {
     "id": "dec-42",
     "depth": 2,
@@ -236,13 +236,13 @@ Traverse relationships.
 }
 ```
 
-#### `helix_create`
+#### `ixchel_create`
 
 Create a new entity.
 
 ```json
 {
-  "name": "helix_create",
+  "name": "ixchel_create",
   "arguments": {
     "type": "issue",
     "title": "Fix memory leak in parser",
@@ -258,13 +258,13 @@ Create a new entity.
 }
 ```
 
-#### `helix_link`
+#### `ixchel_link`
 
 Add a relationship.
 
 ```json
 {
-  "name": "helix_link",
+  "name": "ixchel_link",
   "arguments": {
     "from": "dec-42",
     "relationship": "spawns",
@@ -273,13 +273,13 @@ Add a relationship.
 }
 ```
 
-#### `helix_context`
+#### `ixchel_context`
 
 Generate context for an entity.
 
 ```json
 {
-  "name": "helix_context",
+  "name": "ixchel_context",
   "arguments": {
     "id": "iss-17",
     "depth": 2,
@@ -296,8 +296,8 @@ Add to your Claude Code MCP settings:
 ```json
 {
   "mcpServers": {
-    "helix": {
-      "command": "helix",
+    "ixchel": {
+      "command": "ixchel",
       "args": ["mcp", "serve"],
       "cwd": "/path/to/project"
     }
@@ -313,13 +313,13 @@ When an agent encounters a bug report:
 
 ```bash
 # 1. Search for similar issues
-helix search "memory leak parser" --types issue --limit 5 --json
+ixchel search "memory leak parser" --types issue --limit 5 --json
 
 # 2. Check if related decision exists
-helix search "parser architecture" --types decision --limit 3 --json
+ixchel search "parser architecture" --types decision --limit 3 --json
 
 # 3. Create issue if new
-helix create issue "Memory leak when parsing large files" \
+ixchel create issue "Memory leak when parsing large files" \
   --type bug \
   --priority 1 \
   --tags parser,memory \
@@ -327,7 +327,7 @@ helix create issue "Memory leak when parsing large files" \
   --session $SESSION_ID
 
 # 4. Link to related decision
-helix link iss-new implements dec-42 --agent claude --session $SESSION_ID
+ixchel link iss-new implements dec-42 --agent claude --session $SESSION_ID
 ```
 
 ### 2. Code Review Context
@@ -336,13 +336,13 @@ Before reviewing code, gather context:
 
 ```bash
 # Get context for the issue being addressed
-helix context iss-17 --depth 3 --format markdown
+ixchel context iss-17 --depth 3 --format markdown
 
 # Find related decisions
-helix search "API error handling" --types decision
+ixchel search "API error handling" --types decision
 
 # Check for relevant sources
-helix search "retry patterns" --types source,citation
+ixchel search "retry patterns" --types source,citation
 ```
 
 ### 3. Knowledge Discovery
@@ -351,13 +351,13 @@ When asked "why did we build it this way?":
 
 ```bash
 # Find the relevant decision
-helix search "authentication JWT" --types decision
+ixchel search "authentication JWT" --types decision
 
 # Show full context including sources and related decisions
-helix context dec-42 --depth 3
+ixchel context dec-42 --depth 3
 
 # Visualize the decision chain
-helix graph dec-42 --depth 4 --direction incoming --format tree
+ixchel graph dec-42 --depth 4 --direction incoming --format tree
 ```
 
 ### 4. Automated Issue Creation
@@ -366,21 +366,21 @@ When an agent discovers work needed:
 
 ```bash
 # Create parent epic
-helix create issue "Improve database performance" \
+ixchel create issue "Improve database performance" \
   --type epic \
   --priority 2 \
   --agent claude \
   --session $SESSION_ID
 
 # Create child tasks
-helix create issue "Implement connection pooling" \
+ixchel create issue "Implement connection pooling" \
   --type task \
   --parent iss-epic \
   --implements dec-42 \
   --agent claude \
   --session $SESSION_ID
 
-helix create issue "Add query caching" \
+ixchel create issue "Add query caching" \
   --type task \
   --parent iss-epic \
   --depends-on iss-pooling \
@@ -394,14 +394,14 @@ When researching a topic:
 
 ```bash
 # Create source for paper found
-helix create source "Database Connection Pooling Best Practices" \
+ixchel create source "Database Connection Pooling Best Practices" \
   --type article \
   --url "https://example.com/pooling" \
   --agent claude \
   --session $SESSION_ID
 
 # Create citation for key insight
-helix create citation "Connection pool sizing formula" \
+ixchel create citation "Connection pool sizing formula" \
   --from src-pooling \
   --quote "Optimal pool size = (core_count * 2) + effective_spindle_count" \
   --page "Section 4.2" \
@@ -416,19 +416,19 @@ helix create citation "Connection pool sizing formula" \
 
 ```bash
 # Good
-helix create issue "Fix bug" --agent claude --session sess-123
+ixchel create issue "Fix bug" --agent claude --session sess-123
 
 # Bad (no attribution)
-helix create issue "Fix bug"
+ixchel create issue "Fix bug"
 ```
 
 ### 2. Check Before Creating
 
 ```bash
 # Search first to avoid duplicates
-existing=$(helix search "connection pooling" --types issue --json)
+existing=$(ixchel search "connection pooling" --types issue --json)
 if [ "$(echo $existing | jq '.results | length')" -eq 0 ]; then
-  helix create issue "Implement connection pooling" ...
+  ixchel create issue "Implement connection pooling" ...
 fi
 ```
 
@@ -436,10 +436,10 @@ fi
 
 ```bash
 # When creating implementation issues, link to decisions
-helix create issue "Add caching" --implements dec-42
+ixchel create issue "Add caching" --implements dec-42
 
 # When closing issues, check for blocking relationships
-helix graph iss-17 --direction incoming --types blocks
+ixchel graph iss-17 --direction incoming --types blocks
 ```
 
 ### 4. Use Sessions for Related Work
@@ -448,11 +448,11 @@ helix graph iss-17 --direction incoming --types blocks
 SESSION_ID="sess-$(date +%s)"
 
 # All related operations share session
-helix create issue "Epic" --session $SESSION_ID
-helix create issue "Task 1" --session $SESSION_ID
-helix create issue "Task 2" --session $SESSION_ID
-helix link iss-epic spawns iss-task1 --session $SESSION_ID
-helix link iss-epic spawns iss-task2 --session $SESSION_ID
+ixchel create issue "Epic" --session $SESSION_ID
+ixchel create issue "Task 1" --session $SESSION_ID
+ixchel create issue "Task 2" --session $SESSION_ID
+ixchel link iss-epic spawns iss-task1 --session $SESSION_ID
+ixchel link iss-epic spawns iss-task2 --session $SESSION_ID
 ```
 
 ### 5. Generate Context Proactively
@@ -461,7 +461,7 @@ When starting work on an issue:
 
 ```bash
 # Get full context before diving in
-  context=$(helix context iss-17 --depth 2 --format markdown)
+  context=$(ixchel context iss-17 --depth 2 --format markdown)
   echo "$context"
 ```
 
@@ -469,7 +469,7 @@ When starting work on an issue:
 
 ```bash
 # Acquire a lease on an issue for 30 minutes
-helix claim iss-17 --agent claude --lease 30m
+ixchel claim iss-17 --agent claude --lease 30m
 ```
 
 ## Filtering Agent Content
@@ -477,29 +477,29 @@ helix claim iss-17 --agent claude --lease 30m
 ### View Only Human-Created
 
 ```bash
-helix list issues --created-by-type human
+ixchel list issues --created-by-type human
 ```
 
 ### View Agent Contributions
 
 ```bash
-helix list --created-by-type agent
-helix list --agent claude
-helix list --session sess-123
+ixchel list --created-by-type agent
+ixchel list --agent claude
+ixchel list --session sess-123
 ```
 
 ### Audit Agent Actions
 
 ```bash
 # All entities created in a session
-helix list --session sess-123 --json | jq '.[] | {id, title, created_at}'
+ixchel list --session sess-123 --json | jq '.[] | {id, title, created_at}'
 ```
 
 ## Error Handling
 
 ### Graceful Degradation
 
-If helix commands fail, agents should:
+If ixchel commands fail, agents should:
 
 1. **Log the error** for debugging
 2. **Continue without blocking** the main task
@@ -537,7 +537,7 @@ Agent proactively surfaces issues:
 Agent automatically searches relevant knowledge when user asks questions:
 
 > User: "How should we handle API retries?"
-> Agent: _[searches helix]_ "Based on dec-78 (API Resilience Decision) and the
+> Agent: _[searches ixchel]_ "Based on dec-78 (API Resilience Decision) and the
 > cited source (Exponential Backoff paper), we should..."
 
 ### 4. Automatic Summarization
@@ -545,6 +545,6 @@ Agent automatically searches relevant knowledge when user asks questions:
 Agent compacts old issues:
 
 ```bash
-helix compact iss-old --agent claude --session $SESSION_ID
+ixchel compact iss-old --agent claude --session $SESSION_ID
 # Creates summary, archives original, preserves relationships
 ```
