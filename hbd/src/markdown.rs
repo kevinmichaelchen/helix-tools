@@ -4,19 +4,20 @@ use std::fmt::Write;
 use std::path::Path;
 
 use chrono::{DateTime, Utc};
-use gray_matter::{Matter, engine::YAML};
+use gray_matter::{Matter, Pod, engine::YAML};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{HbdError, Result};
 use crate::types::{Comment, CreatorType, DepType, Dependency, Issue, IssueType, Priority, Status};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct FrontMatter {
+struct IxchelFrontMatter {
     id: String,
     title: String,
+    #[serde(rename = "type")]
+    entity_type: String,
     status: String,
     priority: u8,
-    #[serde(rename = "type")]
     issue_type: String,
     created_at: String,
     updated_at: String,
@@ -48,6 +49,135 @@ fn default_creator_type() -> String {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct LegacyFrontMatter {
+    id: String,
+    title: String,
+    status: String,
+    priority: u8,
+    #[serde(rename = "type")]
+    issue_type: String,
+    created_at: String,
+    updated_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    closed_at: Option<String>,
+    created_by: String,
+    #[serde(default = "default_creator_type")]
+    created_by_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    assignee: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    agent_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    external_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    labels: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    depends_on: Vec<DependencyFrontMatter>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    estimated_minutes: Option<i32>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum AnyFrontMatter {
+    Ixchel(IxchelFrontMatter),
+    Legacy(LegacyFrontMatter),
+}
+
+#[derive(Debug)]
+struct NormalizedFrontMatter {
+    id: String,
+    title: String,
+    status: String,
+    priority: u8,
+    issue_type: String,
+    created_at: String,
+    updated_at: String,
+    closed_at: Option<String>,
+    created_by: String,
+    created_by_type: String,
+    assignee: Option<String>,
+    agent_id: Option<String>,
+    session_id: Option<String>,
+    external_ref: Option<String>,
+    parent: Option<String>,
+    labels: Vec<String>,
+    depends_on: Vec<DependencyFrontMatter>,
+    estimated_minutes: Option<i32>,
+}
+
+impl AnyFrontMatter {
+    fn normalize(self, path: &Path) -> Result<NormalizedFrontMatter> {
+        match self {
+            Self::Ixchel(front) => {
+                if front.entity_type != "issue" {
+                    return Err(HbdError::InvalidFormat {
+                        path: path.to_path_buf(),
+                        reason: format!("expected type: issue, got: {}", front.entity_type),
+                    });
+                }
+                Ok(front.into())
+            }
+            Self::Legacy(front) => Ok(front.into()),
+        }
+    }
+}
+
+impl From<IxchelFrontMatter> for NormalizedFrontMatter {
+    fn from(front: IxchelFrontMatter) -> Self {
+        Self {
+            id: front.id,
+            title: front.title,
+            status: front.status,
+            priority: front.priority,
+            issue_type: front.issue_type,
+            created_at: front.created_at,
+            updated_at: front.updated_at,
+            closed_at: front.closed_at,
+            created_by: front.created_by,
+            created_by_type: front.created_by_type,
+            assignee: front.assignee,
+            agent_id: front.agent_id,
+            session_id: front.session_id,
+            external_ref: front.external_ref,
+            parent: front.parent,
+            labels: front.labels,
+            depends_on: front.depends_on,
+            estimated_minutes: front.estimated_minutes,
+        }
+    }
+}
+
+impl From<LegacyFrontMatter> for NormalizedFrontMatter {
+    fn from(front: LegacyFrontMatter) -> Self {
+        Self {
+            id: front.id,
+            title: front.title,
+            status: front.status,
+            priority: front.priority,
+            issue_type: front.issue_type,
+            created_at: front.created_at,
+            updated_at: front.updated_at,
+            closed_at: front.closed_at,
+            created_by: front.created_by,
+            created_by_type: front.created_by_type,
+            assignee: front.assignee,
+            agent_id: front.agent_id,
+            session_id: front.session_id,
+            external_ref: front.external_ref,
+            parent: front.parent,
+            labels: front.labels,
+            depends_on: front.depends_on,
+            estimated_minutes: front.estimated_minutes,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct DependencyFrontMatter {
     id: String,
     #[serde(rename = "type", default = "default_dep_type")]
@@ -62,8 +192,14 @@ pub fn parse_issue(content: &str, path: &Path) -> Result<Issue> {
     let matter = Matter::<YAML>::new();
     let result = matter.parse(content);
 
-    let front: FrontMatter = result
-        .data
+    let front = parse_frontmatter(result.data, path)?;
+
+    let (body, comments) = parse_body_and_comments(&result.content);
+    build_issue(front, body, comments, path)
+}
+
+fn parse_frontmatter(data: Option<Pod>, path: &Path) -> Result<NormalizedFrontMatter> {
+    let front: AnyFrontMatter = data
         .ok_or_else(|| HbdError::InvalidFormat {
             path: path.to_path_buf(),
             reason: "missing YAML frontmatter".to_string(),
@@ -74,9 +210,15 @@ pub fn parse_issue(content: &str, path: &Path) -> Result<Issue> {
             reason: format!("invalid frontmatter: {e}"),
         })?;
 
-    let body_and_comments = result.content;
-    let (body, comments) = parse_body_and_comments(&body_and_comments);
+    front.normalize(path)
+}
 
+fn build_issue(
+    front: NormalizedFrontMatter,
+    body: String,
+    comments: Vec<Comment>,
+    path: &Path,
+) -> Result<Issue> {
     let status: Status = front.status.parse().map_err(|e| HbdError::InvalidFormat {
         path: path.to_path_buf(),
         reason: e,
@@ -100,14 +242,7 @@ pub fn parse_issue(content: &str, path: &Path) -> Result<Issue> {
         _ => CreatorType::Human,
     };
 
-    let depends_on: Vec<Dependency> = front
-        .depends_on
-        .into_iter()
-        .map(|d| Dependency {
-            id: d.id,
-            dep_type: d.dep_type.parse().unwrap_or(DepType::Blocks),
-        })
-        .collect();
+    let depends_on = parse_dependencies(front.depends_on);
 
     Ok(Issue {
         id: front.id,
@@ -118,11 +253,7 @@ pub fn parse_issue(content: &str, path: &Path) -> Result<Issue> {
         issue_type,
         created_at: parse_datetime(&front.created_at)?,
         updated_at: parse_datetime(&front.updated_at)?,
-        closed_at: front
-            .closed_at
-            .as_ref()
-            .map(|s| parse_datetime(s))
-            .transpose()?,
+        closed_at: front.closed_at.as_deref().map(parse_datetime).transpose()?,
         created_by: front.created_by,
         created_by_type,
         assignee: front.assignee,
@@ -136,6 +267,16 @@ pub fn parse_issue(content: &str, path: &Path) -> Result<Issue> {
         estimated_minutes: front.estimated_minutes,
         content_hash: None,
     })
+}
+
+fn parse_dependencies(depends_on: Vec<DependencyFrontMatter>) -> Vec<Dependency> {
+    depends_on
+        .into_iter()
+        .map(|d| Dependency {
+            id: d.id,
+            dep_type: d.dep_type.parse().unwrap_or(DepType::Blocks),
+        })
+        .collect()
 }
 
 fn parse_datetime(s: &str) -> Result<DateTime<Utc>> {
@@ -227,9 +368,10 @@ fn build_comment(
 }
 
 pub fn render_issue(issue: &Issue) -> String {
-    let front = FrontMatter {
+    let front = IxchelFrontMatter {
         id: issue.id.clone(),
         title: issue.title.clone(),
+        entity_type: "issue".to_string(),
         status: issue.status.as_str().to_string(),
         priority: issue.priority.as_u8(),
         issue_type: issue.issue_type.as_str().to_string(),

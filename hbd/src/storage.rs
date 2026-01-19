@@ -7,9 +7,7 @@ use crate::id::matches_partial;
 use crate::markdown;
 use crate::types::Issue;
 
-const TICKETS_DIR: &str = ".tickets";
-const HELIX_DIR: &str = ".helix";
-const CONFIG_FILE: &str = "config.toml";
+const ISSUE_DIR: &str = "issues";
 
 pub struct TicketStore {
     root: PathBuf,
@@ -26,19 +24,13 @@ impl TicketStore {
     }
 
     pub fn tickets_dir(&self) -> PathBuf {
-        self.root.join(TICKETS_DIR)
-    }
-
-    pub fn helix_dir(&self) -> PathBuf {
-        self.root.join(HELIX_DIR)
-    }
-
-    pub fn config_path(&self) -> PathBuf {
-        self.helix_dir().join(CONFIG_FILE)
+        self.root
+            .join(ix_core::paths::IXCHEL_DIR_NAME)
+            .join(ISSUE_DIR)
     }
 
     pub fn is_initialized(&self) -> bool {
-        self.tickets_dir().exists()
+        self.root.join(ix_core::paths::IXCHEL_DIR_NAME).exists()
     }
 
     pub fn init(&self) -> Result<()> {
@@ -46,45 +38,8 @@ impl TicketStore {
             return Err(HbdError::AlreadyInitialized(self.root.clone()));
         }
 
-        fs::create_dir_all(self.tickets_dir())?;
-        fs::create_dir_all(self.helix_dir())?;
-
-        let config = default_config();
-        fs::write(self.config_path(), config)?;
-
-        self.update_gitignore()?;
-
-        Ok(())
-    }
-
-    fn update_gitignore(&self) -> Result<()> {
-        let gitignore_path = self.root.join(".gitignore");
-        let helix_db_entry = ".helix/helix.db/";
-        let models_entry = ".helix/models/";
-
-        let content = if gitignore_path.exists() {
-            fs::read_to_string(&gitignore_path)?
-        } else {
-            String::new()
-        };
-
-        let mut lines: Vec<&str> = content.lines().collect();
-        let original_len = lines.len();
-
-        if !lines.iter().any(|l| l.trim() == helix_db_entry) {
-            lines.push(helix_db_entry);
-        }
-        if !lines.iter().any(|l| l.trim() == models_entry) {
-            lines.push(models_entry);
-        }
-
-        if lines.len() > original_len {
-            let mut new_content = lines.join("\n");
-            if !new_content.ends_with('\n') {
-                new_content.push('\n');
-            }
-            fs::write(gitignore_path, new_content)?;
-        }
+        ix_core::repo::IxchelRepo::init_at(&self.root, false)
+            .map_err(|e| HbdError::Other(e.to_string()))?;
 
         Ok(())
     }
@@ -183,35 +138,7 @@ impl TicketStore {
 }
 
 fn find_project_root() -> Result<PathBuf> {
-    let mut current = std::env::current_dir()?;
-    loop {
-        if current.join(TICKETS_DIR).exists() || current.join(HELIX_DIR).exists() {
-            return Ok(current);
-        }
-        if !current.pop() {
-            return Ok(std::env::current_dir()?);
-        }
-    }
-}
-
-const fn default_config() -> &'static str {
-    r#"# hbd configuration
-# See https://github.com/kevinmichaelchen/helix-tools for documentation
-
-[project]
-name = ""
-default_assignee = ""
-
-[sync]
-auto_sync = true
-interval_seconds = 5
-
-[embeddings]
-backend = "fastembed"
-model = "BGESmallENV15"
-offline_only = true
-
-[search]
-default_limit = 20
-"#
+    let current_dir = std::env::current_dir()?;
+    ix_core::paths::find_git_root(&current_dir)
+        .ok_or_else(|| HbdError::Other("not inside a git repository".to_string()))
 }
