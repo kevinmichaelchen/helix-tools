@@ -332,7 +332,8 @@ impl IxchelRepo {
         );
 
         let out = render_markdown(&doc)?;
-        std::fs::write(&path, out).with_context(|| format!("Failed to write {}", path.display()))?;
+        std::fs::write(&path, out)
+            .with_context(|| format!("Failed to write {}", path.display()))?;
         Ok(true)
     }
 
@@ -370,7 +371,8 @@ impl IxchelRepo {
         );
 
         let out = render_markdown(&doc)?;
-        std::fs::write(&path, out).with_context(|| format!("Failed to write {}", path.display()))?;
+        std::fs::write(&path, out)
+            .with_context(|| format!("Failed to write {}", path.display()))?;
         Ok(true)
     }
 
@@ -633,10 +635,10 @@ fn normalized_tags_vec(frontmatter: &Mapping) -> Vec<String> {
     let mut tags = Vec::new();
     let mut seen = BTreeSet::new();
     for tag in get_string_list(frontmatter, "tags") {
-        if let Some(tag) = normalize_tag(&tag) {
-            if seen.insert(tag.clone()) {
-                tags.push(tag);
-            }
+        if let Some(tag) = normalize_tag(&tag)
+            && seen.insert(tag.clone())
+        {
+            tags.push(tag);
         }
     }
     tags

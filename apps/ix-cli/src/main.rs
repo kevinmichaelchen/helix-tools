@@ -266,7 +266,7 @@ fn cmd_tags(
         } else {
             let width = items.iter().map(|(tag, _)| tag.len()).max().unwrap_or(0);
             for (tag, count) in items {
-                println!("{tag:width$}  {count}", width = width);
+                println!("{tag:width$}  {count}");
             }
         }
     }
