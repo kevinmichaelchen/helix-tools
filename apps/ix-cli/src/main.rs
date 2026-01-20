@@ -45,6 +45,8 @@ enum Command {
     Tags {
         #[arg(long)]
         kind: Option<ix_core::entity::EntityKind>,
+        #[arg(long)]
+        untagged: bool,
     },
 
     Link {
@@ -102,7 +104,7 @@ fn run(command: Command, start: &Path, json_output: bool) -> Result<()> {
         } => cmd_create(start, kind, &title, status.as_deref(), json_output),
         Command::Show { id } => cmd_show(start, &id, json_output),
         Command::List { kind } => cmd_list(start, kind, json_output),
-        Command::Tags { kind } => cmd_tags(start, kind, json_output),
+        Command::Tags { kind, untagged } => cmd_tags(start, kind, untagged, json_output),
         Command::Link { from, rel, to } => cmd_link(start, &from, &rel, &to, json_output),
         Command::Unlink { from, rel, to } => cmd_unlink(start, &from, &rel, &to, json_output),
         Command::Check => cmd_check(start, json_output),
@@ -189,26 +191,63 @@ fn cmd_list(
 fn cmd_tags(
     start: &Path,
     kind: Option<ix_core::entity::EntityKind>,
+    untagged: bool,
     json_output: bool,
 ) -> Result<()> {
     let repo = ix_core::repo::IxchelRepo::open_from(start)?;
-    let tags = repo.collect_tags(kind)?;
-    let mut items = tags
-        .into_iter()
-        .map(|(tag, ids)| (tag, ids.len()))
-        .collect::<Vec<_>>();
-    items.sort_by(|a, b| a.0.cmp(&b.0));
-
-    if json_output {
-        let tags = items
-            .iter()
-            .map(|(tag, count)| json!({ "tag": tag, "count": count }))
-            .collect::<Vec<_>>();
-        print_json(&json!({ "total": tags.len(), "tags": tags }))?;
+    if untagged {
+        let items = repo.list_untagged(kind)?;
+        let total = items.len();
+        if json_output {
+            let items = items
+                .into_iter()
+                .map(|item| {
+                    json!({
+                        "id": item.id,
+                        "kind": item.kind.as_str(),
+                        "title": item.title,
+                        "path": item.path,
+                    })
+                })
+                .collect::<Vec<_>>();
+            print_json(&json!({ "total": total, "items": items }))?;
+        } else {
+            let id_width = items.iter().map(|item| item.id.len()).max().unwrap_or(0);
+            let kind_width = items
+                .iter()
+                .map(|item| item.kind.as_str().len())
+                .max()
+                .unwrap_or(0);
+            for item in items {
+                println!(
+                    "{id:id_width$}  {kind:kind_width$}  {title}",
+                    id = item.id,
+                    kind = item.kind.as_str(),
+                    title = item.title,
+                    id_width = id_width,
+                    kind_width = kind_width
+                );
+            }
+        }
     } else {
-        let width = items.iter().map(|(tag, _)| tag.len()).max().unwrap_or(0);
-        for (tag, count) in items {
-            println!("{tag:width$}  {count}", width = width);
+        let tags = repo.collect_tags(kind)?;
+        let mut items = tags
+            .into_iter()
+            .map(|(tag, ids)| (tag, ids.len()))
+            .collect::<Vec<_>>();
+        items.sort_by(|a, b| a.0.cmp(&b.0));
+
+        if json_output {
+            let tags = items
+                .iter()
+                .map(|(tag, count)| json!({ "tag": tag, "count": count }))
+                .collect::<Vec<_>>();
+            print_json(&json!({ "total": tags.len(), "tags": tags }))?;
+        } else {
+            let width = items.iter().map(|(tag, _)| tag.len()).max().unwrap_or(0);
+            for (tag, count) in items {
+                println!("{tag:width$}  {count}", width = width);
+            }
         }
     }
     Ok(())

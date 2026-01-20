@@ -31,12 +31,14 @@ consistency. LLMs are smart enough to detect similarity/synonyms themselves.
 **Output:** List of unique tags with usage counts (count = number of entities
 containing the tag), sorted alphabetically. Tag identity is case-sensitive and
 based on trimmed tag values; empty tags are ignored and duplicates within a
-single entity count once.
+single entity count once. When `--untagged` is set, list entities missing tags
+(missing `tags` field or only empty values).
 
 **Flags:**
 
 - `--json`: Output as JSON object with `total` and `tags` array
 - `--kind <kind>`: Filter tags to a specific entity kind
+- `--untagged`: List entities with no tags instead of tag counts
 
 ## JSON Output
 
