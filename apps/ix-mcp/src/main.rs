@@ -314,7 +314,7 @@ fn tool_context(args: &Value) -> Result<Value> {
 fn tool_tags(args: &Value) -> Result<Value> {
     let repo_path = resolve_repo_path(args)?;
     let repo = ix_core::repo::IxchelRepo::open_from(&repo_path)?;
-    let tags = repo.collect_tags()?;
+    let tags = repo.collect_tags(None)?;
 
     let mut items = tags
         .into_iter()

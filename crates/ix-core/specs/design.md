@@ -58,9 +58,10 @@ prefixes (`foo-123456`) during `check()`.
 
 The `tags` frontmatter field is reserved for free-form labels. `ix-core` provides:
 
-- `collect_tags()`: Scans all entities, returns `HashMap<String, Vec<EntityId>>`.
-  Tag identity is case-sensitive and based on trimmed tag values; empty tags are
-  ignored and duplicates within a single entity count once.
+- `collect_tags(kind)`: Scans all entities (or a specific kind), returns
+  `HashMap<String, Vec<EntityId>>`. Tag identity is case-sensitive and based on
+  trimmed tag values; empty tags are ignored and duplicates within a single
+  entity count once.
 
 This enables CLI/MCP tools to expose the tag vocabulary. LLMs are smart enough to
 detect similarity and synonyms themselves—no need for built-in fuzzy matching.

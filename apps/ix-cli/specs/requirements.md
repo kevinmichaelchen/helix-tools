@@ -68,7 +68,8 @@ This document defines requirements for `ix-cli` (Ixchel CLI).
 | ID       | Acceptance Criterion                                                                   |
 | -------- | -------------------------------------------------------------------------------------- |
 | AC-008.1 | WHEN a user runs `ixchel tags` THE SYSTEM SHALL list all unique tags with usage counts |
-| AC-008.2 | THE SYSTEM SHALL treat tags as case-sensitive, trimmed strings and ignore empty values |
-| AC-008.3 | THE SYSTEM SHALL count each tag at most once per entity                                |
-| AC-008.4 | THE SYSTEM SHALL sort tags alphabetically                                              |
-| AC-008.5 | WHERE `--json` is provided THE SYSTEM SHALL output a JSON object with `total` and `tags` |
+| AC-008.2 | WHERE `--kind <kind>` is provided THE SYSTEM SHALL list tags from that kind only       |
+| AC-008.3 | THE SYSTEM SHALL treat tags as case-sensitive, trimmed strings and ignore empty values |
+| AC-008.4 | THE SYSTEM SHALL count each tag at most once per entity                                |
+| AC-008.5 | THE SYSTEM SHALL sort tags alphabetically                                              |
+| AC-008.6 | WHERE `--json` is provided THE SYSTEM SHALL output a JSON object with `total` and `tags` |

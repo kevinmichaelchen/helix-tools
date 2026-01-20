@@ -261,10 +261,10 @@ impl IxchelRepo {
         Ok(out)
     }
 
-    pub fn collect_tags(&self) -> Result<HashMap<String, Vec<String>>> {
+    pub fn collect_tags(&self, kind: Option<EntityKind>) -> Result<HashMap<String, Vec<String>>> {
         let mut out: HashMap<String, Vec<String>> = HashMap::new();
 
-        for item in self.list(None)? {
+        for item in self.list(kind)? {
             let raw = std::fs::read_to_string(&item.path)
                 .with_context(|| format!("Failed to read {}", item.path.display()))?;
             let doc = parse_markdown(&item.path, &raw)?;

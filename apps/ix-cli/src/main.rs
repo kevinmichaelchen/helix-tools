@@ -42,7 +42,10 @@ enum Command {
         kind: Option<ix_core::entity::EntityKind>,
     },
 
-    Tags,
+    Tags {
+        #[arg(long)]
+        kind: Option<ix_core::entity::EntityKind>,
+    },
 
     Link {
         from: String,
@@ -99,7 +102,7 @@ fn run(command: Command, start: &Path, json_output: bool) -> Result<()> {
         } => cmd_create(start, kind, &title, status.as_deref(), json_output),
         Command::Show { id } => cmd_show(start, &id, json_output),
         Command::List { kind } => cmd_list(start, kind, json_output),
-        Command::Tags => cmd_tags(start, json_output),
+        Command::Tags { kind } => cmd_tags(start, kind, json_output),
         Command::Link { from, rel, to } => cmd_link(start, &from, &rel, &to, json_output),
         Command::Unlink { from, rel, to } => cmd_unlink(start, &from, &rel, &to, json_output),
         Command::Check => cmd_check(start, json_output),
@@ -183,9 +186,13 @@ fn cmd_list(
     Ok(())
 }
 
-fn cmd_tags(start: &Path, json_output: bool) -> Result<()> {
+fn cmd_tags(
+    start: &Path,
+    kind: Option<ix_core::entity::EntityKind>,
+    json_output: bool,
+) -> Result<()> {
     let repo = ix_core::repo::IxchelRepo::open_from(start)?;
-    let tags = repo.collect_tags()?;
+    let tags = repo.collect_tags(kind)?;
     let mut items = tags
         .into_iter()
         .map(|(tag, ids)| (tag, ids.len()))

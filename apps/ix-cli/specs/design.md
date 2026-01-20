@@ -36,6 +36,7 @@ single entity count once.
 **Flags:**
 
 - `--json`: Output as JSON object with `total` and `tags` array
+- `--kind <kind>`: Filter tags to a specific entity kind
 
 ## JSON Output
 

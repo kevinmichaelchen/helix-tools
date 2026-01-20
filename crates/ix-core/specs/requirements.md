@@ -109,7 +109,7 @@ Ixchel repositories.
 
 | ID       | Acceptance Criterion                                                                      |
 | -------- | ----------------------------------------------------------------------------------------- |
-| AC-009.1 | WHEN `collect_tags()` is called THE SYSTEM SHALL scan all entities for `tags` frontmatter |
+| AC-009.1 | WHEN `collect_tags(kind)` is called THE SYSTEM SHALL scan all entities (or only `kind`) for `tags` frontmatter |
 | AC-009.2 | THE SYSTEM SHALL return a map of tag → list of entity ids                                 |
 | AC-009.3 | THE SYSTEM SHALL treat tags as case-sensitive, trimmed strings and ignore empty values    |
 | AC-009.4 | THE SYSTEM SHALL include each entity id at most once per tag                              |
