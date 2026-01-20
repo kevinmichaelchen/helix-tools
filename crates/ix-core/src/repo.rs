@@ -11,8 +11,8 @@ use thiserror::Error;
 
 use crate::entity::{EntityKind, kind_from_id, looks_like_entity_id};
 use crate::markdown::{
-    MarkdownDocument, get_string, get_string_list, parse_markdown, render_markdown, set_string,
-    set_string_list,
+    MarkdownDocument, MarkdownError, get_string, get_string_list, parse_markdown, render_markdown,
+    set_string, set_string_list,
 };
 use crate::paths::{IxchelPaths, find_git_root};
 
@@ -64,6 +64,18 @@ pub struct CheckError {
 }
 
 #[derive(Debug)]
+pub struct CheckIssue {
+    pub path: PathBuf,
+    pub message: String,
+    pub suggestion: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct CheckReportDetailed {
+    pub errors: Vec<CheckIssue>,
+}
+
+#[derive(Debug)]
 pub struct IxchelRepo {
     pub paths: IxchelPaths,
     pub config: IxchelConfig,
@@ -80,6 +92,8 @@ const METADATA_KEYS: &[&str] = &[
     "created_by",
     "tags",
 ];
+
+const KNOWN_ID_PREFIXES_HINT: &str = "dec, iss, bd, idea, rpt, src, cite, agt, ses";
 
 impl IxchelRepo {
     pub fn open_from(start: &Path) -> Result<Self> {
@@ -498,83 +512,496 @@ impl IxchelRepo {
     }
 
     pub fn check(&self) -> Result<CheckReport> {
+        let report = self.check_with_suggestions()?;
+        Ok(CheckReport {
+            errors: report
+                .errors
+                .into_iter()
+                .map(|issue| CheckError {
+                    path: issue.path,
+                    message: issue.message,
+                })
+                .collect(),
+        })
+    }
+
+    pub fn check_with_suggestions(&self) -> Result<CheckReportDetailed> {
         let mut errors = Vec::new();
         let mut seen_ids: BTreeSet<String> = BTreeSet::new();
 
-        for item in self.list(None, ListSort::default())? {
-            if item.id.trim().is_empty() {
-                errors.push(CheckError {
-                    path: item.path.clone(),
-                    message: "missing frontmatter id".to_string(),
-                });
+        let kinds = [
+            EntityKind::Decision,
+            EntityKind::Issue,
+            EntityKind::Idea,
+            EntityKind::Report,
+            EntityKind::Source,
+            EntityKind::Citation,
+            EntityKind::Agent,
+            EntityKind::Session,
+        ];
+
+        for kind in kinds {
+            let dir = self.paths.kind_dir(kind);
+            if !dir.exists() {
                 continue;
             }
 
-            if !seen_ids.insert(item.id.clone()) {
-                errors.push(CheckError {
-                    path: item.path.clone(),
-                    message: format!("duplicate id: {}", item.id),
-                });
-            }
-
-            let expected_kind = kind_from_id(&item.id);
-            if expected_kind != Some(item.kind) {
-                errors.push(CheckError {
-                    path: item.path.clone(),
-                    message: format!(
-                        "id prefix does not match directory (id={}, dir={})",
-                        item.id,
-                        item.kind.directory_name()
-                    ),
-                });
-            }
-
-            if item.title.trim().is_empty() {
-                errors.push(CheckError {
-                    path: item.path.clone(),
-                    message: "missing or empty title".to_string(),
-                });
-            }
-
-            let expected_file = format!("{}.md", item.id);
-            if item
-                .path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .is_some_and(|name| name != expected_file)
+            let mut entries = Vec::new();
+            for entry in std::fs::read_dir(&dir)
+                .with_context(|| format!("Failed to read {}", dir.display()))?
             {
-                errors.push(CheckError {
-                    path: item.path.clone(),
-                    message: format!("file name does not match id (expected {expected_file})"),
-                });
+                let entry = entry?;
+                let path = entry.path();
+                if path.extension().and_then(|s| s.to_str()) != Some("md") {
+                    continue;
+                }
+                entries.push(path);
             }
 
-            let raw = std::fs::read_to_string(&item.path)
-                .with_context(|| format!("Failed to read {}", item.path.display()))?;
-            let doc = parse_markdown(&item.path, &raw)?;
-
-            for (rel, targets) in extract_relationships(&doc.frontmatter) {
-                for target in targets {
-                    let Some(target_path) = self.paths.entity_path(&target) else {
-                        errors.push(CheckError {
-                            path: item.path.clone(),
-                            message: format!("unknown id prefix in {rel}: {target}"),
-                        });
-                        continue;
-                    };
-
-                    if !target_path.exists() {
-                        errors.push(CheckError {
-                            path: item.path.clone(),
-                            message: format!("broken link {rel} -> {target}"),
-                        });
-                    }
-                }
+            entries.sort();
+            for path in entries {
+                check_document(&self.paths, kind, &path, &mut seen_ids, &mut errors)?;
             }
         }
 
-        Ok(CheckReport { errors })
+        Ok(CheckReportDetailed { errors })
     }
+}
+
+fn check_document(
+    paths: &IxchelPaths,
+    kind: EntityKind,
+    path: &Path,
+    seen_ids: &mut BTreeSet<String>,
+    errors: &mut Vec<CheckIssue>,
+) -> Result<()> {
+    let raw = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read {}", path.display()))?;
+    let file_id = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
+    let has_frontmatter = raw.lines().next().is_some_and(|line| line == "---");
+
+    let doc = parse_document_with_issue(path, &raw, errors);
+    if !has_frontmatter {
+        let id_hint = id_hint(&file_id, kind);
+        let suggestion = format!(
+            "Add YAML frontmatter starting with `---` and include `id: {id_hint}`, `type: {}`, `title`, `created_at`, `updated_at`, and `tags`.",
+            kind.as_str()
+        );
+        push_issue(errors, path, "missing frontmatter block", Some(suggestion));
+    }
+
+    let frontmatter = if has_frontmatter {
+        doc.as_ref().map(|doc| &doc.frontmatter)
+    } else {
+        None
+    };
+
+    let frontmatter_id = frontmatter
+        .and_then(|frontmatter| check_frontmatter_id(frontmatter, &file_id, kind, path, errors));
+    let resolved_id = frontmatter_id.as_deref().unwrap_or(file_id.as_str());
+    check_id_and_path(resolved_id, kind, path, seen_ids, errors);
+
+    if let Some(frontmatter) = frontmatter {
+        check_frontmatter_fields(frontmatter, kind, path, errors);
+        check_relationships(paths, frontmatter, path, errors);
+    }
+
+    Ok(())
+}
+
+fn parse_document_with_issue(
+    path: &Path,
+    raw: &str,
+    errors: &mut Vec<CheckIssue>,
+) -> Option<MarkdownDocument> {
+    match parse_markdown(path, raw) {
+        Ok(doc) => Some(doc),
+        Err(err) => {
+            let (message, suggestion) = match err {
+                MarkdownError::UnclosedFrontmatter { .. } => (
+                    "frontmatter missing closing delimiter '---'".to_string(),
+                    "Add a closing `---` line after the YAML frontmatter.".to_string(),
+                ),
+                MarkdownError::FrontmatterParse { source, .. } => (
+                    format!("frontmatter YAML parse error: {source}"),
+                    "Fix YAML syntax; frontmatter must be a mapping of key/value pairs."
+                        .to_string(),
+                ),
+                MarkdownError::FrontmatterNotMapping { .. } => (
+                    "frontmatter must be a YAML mapping".to_string(),
+                    "Replace frontmatter with key/value mapping (for example: `id: ...`)."
+                        .to_string(),
+                ),
+                MarkdownError::FrontmatterSerialize { source } => (
+                    format!("frontmatter serialization error: {source}"),
+                    "Fix frontmatter values so they can be serialized to YAML.".to_string(),
+                ),
+            };
+            push_issue(errors, path, message, Some(suggestion));
+            None
+        }
+    }
+}
+
+fn check_frontmatter_id(
+    frontmatter: &Mapping,
+    file_id: &str,
+    kind: EntityKind,
+    path: &Path,
+    errors: &mut Vec<CheckIssue>,
+) -> Option<String> {
+    match frontmatter.get(Value::String("id".to_string())) {
+        Some(Value::String(value)) => {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                let id_hint = id_hint(file_id, kind);
+                push_issue(
+                    errors,
+                    path,
+                    "missing frontmatter id",
+                    Some(format!("Add `id: {id_hint}` to frontmatter.")),
+                );
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+        Some(_) => {
+            push_issue(
+                errors,
+                path,
+                "frontmatter id must be a string",
+                Some("Set `id` to a string like `iss-a1b2c3`.".to_string()),
+            );
+            None
+        }
+        None => {
+            let id_hint = id_hint(file_id, kind);
+            push_issue(
+                errors,
+                path,
+                "missing frontmatter id",
+                Some(format!("Add `id: {id_hint}` to frontmatter.")),
+            );
+            None
+        }
+    }
+}
+
+fn check_id_and_path(
+    id: &str,
+    kind: EntityKind,
+    path: &Path,
+    seen_ids: &mut BTreeSet<String>,
+    errors: &mut Vec<CheckIssue>,
+) {
+    let trimmed = id.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+
+    let mut id_format_ok = true;
+    if ix_id::parse_id(trimmed).is_err() {
+        id_format_ok = false;
+        push_issue(
+            errors,
+            path,
+            "id is not a valid Ixchel id",
+            Some("Use `<prefix>-<6..12 hex>`, for example `iss-a1b2c3`.".to_string()),
+        );
+    }
+
+    if !seen_ids.insert(trimmed.to_string()) {
+        push_issue(
+            errors,
+            path,
+            format!("duplicate id: {trimmed}"),
+            Some("Make ids unique and rename the file to match the new id.".to_string()),
+        );
+    }
+
+    if id_format_ok {
+        let expected_kind = kind_from_id(trimmed);
+        if expected_kind != Some(kind) {
+            let suggestion = if expected_kind.is_none() {
+                format!(
+                    "Use a known id prefix ({KNOWN_ID_PREFIXES_HINT}) or move the file to the correct directory.",
+                )
+            } else {
+                format!(
+                    "Move the file to `{}` or update the id prefix to `{}`.",
+                    kind.directory_name(),
+                    kind.id_prefix()
+                )
+            };
+            push_issue(
+                errors,
+                path,
+                format!(
+                    "id prefix does not match directory (id={trimmed}, dir={})",
+                    kind.directory_name()
+                ),
+                Some(suggestion),
+            );
+        }
+    }
+
+    let expected_file = format!("{trimmed}.md");
+    if path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .is_some_and(|name| name != expected_file)
+    {
+        push_issue(
+            errors,
+            path,
+            format!("file name does not match id (expected {expected_file})"),
+            Some(format!(
+                "Rename the file to `{expected_file}` or update `id` to match the filename.",
+            )),
+        );
+    }
+}
+
+fn check_frontmatter_fields(
+    frontmatter: &Mapping,
+    kind: EntityKind,
+    path: &Path,
+    errors: &mut Vec<CheckIssue>,
+) {
+    check_frontmatter_type(frontmatter, kind, path, errors);
+    check_frontmatter_title(frontmatter, path, errors);
+    check_timestamp(frontmatter, "created_at", path, errors);
+    check_timestamp(frontmatter, "updated_at", path, errors);
+    check_tags_field(frontmatter, path, errors);
+    check_optional_string_field(frontmatter, "status", path, errors);
+    check_optional_string_field(frontmatter, "created_by", path, errors);
+    check_optional_string_field(frontmatter, "date", path, errors);
+}
+
+fn check_frontmatter_type(
+    frontmatter: &Mapping,
+    kind: EntityKind,
+    path: &Path,
+    errors: &mut Vec<CheckIssue>,
+) {
+    match frontmatter.get(Value::String("type".to_string())) {
+        Some(Value::String(value)) => {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                push_issue(
+                    errors,
+                    path,
+                    "missing frontmatter type",
+                    Some(format!("Add `type: {}` to frontmatter.", kind.as_str())),
+                );
+                return;
+            }
+
+            match trimmed.parse::<EntityKind>() {
+                Ok(parsed) => {
+                    if parsed != kind {
+                        push_issue(
+                            errors,
+                            path,
+                            format!(
+                                "frontmatter type does not match directory (type={trimmed}, dir={})",
+                                kind.directory_name()
+                            ),
+                            Some(format!(
+                                "Set `type` to `{}` or move the file to the correct directory.",
+                                kind.as_str()
+                            )),
+                        );
+                    }
+                }
+                Err(_) => {
+                    push_issue(
+                        errors,
+                        path,
+                        format!("unknown frontmatter type: {trimmed}"),
+                        Some(format!(
+                            "Set `type` to `{}` or move the file to the correct directory.",
+                            kind.as_str()
+                        )),
+                    );
+                }
+            }
+        }
+        Some(_) => {
+            push_issue(
+                errors,
+                path,
+                "frontmatter type must be a string",
+                Some("Set `type` to a string like `issue`.".to_string()),
+            );
+        }
+        None => {
+            push_issue(
+                errors,
+                path,
+                "missing frontmatter type",
+                Some(format!("Add `type: {}` to frontmatter.", kind.as_str())),
+            );
+        }
+    }
+}
+
+fn check_frontmatter_title(frontmatter: &Mapping, path: &Path, errors: &mut Vec<CheckIssue>) {
+    match frontmatter.get(Value::String("title".to_string())) {
+        Some(Value::String(value)) => {
+            if value.trim().is_empty() {
+                push_issue(
+                    errors,
+                    path,
+                    "missing or empty title",
+                    Some("Add a non-empty `title` string.".to_string()),
+                );
+            }
+        }
+        Some(_) => {
+            push_issue(
+                errors,
+                path,
+                "frontmatter title must be a string",
+                Some("Set `title` to a string value.".to_string()),
+            );
+        }
+        None => {
+            push_issue(
+                errors,
+                path,
+                "missing or empty title",
+                Some("Add a non-empty `title` string.".to_string()),
+            );
+        }
+    }
+}
+
+fn check_timestamp(frontmatter: &Mapping, key: &str, path: &Path, errors: &mut Vec<CheckIssue>) {
+    match frontmatter.get(Value::String(key.to_string())) {
+        Some(Value::String(value)) => {
+            if DateTime::parse_from_rfc3339(value).is_err() {
+                push_issue(
+                    errors,
+                    path,
+                    format!("{key} is not RFC3339"),
+                    Some(format!(
+                        "Set `{key}` to an RFC3339 timestamp, for example `2024-01-01T00:00:00Z`.",
+                    )),
+                );
+            }
+        }
+        Some(_) => {
+            push_issue(
+                errors,
+                path,
+                format!("{key} must be a string"),
+                Some(format!("Set `{key}` to an RFC3339 string.")),
+            );
+        }
+        None => {
+            push_issue(
+                errors,
+                path,
+                format!("missing {key} timestamp"),
+                Some(format!(
+                    "Add `{key}` in RFC3339, for example `2024-01-01T00:00:00Z`.",
+                )),
+            );
+        }
+    }
+}
+
+fn check_tags_field(frontmatter: &Mapping, path: &Path, errors: &mut Vec<CheckIssue>) {
+    let Some(value) = frontmatter.get(Value::String("tags".to_string())) else {
+        return;
+    };
+
+    let tags_ok = match value {
+        Value::Sequence(seq) => seq.iter().all(|item| matches!(item, Value::String(_))),
+        Value::String(_) => true,
+        _ => false,
+    };
+    if !tags_ok {
+        push_issue(
+            errors,
+            path,
+            "tags must be a string or list of strings",
+            Some("Use `tags: []` or `tags: [\"foo\", \"bar\"]`.".to_string()),
+        );
+    }
+}
+
+fn check_optional_string_field(
+    frontmatter: &Mapping,
+    key: &str,
+    path: &Path,
+    errors: &mut Vec<CheckIssue>,
+) {
+    if let Some(value) = frontmatter.get(Value::String(key.to_string()))
+        && !matches!(value, Value::String(_))
+    {
+        push_issue(
+            errors,
+            path,
+            format!("{key} must be a string"),
+            Some(format!("Set `{key}` to a string.")),
+        );
+    }
+}
+
+fn check_relationships(
+    paths: &IxchelPaths,
+    frontmatter: &Mapping,
+    path: &Path,
+    errors: &mut Vec<CheckIssue>,
+) {
+    for (rel, targets) in extract_relationships(frontmatter) {
+        for target in targets {
+            let Some(target_path) = paths.entity_path(&target) else {
+                push_issue(
+                    errors,
+                    path,
+                    format!("unknown id prefix in {rel}: {target}"),
+                    Some(format!(
+                        "Use a known id prefix ({KNOWN_ID_PREFIXES_HINT}) in `{rel}`.",
+                    )),
+                );
+                continue;
+            };
+
+            if !target_path.exists() {
+                let suggestion = format!(
+                    "Create `{}` or remove `{rel}` -> `{target}`.",
+                    target_path.display()
+                );
+                push_issue(
+                    errors,
+                    path,
+                    format!("broken link {rel} -> {target}"),
+                    Some(suggestion),
+                );
+            }
+        }
+    }
+}
+
+fn push_issue(
+    errors: &mut Vec<CheckIssue>,
+    path: &Path,
+    message: impl Into<String>,
+    suggestion: Option<String>,
+) {
+    errors.push(CheckIssue {
+        path: path.to_path_buf(),
+        message: message.into(),
+        suggestion,
+    });
 }
 
 fn parse_timestamp(frontmatter: &Mapping, key: &str) -> Option<DateTime<Utc>> {
@@ -713,4 +1140,17 @@ fn normalized_tags_vec(frontmatter: &Mapping) -> Vec<String> {
         }
     }
     tags
+}
+
+fn id_hint(file_id: &str, kind: EntityKind) -> String {
+    let trimmed = file_id.trim();
+    if trimmed.is_empty() {
+        return format!("{}-<hash>", kind.id_prefix());
+    }
+
+    if ix_id::parse_id(trimmed).is_ok() {
+        trimmed.to_string()
+    } else {
+        format!("{}-<hash>", kind.id_prefix())
+    }
 }

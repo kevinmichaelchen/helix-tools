@@ -347,22 +347,34 @@ fn cmd_unlink(start: &Path, from: &str, rel: &str, to: &str, json_output: bool) 
 
 fn cmd_check(start: &Path, json_output: bool) -> Result<()> {
     let repo = ix_core::repo::IxchelRepo::open_from(start)?;
-    let report = repo.check()?;
+    let report = repo.check_with_suggestions()?;
+    let errors = report.errors;
     if json_output {
-        let errors = report
-            .errors
-            .into_iter()
-            .map(|e| json!({ "path": e.path, "message": e.message }))
+        let errors = errors
+            .iter()
+            .map(|e| {
+                let mut item = serde_json::Map::new();
+                item.insert("path".to_string(), json!(&e.path));
+                item.insert("message".to_string(), json!(&e.message));
+                if let Some(suggestion) = &e.suggestion {
+                    item.insert("suggestion".to_string(), json!(suggestion));
+                }
+                serde_json::Value::Object(item)
+            })
             .collect::<Vec<_>>();
-        print_json(&json!({ "ok": errors.is_empty(), "errors": errors }))?;
-        if !errors.is_empty() {
+        let has_errors = !errors.is_empty();
+        print_json(&json!({ "ok": !has_errors, "errors": errors }))?;
+        if has_errors {
             std::process::exit(1);
         }
-    } else if report.errors.is_empty() {
+    } else if errors.is_empty() {
         println!("OK");
     } else {
-        for error in &report.errors {
+        for error in &errors {
             eprintln!("{}: {}", error.path.display(), error.message);
+            if let Some(suggestion) = &error.suggestion {
+                eprintln!("  suggestion: {suggestion}");
+            }
         }
         std::process::exit(1);
     }

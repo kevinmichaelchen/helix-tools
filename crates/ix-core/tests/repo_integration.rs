@@ -148,6 +148,40 @@ fn check_reports_broken_and_unknown_links() {
 }
 
 #[test]
+fn check_reports_frontmatter_parse_errors() {
+    let (_temp, repo) = init_temp_git_repo();
+    let dir = repo.paths.kind_dir(EntityKind::Issue);
+    let path = dir.join("iss-bad001.md");
+    let raw = "---\nfoo: [\n---\n";
+    std::fs::write(&path, raw).expect("write invalid frontmatter");
+
+    let report = repo.check_with_suggestions().expect("check");
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.message.contains("frontmatter YAML parse error")),
+        "{:#?}",
+        report.errors
+    );
+    assert!(
+        report.errors.iter().any(|e| e.suggestion.is_some()),
+        "{:#?}",
+        report.errors
+    );
+
+    let report = repo.check().expect("check");
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.message.contains("frontmatter YAML parse error")),
+        "{:#?}",
+        report.errors
+    );
+}
+
+#[test]
 fn add_remove_tags_are_idempotent() {
     let (_temp, repo) = init_temp_git_repo();
     let issue = repo
