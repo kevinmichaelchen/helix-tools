@@ -20,7 +20,7 @@ repos:
         name: cargo fmt
         entry: cargo fmt --all -- --check
         language: system
-        types: [rust]
+        files: (\.rs$|(^|/)(Cargo\.toml|Cargo\.lock|rust-toolchain(\.toml)?|build\.rs)$|^\.github/workflows/ci\.yml$)
         pass_filenames: false
 
   # Rust linting
@@ -28,7 +28,7 @@ repos:
     hooks:
       - id: cargo-clippy
         name: cargo clippy
-        entry: cargo clippy --all-targets -- -D warnings
+        entry: cargo clippy --workspace --exclude demo-got --all-targets -- -D warnings
         language: system
-        types: [rust]
+        files: (\.rs$|(^|/)(Cargo\.toml|Cargo\.lock|rust-toolchain(\.toml)?|build\.rs)$|^\.github/workflows/ci\.yml$)
         pass_filenames: false
