@@ -6,7 +6,7 @@ status: open
 created_at: 2026-01-19T03:08:24Z
 updated_at: 2026-01-19T03:08:24Z
 created_by: kevinchen
-tags: []
+tags: [daemon, sync, helixdb]
 ---
 
 ## Problem

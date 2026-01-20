@@ -13,6 +13,7 @@ parent: bd-48bfe2
 depends_on:
 - id: bd-c9bd57
   type: blocks
+tags: [database, helixdb]
 ---
 
 hbd sync - bidirectional sync between .tickets/ and HelixDB for fast queries
