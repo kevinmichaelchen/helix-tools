@@ -1,8 +1,24 @@
+---
+id: dec-2aa528
+type: decision
+title: 'Ixchel Distribution & Publishing Report'
+status: research-complete
+date: 2026-01-19
+created_at: 2026-01-19T00:00:00Z
+updated_at: 2026-01-19T00:00:00Z
+created_by: Kevin Chen
+tags:
+- distribution
+- publishing
+- packaging
+- ci
+---
+
 # Ixchel Distribution & Publishing Report
 
 **Date:** 2026-01-19
 **Status:** Research Complete
-**Tags:** distribution, publishing, packaging, ci/cd
+**Tags:** distribution, publishing, packaging, ci
 
 ## Executive Summary
 
