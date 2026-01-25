@@ -13,8 +13,8 @@ categories = ["development-tools"]
 
 [dependencies]
 anyhow.workspace = true
-ix-app = { path = "../../crates/ix-app", version = "0.1.0" }
-ix-core = { path = "../../crates/ix-core", version = "0.1.0" }
+ix-app = { path = "../../crates/ix-app", version = "0.2.0" }
+ix-core = { path = "../../crates/ix-core", version = "0.2.0" }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true

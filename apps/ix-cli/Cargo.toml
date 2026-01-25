@@ -15,8 +15,8 @@ categories = ["command-line-utilities", "development-tools"]
 anyhow.workspace = true
 clap.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
-ix-app = { path = "../../crates/ix-app", version = "0.1.0" }
-ix-core = { path = "../../crates/ix-core", version = "0.1.0" }
+ix-app = { path = "../../crates/ix-app", version = "0.2.0" }
+ix-core = { path = "../../crates/ix-core", version = "0.2.0" }
 ix-daemon = { path = "../ix-daemon" }
 notify.workspace = true
 serde_yaml.workspace = true

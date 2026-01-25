@@ -14,8 +14,8 @@ categories = ["development-tools"]
 anyhow.workspace = true
 blake3.workspace = true
 chrono.workspace = true
-ix-config = { path = "../ix-config", version = "0.1.0" }
-ix-id = { path = "../ix-id", version = "0.1.0" }
+ix-config = { path = "../ix-config", version = "0.2.0" }
+ix-id = { path = "../ix-id", version = "0.2.0" }
 serde.workspace = true
 serde_yaml.workspace = true
 thiserror.workspace = true
