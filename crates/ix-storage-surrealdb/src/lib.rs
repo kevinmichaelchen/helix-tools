@@ -3,12 +3,16 @@
 //! This crate provides a [`SurrealDbIndex`] that implements the [`IndexBackend`] trait
 //! using `SurrealDB`'s embedded mode with `RocksDB` or `SurrealKV` storage.
 
+mod manifest;
 mod schema;
 mod types;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use manifest::{ManifestEntry, SyncAction, SyncManifest};
 
 use anyhow::{Context, Result};
 use ix_core::entity::{EntityKind, kind_from_id};
@@ -280,12 +284,159 @@ impl SurrealDbIndex {
 
         Ok(())
     }
+
+    /// Load the sync manifest from the database.
+    fn load_manifest(&self, db: &Surreal<Db>) -> Result<SyncManifest> {
+        let records: Vec<types::ManifestRecord> = self
+            .runtime
+            .block_on(async { db.query("SELECT * FROM sync_manifest").await?.take(0) })?;
+
+        let entries = records
+            .into_iter()
+            .map(|r| {
+                (
+                    r.entity_id,
+                    ManifestEntry {
+                        content_hash: r.content_hash,
+                        file_path: r.file_path,
+                        #[allow(clippy::cast_sign_loss)]
+                        last_synced: r.last_synced as u64,
+                    },
+                )
+            })
+            .collect();
+
+        Ok(SyncManifest::from_entries(entries))
+    }
+
+    /// Save or update a manifest entry in the database.
+    fn save_manifest_entry(
+        &self,
+        db: &Surreal<Db>,
+        entity_id: &str,
+        entry: &ManifestEntry,
+    ) -> Result<()> {
+        let entity_id_owned = entity_id.to_string();
+        let content_hash = entry.content_hash.clone();
+        let file_path = entry.file_path.clone();
+        #[allow(clippy::cast_possible_wrap)]
+        let last_synced = entry.last_synced as i64;
+
+        self.runtime.block_on(async {
+            // Use UPSERT to insert or update
+            db.query(
+                "UPSERT type::thing('sync_manifest', $entity_id) CONTENT {
+                    entity_id: $entity_id,
+                    content_hash: $content_hash,
+                    file_path: $file_path,
+                    last_synced: $last_synced
+                }",
+            )
+            .bind(("entity_id", entity_id_owned))
+            .bind(("content_hash", content_hash))
+            .bind(("file_path", file_path))
+            .bind(("last_synced", last_synced))
+            .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+    }
+
+    /// Delete an entity and its relationships from the database.
+    fn delete_entity(&self, db: &Surreal<Db>, entity_id: &str) -> Result<()> {
+        let entity_id_owned = entity_id.to_string();
+
+        self.runtime.block_on(async {
+            // Delete relationships first
+            db.query(
+                "DELETE relates WHERE in.entity_id = $entity_id OR out.entity_id = $entity_id",
+            )
+            .bind(("entity_id", entity_id_owned.clone()))
+            .await?;
+
+            // Delete the entity
+            db.query("DELETE FROM entity WHERE entity_id = $entity_id")
+                .bind(("entity_id", entity_id_owned))
+                .await?;
+
+            Ok::<_, anyhow::Error>(())
+        })
+    }
+
+    /// Delete a manifest entry from the database.
+    fn delete_manifest_entry(&self, db: &Surreal<Db>, entity_id: &str) -> Result<()> {
+        let entity_id_owned = entity_id.to_string();
+
+        self.runtime.block_on(async {
+            db.query("DELETE type::thing('sync_manifest', $entity_id)")
+                .bind(("entity_id", entity_id_owned))
+                .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+    }
+
+    /// Update an existing entity in the database.
+    fn update_entity(&self, db: &Surreal<Db>, record: &EntityRecord) -> Result<()> {
+        let entity_id = record.entity_id.clone();
+        let record = record.clone();
+
+        self.runtime.block_on(async {
+            db.query(
+                "UPDATE entity SET
+                    kind = $kind,
+                    title = $title,
+                    status = $status,
+                    file_path = $file_path,
+                    content_hash = $content_hash,
+                    tags = $tags,
+                    body = $body,
+                    embedding = $embedding
+                WHERE entity_id = $entity_id",
+            )
+            .bind(("entity_id", entity_id))
+            .bind(("kind", record.kind))
+            .bind(("title", record.title))
+            .bind(("status", record.status))
+            .bind(("file_path", record.file_path))
+            .bind(("content_hash", record.content_hash))
+            .bind(("tags", record.tags))
+            .bind(("body", record.body))
+            .bind(("embedding", record.embedding))
+            .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+    }
+
+    /// Delete all relationships involving an entity.
+    fn delete_entity_edges(&self, db: &Surreal<Db>, entity_id: &str) -> Result<()> {
+        let entity_id_owned = entity_id.to_string();
+
+        self.runtime.block_on(async {
+            db.query(
+                "DELETE relates WHERE in.entity_id = $entity_id OR out.entity_id = $entity_id",
+            )
+            .bind(("entity_id", entity_id_owned))
+            .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+    }
 }
 
 impl IndexBackend for SurrealDbIndex {
-    #[allow(clippy::significant_drop_tightening)]
+    /// Sync entities from the filesystem to the database.
+    ///
+    /// Uses incremental sync by default: compares content hashes against
+    /// a stored manifest and only updates changed entities.
+    #[allow(clippy::significant_drop_tightening, clippy::too_many_lines)]
     fn sync(&mut self, repo: &IxchelRepo) -> Result<SyncStats> {
-        self.rebuild_database()?;
+        // Check if database exists - if not, do a full rebuild
+        let db_exists = self.db_path.exists();
+
+        if db_exists {
+            // Open existing database
+            self.ensure_db_open()?;
+        } else {
+            self.rebuild_database()?;
+        }
 
         // Lock the database for the duration of sync
         let db_guard = self
@@ -296,16 +447,29 @@ impl IndexBackend for SurrealDbIndex {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Database not initialized"))?;
 
-        // Initialize schema with embedding dimension
+        // Initialize/update schema with embedding dimension
         let dimension = self.embedder.dimension();
         self.runtime.block_on(async {
             db.query(schema::SCHEMA_INIT).await?;
             db.query(schema::hnsw_index_query(dimension)).await
         })?;
 
+        // Load existing manifest for incremental sync
+        let mut manifest = if db_exists {
+            self.load_manifest(db).unwrap_or_default()
+        } else {
+            SyncManifest::new()
+        };
+
         let mut stats = SyncStats::default();
         let mut pending_relations: Vec<PendingRelation> = Vec::new();
         let mut id_to_record_id: BTreeMap<String, String> = BTreeMap::new();
+        let mut seen_entity_ids: HashSet<String> = HashSet::new();
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
 
         for entity_path in iter_entity_paths(repo)? {
             stats.scanned += 1;
@@ -326,6 +490,26 @@ impl IndexBackend for SurrealDbIndex {
                 continue;
             }
 
+            seen_entity_ids.insert(id.clone());
+            let content_hash = blake3::hash(raw.as_bytes()).to_hex().to_string();
+            let normalized_path = normalize_path(&self.repo_root, &entity_path);
+
+            // Determine action based on manifest (checks both content hash and file path)
+            let action = manifest.action_for(&id, &content_hash, &normalized_path);
+
+            match action {
+                SyncAction::Skip => {
+                    // Entity unchanged - edges are already correct, no need to re-insert
+                    stats.unchanged += 1;
+                    // Still track the ID for relationship target resolution
+                    id_to_record_id.insert(id.clone(), id.clone());
+                    continue;
+                }
+                SyncAction::Insert | SyncAction::Update => {
+                    // Need to process this entity
+                }
+            }
+
             let kind = get_string(&doc.frontmatter, "type")
                 .and_then(|t| t.parse::<EntityKind>().ok())
                 .or_else(|| kind_from_id(&id))
@@ -334,14 +518,9 @@ impl IndexBackend for SurrealDbIndex {
             let title = get_string(&doc.frontmatter, "title").unwrap_or_default();
             let tags = get_string_list(&doc.frontmatter, "tags");
             let entity_status = get_string(&doc.frontmatter, "status").unwrap_or_default();
-            let content_hash = blake3::hash(raw.as_bytes()).to_hex().to_string();
-            let normalized_path = normalize_path(&self.repo_root, &entity_path);
 
             let embedding_text = build_embedding_text(&title, &doc.body, &tags, kind);
             let embedding = self.embed(&embedding_text)?;
-
-            // Use the entity ID as the record ID key for simplicity
-            let record_id_key = id.clone();
 
             let record = EntityRecord {
                 record_id: None,
@@ -349,32 +528,66 @@ impl IndexBackend for SurrealDbIndex {
                 kind: kind.as_str().to_string(),
                 title: title.clone(),
                 status: entity_status,
-                file_path: normalized_path,
-                content_hash,
+                file_path: normalized_path.clone(),
+                content_hash: content_hash.clone(),
                 tags,
                 body: doc.body.clone(),
                 embedding,
             };
 
-            // Insert entity using raw query to avoid record ID deserialization issues
-            let record_id_key_owned = record_id_key.clone();
-            self.runtime.block_on(async {
-                db.query("CREATE type::thing('entity', $record_id) CONTENT $content")
-                    .bind(("record_id", record_id_key_owned))
-                    .bind(("content", record))
-                    .await?;
-                Ok::<_, anyhow::Error>(())
-            })?;
+            match action {
+                SyncAction::Insert => {
+                    // Insert new entity
+                    let record_id_key = id.clone();
+                    self.runtime.block_on(async {
+                        db.query("CREATE type::thing('entity', $record_id) CONTENT $content")
+                            .bind(("record_id", record_id_key.clone()))
+                            .bind(("content", record))
+                            .await?;
+                        Ok::<_, anyhow::Error>(())
+                    })?;
+                    stats.added += 1;
+                }
+                SyncAction::Update => {
+                    // Delete old edges first, then update entity
+                    self.delete_entity_edges(db, &id)?;
+                    self.update_entity(db, &record)?;
+                    stats.modified += 1;
+                }
+                SyncAction::Skip => unreachable!(),
+            }
 
-            id_to_record_id.insert(id.clone(), record_id_key.clone());
+            // Update manifest entry
+            let manifest_entry = ManifestEntry {
+                content_hash,
+                file_path: normalized_path,
+                last_synced: now,
+            };
+            self.save_manifest_entry(db, &id, &manifest_entry)?;
+            manifest.insert(id.clone(), manifest_entry);
+
+            id_to_record_id.insert(id.clone(), id.clone());
             pending_relations.push(PendingRelation {
-                from_record_id: record_id_key,
+                from_record_id: id,
                 rels: extract_relationships(&doc.frontmatter),
             });
-
-            stats.added += 1;
         }
 
+        // Find and delete entities that no longer exist on disk
+        let manifest_ids: Vec<String> = manifest.entity_ids().cloned().collect();
+        for entity_id in manifest_ids {
+            if !seen_entity_ids.contains(&entity_id) {
+                // Entity was deleted from disk
+                self.delete_entity(db, &entity_id)?;
+                self.delete_manifest_entry(db, &entity_id)?;
+                stats.deleted += 1;
+            }
+        }
+
+        // Insert edges only for new and modified entities
+        // Unchanged entities keep their existing edges (skipped above)
+        // For Update, edges were deleted in delete_entity_edges before update
+        // For Insert, no old edges exist
         self.insert_edges(db, &id_to_record_id, pending_relations)?;
 
         Ok(stats)

@@ -24,7 +24,15 @@ uuid.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 clap.workspace = true
+anyhow.workspace = true
 dirs-next = "2.0"
+
+# For sync worker
+ix-app = { path = "../../crates/ix-app" }
+ix-core = { path = "../../crates/ix-core" }
+
+# For file watching
+notify.workspace = true
 
 [dev-dependencies]
 tempfile = "3.10"

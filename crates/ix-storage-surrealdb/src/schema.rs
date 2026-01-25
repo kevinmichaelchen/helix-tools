@@ -4,6 +4,7 @@
 ///
 /// Creates:
 /// - `entity` table with SCHEMAFULL mode
+/// - `sync_manifest` table for incremental sync tracking
 /// - HNSW vector index for similarity search
 /// - Relationship edge definitions
 pub const SCHEMA_INIT: &str = r"
@@ -34,6 +35,14 @@ DEFINE INDEX IF NOT EXISTS entity_id_idx ON entity FIELDS entity_id UNIQUE;
 DEFINE TABLE IF NOT EXISTS relates SCHEMAFULL TYPE RELATION IN entity OUT entity;
 DEFINE FIELD IF NOT EXISTS label ON relates TYPE string;
 DEFINE INDEX IF NOT EXISTS relates_label_idx ON relates FIELDS label;
+
+-- Sync manifest table for incremental sync tracking
+DEFINE TABLE IF NOT EXISTS sync_manifest SCHEMAFULL;
+DEFINE FIELD IF NOT EXISTS entity_id ON sync_manifest TYPE string ASSERT $value != NONE;
+DEFINE FIELD IF NOT EXISTS content_hash ON sync_manifest TYPE string;
+DEFINE FIELD IF NOT EXISTS file_path ON sync_manifest TYPE string;
+DEFINE FIELD IF NOT EXISTS last_synced ON sync_manifest TYPE int;
+DEFINE INDEX IF NOT EXISTS manifest_entity_id_idx ON sync_manifest FIELDS entity_id UNIQUE;
 ";
 
 /// Create HNSW vector index with the specified dimension.

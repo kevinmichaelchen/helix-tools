@@ -10,6 +10,12 @@ struct Args {
 
     #[arg(long, default_value_t = DEFAULT_IDLE_TIMEOUT_MS, help = "Idle timeout in milliseconds (0 to disable)")]
     idle_timeout: u64,
+
+    #[arg(
+        long,
+        help = "Enable file watching for automatic sync on .ixchel/ changes"
+    )]
+    watch: bool,
 }
 
 #[tokio::main]
@@ -22,7 +28,7 @@ async fn main() -> ExitCode {
         .init();
 
     let args = Args::parse();
-    let server = Server::with_idle_timeout(&args.socket, args.idle_timeout);
+    let server = Server::with_options(&args.socket, args.idle_timeout, args.watch);
 
     tracing::info!("Starting ixcheld with socket: {}", args.socket);
 

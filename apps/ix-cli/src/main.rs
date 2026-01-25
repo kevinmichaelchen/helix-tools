@@ -93,6 +93,17 @@ enum Command {
     Edit {
         id: String,
     },
+
+    /// Start or stop watching a repository for file changes.
+    Watch {
+        /// Stop watching instead of starting.
+        #[arg(long)]
+        unwatch: bool,
+
+        /// Run watcher in foreground (local, without daemon).
+        #[arg(long)]
+        foreground: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -136,6 +147,10 @@ fn run(command: Command, start: &Path, json_output: bool) -> Result<()> {
         Command::Context { id } => cmd_context(start, &id, json_output),
         Command::Delete { id } => cmd_delete(start, &id, json_output),
         Command::Edit { id } => cmd_edit(start, &id, json_output),
+        Command::Watch {
+            unwatch,
+            foreground,
+        } => cmd_watch(start, unwatch, foreground, json_output),
     }
 }
 
@@ -668,6 +683,155 @@ fn collect_context(
     }
 
     Ok(out)
+}
+
+fn cmd_watch(start: &Path, unwatch: bool, foreground: bool, json_output: bool) -> Result<()> {
+    let repo = ix_core::repo::IxchelRepo::open_from(start)?;
+    let repo_root = repo.paths.repo_root().to_string_lossy().to_string();
+
+    if foreground {
+        // Run local watcher in foreground (for debugging)
+        return run_foreground_watcher(&repo, json_output);
+    }
+
+    // Create a tokio runtime for async daemon client calls
+    let rt = tokio::runtime::Runtime::new()?;
+
+    let client = ix_daemon::Client::new();
+
+    if unwatch {
+        let result = rt.block_on(client.unwatch(&repo_root));
+        match result {
+            Ok((path, stopped)) => {
+                if json_output {
+                    print_json(&json!({
+                        "repo_root": path,
+                        "stopped": stopped,
+                    }))?;
+                } else if stopped {
+                    println!("Stopped watching {path}");
+                } else {
+                    println!("Was not watching {path}");
+                }
+            }
+            Err(e) => anyhow::bail!("Failed to unwatch: {e}"),
+        }
+    } else {
+        let result = rt.block_on(client.watch(&repo_root));
+        match result {
+            Ok((path, started)) => {
+                if json_output {
+                    print_json(&json!({
+                        "repo_root": path,
+                        "started": started,
+                    }))?;
+                } else if started {
+                    println!("Started watching {path}");
+                } else {
+                    println!("Already watching {path}");
+                }
+            }
+            Err(e) => {
+                if let ix_daemon::DaemonError::Internal(msg) = &e
+                    && msg.contains("File watching is not enabled")
+                {
+                    anyhow::bail!(
+                        "Failed to watch: {e}\nHint: restart the daemon with `ixcheld --watch` and retry `ixchel watch`."
+                    );
+                }
+                anyhow::bail!("Failed to watch: {e}")
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn run_foreground_watcher(repo: &ix_core::repo::IxchelRepo, json_output: bool) -> Result<()> {
+    use notify::{Config, Event, RecursiveMode, Watcher};
+
+    let ixchel_dir = repo.paths.ixchel_dir();
+    if !ixchel_dir.exists() {
+        anyhow::bail!("Repository not initialized: {}", ixchel_dir.display());
+    }
+
+    let repo_root = repo.paths.repo_root().to_path_buf();
+
+    if !json_output {
+        println!("Watching {} (Ctrl+C to stop)", ixchel_dir.display());
+    }
+
+    // Create a channel for events
+    let (tx, rx) = std::sync::mpsc::channel::<Event>();
+
+    // Create watcher
+    let mut watcher = notify::RecommendedWatcher::new(
+        move |res: Result<Event, notify::Error>| {
+            if let Ok(event) = res {
+                let _ = tx.send(event);
+            }
+        },
+        Config::default(),
+    )?;
+
+    watcher.watch(&ixchel_dir, RecursiveMode::Recursive)?;
+
+    // Process events
+    for event in rx {
+        // Filter for .md files
+        let md_paths: Vec<_> = event
+            .paths
+            .iter()
+            .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("md"))
+            .filter(|p| !is_in_ignored_dir(&repo_root, p))
+            .collect();
+
+        if md_paths.is_empty() {
+            continue;
+        }
+
+        for path in md_paths {
+            let relative = path.strip_prefix(&repo_root).unwrap_or(path);
+            let kind = match event.kind {
+                notify::EventKind::Create(_) => "create",
+                notify::EventKind::Modify(_) => "modify",
+                notify::EventKind::Remove(_) => "remove",
+                _ => continue,
+            };
+
+            if json_output {
+                print_json(&json!({
+                    "event": kind,
+                    "path": relative.to_string_lossy(),
+                }))?;
+            } else {
+                println!("{kind}: {}", relative.display());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Check if a path is within an ignored directory (.ixchel/data/ or .ixchel/models/).
+fn is_in_ignored_dir(repo_root: &Path, path: &Path) -> bool {
+    const IGNORED_DIRS: &[&str] = &["data", "models"];
+
+    let relative = path.strip_prefix(repo_root).unwrap_or(path);
+
+    let mut in_ixchel = false;
+    for component in relative.components() {
+        let name = component.as_os_str().to_string_lossy();
+        if name == ".ixchel" {
+            in_ixchel = true;
+            continue;
+        }
+        if in_ixchel && IGNORED_DIRS.contains(&name.as_ref()) {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn extract_relationships(frontmatter: &serde_yaml::Mapping) -> Vec<(String, Vec<String>)> {

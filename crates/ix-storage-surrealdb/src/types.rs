@@ -60,3 +60,16 @@ pub struct NeighborResult {
     /// Entity identifier of the neighbor
     pub entity_id: String,
 }
+
+/// Manifest record stored in `SurrealDB` for incremental sync tracking.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManifestRecord {
+    /// Entity identifier
+    pub entity_id: String,
+    /// Content hash (blake3) of the file at last sync
+    pub content_hash: String,
+    /// Relative file path from repo root
+    pub file_path: String,
+    /// Unix timestamp (seconds) of last sync
+    pub last_synced: i64,
+}

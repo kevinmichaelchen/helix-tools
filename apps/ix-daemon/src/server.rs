@@ -1,8 +1,11 @@
 use crate::queue::SyncQueue;
+use crate::watcher::{RepoWatcher, WatchEvent};
+use crate::worker::SyncWorker;
 use crate::{
     Command, DEFAULT_IDLE_TIMEOUT_MS, DaemonError, EnqueueSyncPayload, EnqueueSyncResponse,
     ErrorCode, PROTOCOL_VERSION, PingResponse, Request, Response, ResponsePayload,
-    ShutdownResponse, StatusPayload, StatusResponse, WaitSyncPayload, WaitSyncResponse,
+    ShutdownResponse, StatusPayload, StatusResponse, UnwatchPayload, UnwatchResponse,
+    WaitSyncPayload, WaitSyncResponse, WatchPayload, WatchResponse,
 };
 use std::path::Path;
 use std::sync::Arc;
@@ -14,9 +17,13 @@ use tokio::sync::broadcast;
 
 const MAX_MESSAGE_SIZE: usize = 1024 * 1024;
 
+/// Size of the watch event buffer.
+const WATCH_EVENT_BUFFER_SIZE: usize = 256;
+
 pub struct Server {
     socket_path: String,
     idle_timeout_ms: u64,
+    watch_enabled: bool,
     start_time: Instant,
     shutdown_tx: broadcast::Sender<()>,
     queue: Arc<SyncQueue>,
@@ -25,14 +32,23 @@ pub struct Server {
 
 impl Server {
     pub fn new(socket_path: impl Into<String>) -> Self {
-        Self::with_idle_timeout(socket_path, DEFAULT_IDLE_TIMEOUT_MS)
+        Self::with_options(socket_path, DEFAULT_IDLE_TIMEOUT_MS, false)
     }
 
     pub fn with_idle_timeout(socket_path: impl Into<String>, idle_timeout_ms: u64) -> Self {
+        Self::with_options(socket_path, idle_timeout_ms, false)
+    }
+
+    pub fn with_options(
+        socket_path: impl Into<String>,
+        idle_timeout_ms: u64,
+        watch_enabled: bool,
+    ) -> Self {
         let (shutdown_tx, _) = broadcast::channel(1);
         Self {
             socket_path: socket_path.into(),
             idle_timeout_ms,
+            watch_enabled,
             start_time: Instant::now(),
             shutdown_tx,
             queue: Arc::new(SyncQueue::new()),
@@ -82,10 +98,28 @@ impl Server {
             tracing::info!("Idle timeout: {}ms", self.idle_timeout_ms);
         }
 
+        if self.watch_enabled {
+            tracing::info!("File watching enabled");
+        }
+
         self.touch_activity();
 
         let mut shutdown_rx = self.shutdown_tx.subscribe();
         let idle_check_interval = Duration::from_secs(10);
+
+        // Spawn the sync worker
+        let worker = SyncWorker::new(Arc::clone(&self.queue), self.shutdown_tx.subscribe());
+        let worker_handle = tokio::spawn(async move {
+            worker.run().await;
+        });
+
+        // Create watcher if enabled
+        let (watcher, mut watch_rx) = if self.watch_enabled {
+            let (watcher, rx) = RepoWatcher::new(WATCH_EVENT_BUFFER_SIZE);
+            (Some(Arc::new(watcher)), Some(rx))
+        } else {
+            (None, None)
+        };
 
         loop {
             tokio::select! {
@@ -97,8 +131,9 @@ impl Server {
                             let start_time = self.start_time;
                             let shutdown_tx = self.shutdown_tx.clone();
                             let last_activity = Arc::clone(&self.last_activity);
+                            let watcher_clone = watcher.clone();
                             tokio::spawn(async move {
-                                if let Err(e) = handle_connection(stream, queue, start_time, shutdown_tx, last_activity).await {
+                                if let Err(e) = handle_connection(stream, queue, start_time, shutdown_tx, last_activity, watcher_clone).await {
                                     tracing::error!("Connection error: {}", e);
                                 }
                             });
@@ -108,6 +143,14 @@ impl Server {
                         }
                     }
                 }
+                Some(event) = async {
+                    match &mut watch_rx {
+                        Some(rx) => rx.recv().await,
+                        None => std::future::pending().await,
+                    }
+                } => {
+                    self.handle_watch_event(event).await;
+                }
                 _ = shutdown_rx.recv() => {
                     tracing::info!("Shutdown signal received");
                     break;
@@ -115,14 +158,48 @@ impl Server {
                 () = tokio::time::sleep(idle_check_interval), if self.idle_timeout_ms > 0 => {
                     if self.is_idle() && self.queue.list_queues().await.is_empty() {
                         tracing::info!("Idle timeout reached, shutting down");
+                        // Signal the worker to stop before breaking
+                        let _ = self.shutdown_tx.send(());
                         break;
                     }
                 }
             }
         }
 
+        // Wait for worker to finish
+        let _ = worker_handle.await;
+
         let _ = tokio::fs::remove_file(&socket_path).await;
         Ok(())
+    }
+
+    /// Handle a file watch event by enqueueing a sync.
+    async fn handle_watch_event(&self, event: WatchEvent) {
+        tracing::debug!(
+            "Watch event: {:?} for {} in {}",
+            event.kind,
+            event.changed_path.display(),
+            event.repo_root.display()
+        );
+
+        // Touch activity timer (file changes should prevent idle shutdown)
+        self.touch_activity();
+
+        // Enqueue a sync for this repository
+        // The queue will coalesce multiple rapid changes
+        let repo_root = event.repo_root.to_string_lossy().to_string();
+        let (sync_id, is_new) = self
+            .queue
+            .enqueue(&repo_root, "watcher", ".ixchel", false)
+            .await;
+
+        if is_new {
+            tracing::info!(
+                "File change detected, enqueued sync {} for {}",
+                sync_id,
+                repo_root
+            );
+        }
     }
 
     pub fn shutdown(&self) {
@@ -136,6 +213,7 @@ async fn handle_connection(
     start_time: Instant,
     shutdown_tx: broadcast::Sender<()>,
     last_activity: Arc<AtomicU64>,
+    watcher: Option<Arc<RepoWatcher>>,
 ) -> Result<(), DaemonError> {
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
@@ -164,7 +242,7 @@ async fn handle_connection(
         let response = match serde_json::from_str::<Request>(line.trim()) {
             Ok(req) => {
                 if req.version == PROTOCOL_VERSION {
-                    handle_command(&req, &queue, start_time, &shutdown_tx).await
+                    handle_command(&req, &queue, start_time, &shutdown_tx, watcher.as_deref()).await
                 } else {
                     Response::error(
                         &req.id,
@@ -188,11 +266,13 @@ async fn handle_connection(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn handle_command(
     req: &Request,
     queue: &SyncQueue,
     start_time: Instant,
     shutdown_tx: &broadcast::Sender<()>,
+    watcher: Option<&RepoWatcher>,
 ) -> Response {
     match &req.command {
         Command::Ping => Response::ok(
@@ -260,6 +340,78 @@ async fn handle_command(
             Response::ok(
                 &req.id,
                 ResponsePayload::Status(StatusResponse { queues, uptime_ms }),
+            )
+        }
+
+        Command::Watch(WatchPayload { repo_root }) => {
+            let Some(watcher) = watcher else {
+                return Response::error(
+                    &req.id,
+                    ErrorCode::InternalError,
+                    "File watching is not enabled. Start daemon with --watch flag.",
+                );
+            };
+
+            let target_repo = if repo_root.is_empty() {
+                &req.repo_root
+            } else {
+                repo_root
+            };
+
+            let was_watching = watcher
+                .watched_repos()
+                .await
+                .iter()
+                .any(|p| p.to_string_lossy() == *target_repo);
+
+            if !was_watching && let Err(e) = watcher.watch_repo(Path::new(target_repo)).await {
+                return Response::error(
+                    &req.id,
+                    ErrorCode::InternalError,
+                    format!("Failed to start watching: {e}"),
+                );
+            }
+
+            Response::ok(
+                &req.id,
+                ResponsePayload::Watch(WatchResponse {
+                    repo_root: target_repo.clone(),
+                    started: !was_watching,
+                }),
+            )
+        }
+
+        Command::Unwatch(UnwatchPayload { repo_root }) => {
+            let Some(watcher) = watcher else {
+                return Response::error(
+                    &req.id,
+                    ErrorCode::InternalError,
+                    "File watching is not enabled. Start daemon with --watch flag.",
+                );
+            };
+
+            let target_repo = if repo_root.is_empty() {
+                &req.repo_root
+            } else {
+                repo_root
+            };
+
+            let was_watching = watcher
+                .watched_repos()
+                .await
+                .iter()
+                .any(|p| p.to_string_lossy() == *target_repo);
+
+            if was_watching {
+                let _ = watcher.unwatch_repo(Path::new(target_repo)).await;
+            }
+
+            Response::ok(
+                &req.id,
+                ResponsePayload::Unwatch(UnwatchResponse {
+                    repo_root: target_repo.clone(),
+                    stopped: was_watching,
+                }),
             )
         }
 

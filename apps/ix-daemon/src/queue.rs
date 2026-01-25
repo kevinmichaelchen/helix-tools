@@ -137,6 +137,19 @@ impl SyncQueue {
         self.jobs.read().await.get(&id).cloned()
     }
 
+    /// Get the next pending job in the queue (FIFO order).
+    ///
+    /// Returns None if no jobs are queued.
+    pub async fn next_pending(&self) -> Option<SyncJob> {
+        let jobs = self.jobs.read().await;
+
+        // Find the oldest queued job
+        jobs.values()
+            .filter(|job| job.state == SyncState::Queued)
+            .min_by_key(|job| job.queued_at)
+            .cloned()
+    }
+
     #[allow(clippy::significant_drop_tightening)]
     pub async fn start(&self, id: &str) -> bool {
         let mut jobs = self.jobs.write().await;

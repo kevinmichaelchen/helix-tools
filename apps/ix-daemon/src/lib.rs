@@ -10,10 +10,14 @@
 mod client;
 mod queue;
 mod server;
+mod watcher;
+mod worker;
 
 pub use client::Client;
 pub use queue::{QueueKey, SyncJob, SyncQueue};
 pub use server::Server;
+pub use watcher::{RepoWatcher, WatchError, WatchEvent, WatchEventKind};
+pub use worker::SyncWorker;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -132,6 +136,12 @@ pub enum Command {
     /// Query daemon status.
     Status(StatusPayload),
 
+    /// Start watching a repository for changes.
+    Watch(WatchPayload),
+
+    /// Stop watching a repository.
+    Unwatch(UnwatchPayload),
+
     /// Shutdown the daemon (dev/test only).
     Shutdown(ShutdownPayload),
 }
@@ -169,6 +179,20 @@ pub struct StatusPayload {
     /// Filter by tool (optional).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WatchPayload {
+    /// Repository root to watch (uses `repo_root` from request if empty).
+    #[serde(default)]
+    pub repo_root: String,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UnwatchPayload {
+    /// Repository root to stop watching (uses `repo_root` from request if empty).
+    #[serde(default)]
+    pub repo_root: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -247,6 +271,8 @@ pub enum ResponsePayload {
     EnqueueSync(EnqueueSyncResponse),
     WaitSync(WaitSyncResponse),
     Status(StatusResponse),
+    Watch(WatchResponse),
+    Unwatch(UnwatchResponse),
     Shutdown(ShutdownResponse),
 }
 
@@ -297,6 +323,22 @@ pub struct QueueInfo {
     pub tool: String,
     pub pending: u32,
     pub active: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WatchResponse {
+    /// Repository root being watched.
+    pub repo_root: String,
+    /// Whether watching was newly started (false if already watching).
+    pub started: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UnwatchResponse {
+    /// Repository root that was unwatched.
+    pub repo_root: String,
+    /// Whether watching was actually stopped (false if wasn't watching).
+    pub stopped: bool,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
