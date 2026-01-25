@@ -5,6 +5,7 @@ edition = "2024"
 description = "HelixDB graph storage helpers for Ixchel"
 license = "MIT"
 repository = "https://github.com/kevinmichaelchen/ixchel"
+publish = false  # Uses git dependency (helix-db)
 
 [dependencies]
 helix-db = { workspace = true }

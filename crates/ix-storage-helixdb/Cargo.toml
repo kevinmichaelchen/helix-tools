@@ -9,6 +9,7 @@ description = "HelixDB-backed storage adapter for Ixchel"
 readme = "README.md"
 keywords = ["helixdb", "storage", "knowledge-graph"]
 categories = ["database"]
+publish = false  # Uses git dependency (helix-db)
 
 [dependencies]
 anyhow.workspace = true

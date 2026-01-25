@@ -19,6 +19,10 @@ ix-core = { path = "../../crates/ix-core" }
 serde_yaml.workspace = true
 serde_json.workspace = true
 
+[features]
+default = []
+helixdb = ["ix-app/helixdb"]
+
 [lints]
 workspace = true
 

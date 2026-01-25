@@ -22,6 +22,10 @@ tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 
+[features]
+default = []
+helixdb = ["ix-app/helixdb"]
+
 [lints]
 workspace = true
 

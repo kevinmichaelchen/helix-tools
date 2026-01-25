@@ -13,8 +13,12 @@ categories = ["development-tools"]
 [dependencies]
 anyhow.workspace = true
 ix-core = { path = "../ix-core" }
-ix-storage-helixdb = { path = "../ix-storage-helixdb" }
+ix-storage-helixdb = { path = "../ix-storage-helixdb", optional = true }
 ix-storage-surrealdb = { path = "../ix-storage-surrealdb" }
+
+[features]
+default = []
+helixdb = ["dep:ix-storage-helixdb"]
 
 [lints]
 workspace = true

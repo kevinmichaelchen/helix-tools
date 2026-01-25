@@ -2,15 +2,13 @@ use anyhow::{Context, Result};
 use ix_core::index::{IndexBackend, SearchHit, SyncStats};
 use ix_core::repo::IxchelRepo;
 
+fn backend_name(repo: &IxchelRepo) -> String {
+    repo.config.storage.backend.trim().to_ascii_lowercase()
+}
+
 pub fn sync(repo: &IxchelRepo) -> Result<SyncStats> {
-    match repo
-        .config
-        .storage
-        .backend
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
+    match backend_name(repo).as_str() {
+        #[cfg(feature = "helixdb")]
         "helixdb" => {
             let mut index =
                 ix_storage_helixdb::HelixDbIndex::open(repo).context("open helixdb index")?;
@@ -21,19 +19,19 @@ pub fn sync(repo: &IxchelRepo) -> Result<SyncStats> {
                 ix_storage_surrealdb::SurrealDbIndex::open(repo).context("open surrealdb index")?;
             IndexBackend::sync(&mut index, repo).context("sync surrealdb index")
         }
+        #[cfg(feature = "helixdb")]
         backend => anyhow::bail!("Unsupported storage backend: {backend}"),
+        #[cfg(not(feature = "helixdb"))]
+        backend => anyhow::bail!(
+            "Unsupported storage backend: {backend}. \
+             Note: HelixDB support requires the 'helixdb' feature."
+        ),
     }
 }
 
 pub fn search(repo: &IxchelRepo, query: &str, limit: usize) -> Result<Vec<SearchHit>> {
-    match repo
-        .config
-        .storage
-        .backend
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
+    match backend_name(repo).as_str() {
+        #[cfg(feature = "helixdb")]
         "helixdb" => {
             let index =
                 ix_storage_helixdb::HelixDbIndex::open(repo).context("open helixdb index")?;
@@ -44,19 +42,19 @@ pub fn search(repo: &IxchelRepo, query: &str, limit: usize) -> Result<Vec<Search
                 ix_storage_surrealdb::SurrealDbIndex::open(repo).context("open surrealdb index")?;
             IndexBackend::search(&index, query, limit).context("search surrealdb index")
         }
+        #[cfg(feature = "helixdb")]
         backend => anyhow::bail!("Unsupported storage backend: {backend}"),
+        #[cfg(not(feature = "helixdb"))]
+        backend => anyhow::bail!(
+            "Unsupported storage backend: {backend}. \
+             Note: HelixDB support requires the 'helixdb' feature."
+        ),
     }
 }
 
 pub fn health_check(repo: &IxchelRepo) -> Result<()> {
-    match repo
-        .config
-        .storage
-        .backend
-        .trim()
-        .to_ascii_lowercase()
-        .as_str()
-    {
+    match backend_name(repo).as_str() {
+        #[cfg(feature = "helixdb")]
         "helixdb" => {
             let index =
                 ix_storage_helixdb::HelixDbIndex::open(repo).context("open helixdb index")?;
@@ -67,6 +65,12 @@ pub fn health_check(repo: &IxchelRepo) -> Result<()> {
                 ix_storage_surrealdb::SurrealDbIndex::open(repo).context("open surrealdb index")?;
             IndexBackend::health_check(&index).context("surrealdb health check")
         }
+        #[cfg(feature = "helixdb")]
         backend => anyhow::bail!("Unsupported storage backend: {backend}"),
+        #[cfg(not(feature = "helixdb"))]
+        backend => anyhow::bail!(
+            "Unsupported storage backend: {backend}. \
+             Note: HelixDB support requires the 'helixdb' feature."
+        ),
     }
 }
