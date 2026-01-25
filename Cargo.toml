@@ -12,6 +12,7 @@ members = [
     "crates/ix-helixdb-ops",
     "crates/ix-id",
     "crates/ix-storage-helixdb",
+    "crates/ix-storage-surrealdb",
     # "crates/ix-embed",
     # "crates/ix-search",
     # "crates/ix-chunk",
@@ -27,6 +28,9 @@ authors = ["Kevin Chen"]
 [workspace.dependencies]
 # HelixDB - Graph-vector database
 helix-db = { git = "https://github.com/HelixDB/helix-db.git", features = ["vectors"] }
+
+# SurrealDB - Multi-model database with vector support
+surrealdb = { version = "2", default-features = false, features = ["kv-rocksdb", "kv-surrealkv"] }
 
 # Async runtime
 tokio = { version = "1.40", features = ["full"] }

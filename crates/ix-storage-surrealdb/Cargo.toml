@@ -1,0 +1,29 @@
+[package]
+name = "ix-storage-surrealdb"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "SurrealDB-backed storage adapter for Ixchel"
+readme = "README.md"
+keywords = ["surrealdb", "storage", "knowledge-graph"]
+categories = ["database"]
+
+[dependencies]
+anyhow.workspace = true
+blake3.workspace = true
+ix-core = { path = "../ix-core" }
+ix-embeddings = { path = "../ix-embeddings" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+serde_yaml.workspace = true
+surrealdb.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+blake3.workspace = true
+tempfile = "3"

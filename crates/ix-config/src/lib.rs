@@ -119,13 +119,19 @@ const fn default_batch_size() -> usize {
 /// Storage configuration.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StorageConfig {
-    /// Storage backend to use (e.g. "helixdb").
+    /// Storage backend to use (e.g. "helixdb", "surrealdb").
     #[serde(default = "default_storage_backend")]
     pub backend: String,
 
     /// Path relative to `.ixchel/` for rebuildable storage.
     #[serde(default = "default_storage_path")]
     pub path: String,
+
+    /// Storage engine for backends that support multiple engines.
+    ///
+    /// For `SurrealDB`: "rocksdb" (default) or "surrealkv".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine: Option<String>,
 }
 
 impl Default for StorageConfig {
@@ -133,12 +139,13 @@ impl Default for StorageConfig {
         Self {
             backend: default_storage_backend(),
             path: default_storage_path(),
+            engine: None,
         }
     }
 }
 
 fn default_storage_backend() -> String {
-    "helixdb".to_string()
+    "surrealdb".to_string()
 }
 
 fn default_storage_path() -> String {
