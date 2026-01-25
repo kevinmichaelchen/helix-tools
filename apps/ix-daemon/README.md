@@ -14,7 +14,17 @@ sync, single-writer enforcement, and queueing across repos and tools.
 ## IPC
 
 - Unix socket: `~/.ixchel/run/ixcheld.sock`
-- Windows: named pipe (path defined in specs)
+
+## Platform Support
+
+| Platform                      | Status               |
+| ----------------------------- | -------------------- |
+| macOS (Intel & Apple Silicon) | ✅ Supported         |
+| Linux (x86_64 & ARM64)        | ✅ Supported         |
+| Windows                       | ❌ Not yet supported |
+
+Windows support requires rewriting the IPC layer to use named pipes instead of
+Unix sockets. See [iss-7165bb](/.ixchel/issues/iss-7165bb.md).
 
 ## Specs
 

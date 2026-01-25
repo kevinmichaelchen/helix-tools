@@ -43,6 +43,17 @@ ixchel search "database performance"
 - **Offline-first** — Local embeddings, no server required
 - **AI-native** — `--json` output, semantic search, agent tracking
 
+## Platform Support
+
+| Platform                      | Status               |
+| ----------------------------- | -------------------- |
+| macOS (Intel & Apple Silicon) | ✅ Supported         |
+| Linux (x86_64 & ARM64)        | ✅ Supported         |
+| Windows                       | ❌ Not yet supported |
+
+Windows support is blocked on rewriting the daemon's IPC layer from Unix sockets
+to named pipes. Contributions welcome!
+
 ## Learn More
 
 | Resource                     | Description       |
