@@ -30,6 +30,15 @@ impl Client {
     }
 
     pub async fn connect(&self) -> Result<UnixStream, DaemonError> {
+        self.connect_with_flags(&[]).await
+    }
+
+    /// Connect to the daemon, starting it with `--watch` flag if needed.
+    pub async fn connect_for_watch(&self) -> Result<UnixStream, DaemonError> {
+        self.connect_with_flags(&["--watch"]).await
+    }
+
+    async fn connect_with_flags(&self, extra_args: &[&str]) -> Result<UnixStream, DaemonError> {
         let socket_path = self.expanded_socket_path();
 
         for attempt in 0..MAX_CONNECT_RETRIES {
@@ -40,7 +49,7 @@ impl Client {
                         || e.kind() == std::io::ErrorKind::ConnectionRefused =>
                 {
                     if attempt == 0 {
-                        self.start_daemon().await?;
+                        self.start_daemon_with_flags(extra_args).await?;
                     }
                     tokio::time::sleep(tokio::time::Duration::from_millis(
                         CONNECT_RETRY_DELAY_MS * (u64::from(attempt) + 1),
@@ -56,7 +65,7 @@ impl Client {
         )))
     }
 
-    async fn start_daemon(&self) -> Result<(), DaemonError> {
+    async fn start_daemon_with_flags(&self, extra_args: &[&str]) -> Result<(), DaemonError> {
         let socket_path = self.expanded_socket_path();
 
         if let Some(parent) = Path::new(&socket_path).parent() {
@@ -69,13 +78,18 @@ impl Client {
             .filter(|p| p.exists())
             .unwrap_or_else(|| "ixcheld".into());
 
-        tokio::process::Command::new(ixcheld_path)
-            .arg("--socket")
+        let mut cmd = tokio::process::Command::new(ixcheld_path);
+        cmd.arg("--socket")
             .arg(&socket_path)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
+            .stderr(Stdio::null());
+
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+
+        cmd.spawn()
             .map_err(|e| DaemonError::Internal(format!("Failed to start ixcheld: {e}")))?;
 
         Ok(())
@@ -202,6 +216,7 @@ impl Client {
     /// Start watching a repository for file changes.
     ///
     /// Returns `(repo_root, started)` where `started` is true if watching was newly started.
+    /// If the daemon isn't running, it will be started with `--watch` flag.
     pub async fn watch(&self, repo_root: &str) -> Result<(String, bool), DaemonError> {
         let request = Request::new(
             repo_root,
@@ -210,7 +225,8 @@ impl Client {
                 repo_root: String::new(), // Use the one from request envelope
             }),
         );
-        let response = self.send(request).await?;
+        // Use connect_for_watch to ensure daemon is started with --watch flag
+        let response = self.send_for_watch(request).await?;
 
         match response.result {
             ResponseResult::Ok { payload } => {
@@ -222,6 +238,23 @@ impl Client {
             }
             ResponseResult::Error { error } => Err(DaemonError::Internal(error.message)),
         }
+    }
+
+    /// Send a request, starting the daemon with `--watch` if needed.
+    async fn send_for_watch(&self, request: Request) -> Result<Response, DaemonError> {
+        let mut stream = self.connect_for_watch().await?;
+
+        let json = serde_json::to_string(&request)?;
+        stream.write_all(json.as_bytes()).await?;
+        stream.write_all(b"\n").await?;
+        stream.flush().await?;
+
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        reader.read_line(&mut line).await?;
+
+        let response: Response = serde_json::from_str(line.trim())?;
+        Ok(response)
     }
 
     /// Stop watching a repository for file changes.

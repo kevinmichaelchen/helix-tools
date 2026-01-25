@@ -494,18 +494,15 @@ impl IndexBackend for SurrealDbIndex {
             let content_hash = blake3::hash(raw.as_bytes()).to_hex().to_string();
             let normalized_path = normalize_path(&self.repo_root, &entity_path);
 
-            // Determine action based on manifest
-            let action = manifest.action_for(&id, &content_hash);
+            // Determine action based on manifest (checks both content hash and file path)
+            let action = manifest.action_for(&id, &content_hash, &normalized_path);
 
             match action {
                 SyncAction::Skip => {
-                    // Entity unchanged, just track it for relationships
+                    // Entity unchanged - edges are already correct, no need to re-insert
                     stats.unchanged += 1;
+                    // Still track the ID for relationship target resolution
                     id_to_record_id.insert(id.clone(), id.clone());
-                    pending_relations.push(PendingRelation {
-                        from_record_id: id,
-                        rels: extract_relationships(&doc.frontmatter),
-                    });
                     continue;
                 }
                 SyncAction::Insert | SyncAction::Update => {
@@ -587,9 +584,10 @@ impl IndexBackend for SurrealDbIndex {
             }
         }
 
-        // Re-insert all edges (simpler than tracking which changed)
-        // For unchanged entities, their edges are already correct, but we re-add them
-        // This is idempotent since we delete old edges before update
+        // Insert edges only for new and modified entities
+        // Unchanged entities keep their existing edges (skipped above)
+        // For Update, edges were deleted in delete_entity_edges before update
+        // For Insert, no old edges exist
         self.insert_edges(db, &id_to_record_id, pending_relations)?;
 
         Ok(stats)

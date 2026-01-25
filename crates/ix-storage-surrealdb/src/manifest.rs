@@ -91,10 +91,21 @@ pub enum SyncAction {
 }
 
 impl SyncManifest {
-    /// Determine what action to take for an entity based on its current hash.
-    pub fn action_for(&self, entity_id: &str, current_hash: &str) -> SyncAction {
+    /// Determine what action to take for an entity based on its current hash and path.
+    ///
+    /// Returns `Update` if either the content hash or file path has changed.
+    pub fn action_for(
+        &self,
+        entity_id: &str,
+        current_hash: &str,
+        current_path: &str,
+    ) -> SyncAction {
         match self.entries.get(entity_id) {
-            Some(entry) if entry.content_hash == current_hash => SyncAction::Skip,
+            Some(entry)
+                if entry.content_hash == current_hash && entry.file_path == current_path =>
+            {
+                SyncAction::Skip
+            }
             Some(_) => SyncAction::Update,
             None => SyncAction::Insert,
         }
@@ -105,10 +116,15 @@ impl SyncManifest {
 mod tests {
     use super::*;
 
+    const TEST_PATH: &str = ".ixchel/decisions/dec-123.md";
+
     #[test]
     fn test_manifest_action_for_new() {
         let manifest = SyncManifest::new();
-        assert_eq!(manifest.action_for("dec-123", "abc123"), SyncAction::Insert);
+        assert_eq!(
+            manifest.action_for("dec-123", "abc123", TEST_PATH),
+            SyncAction::Insert
+        );
     }
 
     #[test]
@@ -118,26 +134,47 @@ mod tests {
             "dec-123".to_string(),
             ManifestEntry {
                 content_hash: "abc123".to_string(),
-                file_path: ".ixchel/decisions/dec-123.md".to_string(),
+                file_path: TEST_PATH.to_string(),
                 last_synced: 1000,
             },
         );
-        assert_eq!(manifest.action_for("dec-123", "abc123"), SyncAction::Skip);
+        assert_eq!(
+            manifest.action_for("dec-123", "abc123", TEST_PATH),
+            SyncAction::Skip
+        );
     }
 
     #[test]
-    fn test_manifest_action_for_changed() {
+    fn test_manifest_action_for_content_changed() {
         let mut manifest = SyncManifest::new();
         manifest.insert(
             "dec-123".to_string(),
             ManifestEntry {
                 content_hash: "abc123".to_string(),
-                file_path: ".ixchel/decisions/dec-123.md".to_string(),
+                file_path: TEST_PATH.to_string(),
                 last_synced: 1000,
             },
         );
         assert_eq!(
-            manifest.action_for("dec-123", "different_hash"),
+            manifest.action_for("dec-123", "different_hash", TEST_PATH),
+            SyncAction::Update
+        );
+    }
+
+    #[test]
+    fn test_manifest_action_for_path_changed() {
+        let mut manifest = SyncManifest::new();
+        manifest.insert(
+            "dec-123".to_string(),
+            ManifestEntry {
+                content_hash: "abc123".to_string(),
+                file_path: TEST_PATH.to_string(),
+                last_synced: 1000,
+            },
+        );
+        // Same content hash but different path should trigger update
+        assert_eq!(
+            manifest.action_for("dec-123", "abc123", ".ixchel/decisions/renamed.md"),
             SyncAction::Update
         );
     }

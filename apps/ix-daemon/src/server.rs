@@ -158,6 +158,8 @@ impl Server {
                 () = tokio::time::sleep(idle_check_interval), if self.idle_timeout_ms > 0 => {
                     if self.is_idle() && self.queue.list_queues().await.is_empty() {
                         tracing::info!("Idle timeout reached, shutting down");
+                        // Signal the worker to stop before breaking
+                        let _ = self.shutdown_tx.send(());
                         break;
                     }
                 }
