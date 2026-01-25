@@ -731,7 +731,16 @@ fn cmd_watch(start: &Path, unwatch: bool, foreground: bool, json_output: bool) -
                     println!("Already watching {path}");
                 }
             }
-            Err(e) => anyhow::bail!("Failed to watch: {e}"),
+            Err(e) => {
+                if let ix_daemon::DaemonError::Internal(msg) = &e
+                    && msg.contains("File watching is not enabled")
+                {
+                    anyhow::bail!(
+                        "Failed to watch: {e}\nHint: restart the daemon with `ixcheld --watch` and retry `ixchel watch`."
+                    );
+                }
+                anyhow::bail!("Failed to watch: {e}")
+            }
         }
     }
 
