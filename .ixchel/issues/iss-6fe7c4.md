@@ -2,7 +2,7 @@
 id: iss-6fe7c4
 type: issue
 title: 'Daemon: background sync + watch for ixchel'
-status: open
+status: closed
 created_at: 2026-01-19T03:08:24Z
 updated_at: 2026-01-19T03:08:24Z
 created_by: kevinchen

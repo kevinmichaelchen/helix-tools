@@ -22,7 +22,7 @@ cuda = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
 
 [dependencies]
 thiserror = "2"
-ix-config = { path = "../ix-config", version = "0.1.0" }
+ix-core = { path = "../ix-core", version = "0.1.0" }
 
 # FastEmbed provider (default)
 fastembed = { version = "4", optional = true }

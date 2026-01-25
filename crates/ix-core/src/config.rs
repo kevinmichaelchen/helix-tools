@@ -1,3 +1,11 @@
+//! Hierarchical configuration loading for Ixchel.
+//!
+//! This module provides configuration management with support for:
+//! - Global config in `~/.ixchel/config/`
+//! - Project config in `.ixchel/`
+//! - Environment variable overrides
+//! - Deep merging of TOML tables
+
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize, de::DeserializeOwned};

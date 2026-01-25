@@ -4,7 +4,7 @@
 //! - `fastembed` (default): ONNX-based, CPU-only
 //! - `candle`: Hugging Face Candle, supports Metal/CUDA
 
-use ix_config::{EmbeddingConfig, load_shared_config};
+use ix_core::{EmbeddingConfig, load_shared_config};
 use std::sync::Mutex;
 use thiserror::Error;
 

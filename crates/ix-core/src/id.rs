@@ -1,3 +1,8 @@
+//! Hash-based ID generation for Ixchel.
+//!
+//! Provides deterministic and random ID generation using BLAKE3 hashing.
+//! IDs have the format `{prefix}-{hex}` where hex is 6 characters by default.
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -89,11 +94,21 @@ pub fn parse_id(id: &str) -> Result<(String, String), IdError> {
     Ok((prefix, hash))
 }
 
+/// Macro to define a strongly-typed ID with a specific prefix.
+///
+/// # Example
+/// ```
+/// use ix_core::define_id;
+///
+/// define_id!(SourceId, "src");
+///
+/// let id = SourceId::from_key("facebook/react");
+/// assert!(id.as_str().starts_with("src-"));
+/// ```
 #[macro_export]
 macro_rules! define_id {
     ($name:ident, $prefix:expr) => {
-        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
         pub struct $name(String);
 
         impl $name {
@@ -102,12 +117,12 @@ macro_rules! define_id {
             ///
             /// Example: `SourceId::from_key("facebook/react")`
             pub fn from_key(key: &str) -> Self {
-                Self($crate::id_from_key($prefix, key))
+                Self($crate::id::id_from_key($prefix, key))
             }
 
             /// Create ID from a natural key with custom hash length.
             pub fn from_key_with_length(key: &str, bytes: usize) -> Self {
-                Self($crate::id_from_key_with_length($prefix, key, bytes))
+                Self($crate::id::id_from_key_with_length($prefix, key, bytes))
             }
 
             /// Create ID from multiple key parts joined with `:` separator.
@@ -115,12 +130,12 @@ macro_rules! define_id {
             ///
             /// Example: `DocId::from_parts(&[source_id.as_str(), "docs/intro.md"])`
             pub fn from_parts(parts: &[&str]) -> Self {
-                Self($crate::id_from_parts($prefix, parts))
+                Self($crate::id::id_from_parts($prefix, parts))
             }
 
             /// Create ID from multiple key parts with custom hash length.
             pub fn from_parts_with_length(parts: &[&str], bytes: usize) -> Self {
-                Self($crate::id_from_parts_with_length($prefix, parts, bytes))
+                Self($crate::id::id_from_parts_with_length($prefix, parts, bytes))
             }
 
             /// Generate a random ID (non-deterministic).
@@ -129,12 +144,12 @@ macro_rules! define_id {
             ///
             /// Example: `IssueId::random()` for issues where same title is allowed.
             pub fn random() -> Self {
-                Self($crate::id_random($prefix))
+                Self($crate::id::id_random($prefix))
             }
 
             /// Generate a random ID with custom hash length.
             pub fn random_with_length(bytes: usize) -> Self {
-                Self($crate::id_random_with_length($prefix, bytes))
+                Self($crate::id::id_random_with_length($prefix, bytes))
             }
 
             /// Wrap an existing ID string. No validation performed.

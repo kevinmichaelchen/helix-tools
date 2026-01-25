@@ -2,7 +2,7 @@
 id: iss-93f6f1
 type: issue
 title: Consider consolidating small crates into ix-core
-status: backlog
+status: closed
 created_at: 2026-01-25T19:41:25Z
 updated_at: 2026-01-25T19:41:25Z
 created_by: kevinchen
@@ -32,11 +32,11 @@ utility crates like `ix-config` and `ix-id` could potentially be merged into
 
 ## Plan
 
-- [ ] Audit crate boundaries and dependencies
-- [ ] Evaluate which crates are truly reusable independently
-- [ ] Consider merging `ix-config` into `ix-core`
-- [ ] Consider merging `ix-id` into `ix-core`
-- [ ] Update documentation if changes made
+- [x] Audit crate boundaries and dependencies
+- [x] Evaluate which crates are truly reusable independently
+- [x] Consider merging `ix-config` into `ix-core`
+- [x] Consider merging `ix-id` into `ix-core`
+- [x] Update documentation if changes made
 
 ## Considerations
 
@@ -56,4 +56,5 @@ utility crates like `ix-config` and `ix-id` could potentially be merged into
 
 ## Decision
 
-_TBD: Discuss and decide whether to consolidate or keep separate._
+Consolidated `ix-config` and `ix-id` into `ix-core`. The benefits of a simpler dependency
+graph and easier onboarding outweigh the marginal incremental build benefits of separate crates.
