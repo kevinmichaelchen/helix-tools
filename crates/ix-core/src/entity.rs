@@ -101,5 +101,5 @@ pub fn kind_from_id(id: &str) -> Option<EntityKind> {
 
 #[must_use]
 pub fn looks_like_entity_id(id: &str) -> bool {
-    ix_id::parse_id(id).is_ok()
+    crate::id::parse_id(id).is_ok()
 }

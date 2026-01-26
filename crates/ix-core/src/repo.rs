@@ -3,9 +3,9 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use crate::config::{ConfigLoader, IxchelConfig};
 use anyhow::{Context, Result};
 use chrono::{DateTime, SecondsFormat, Utc};
-use ix_config::{ConfigLoader, IxchelConfig};
 use serde_yaml::{Mapping, Value};
 use thiserror::Error;
 
@@ -163,7 +163,7 @@ impl IxchelRepo {
         let created_by = default_actor();
         let now = Utc::now();
 
-        let id = ix_id::id_random(kind.id_prefix());
+        let id = crate::id::id_random(kind.id_prefix());
         let path = self.paths.kind_dir(kind).join(format!("{id}.md"));
 
         if path.exists() {
@@ -705,7 +705,7 @@ fn check_id_and_path(
     }
 
     let mut id_format_ok = true;
-    if ix_id::parse_id(trimmed).is_err() {
+    if crate::id::parse_id(trimmed).is_err() {
         id_format_ok = false;
         push_issue(
             errors,
@@ -1148,7 +1148,7 @@ fn id_hint(file_id: &str, kind: EntityKind) -> String {
         return format!("{}-<hash>", kind.id_prefix());
     }
 
-    if ix_id::parse_id(trimmed).is_ok() {
+    if crate::id::parse_id(trimmed).is_ok() {
         trimmed.to_string()
     } else {
         format!("{}-<hash>", kind.id_prefix())

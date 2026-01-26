@@ -14,12 +14,14 @@ categories = ["development-tools"]
 anyhow.workspace = true
 blake3.workspace = true
 chrono.workspace = true
-ix-config = { path = "../ix-config", version = "0.1.0" }
-ix-id = { path = "../ix-id", version = "0.1.0" }
+dirs = "5"
+hex.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true
 thiserror.workspace = true
+toml = "0.8"
 tracing.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
